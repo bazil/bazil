@@ -38,6 +38,23 @@ func (d Dir) CheckEmpty() {
 	}
 }
 
+// Utility function to create a new subdirectory. This can be used to
+// have more predictable path names in a test that needs multiple temp
+// directories: only make the top one have a random name, name
+// subdirectories by their role in the test.
+//
+// Name must be a valid single path segment, no slashes.
+//
+// Returns an absolute path.
+func (d Dir) Subdir(name string) string {
+	p := path.Join(d.Path, name)
+	err := os.Mkdir(p, 0700)
+	if err != nil {
+		d.t.Fatal("cannot create subdir of temp dir: %v", err)
+	}
+	return p
+}
+
 func New(t *testing.T) Dir {
 	// blatantly assuming we run under "go test"
 	parent := path.Dir(os.Args[0])
