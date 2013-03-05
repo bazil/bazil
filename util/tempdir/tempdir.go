@@ -56,11 +56,14 @@ func (d Dir) Subdir(name string) string {
 }
 
 func New(t *testing.T) Dir {
-	// blatantly assuming we run under "go test"
-	parent := path.Dir(os.Args[0])
-	if path.Base(parent) != "_test" {
-		t.Fatal("tempdir only works under 'go test'")
+	parent := ""
+
+	// if we are running under "go test", use its temp dir
+	arg0 := path.Dir(os.Args[0])
+	if path.Base(arg0) == "_test" {
+		parent = arg0
 	}
+
 	dir, err := ioutil.TempDir(parent, "temp-")
 	if err != nil {
 		t.Fatalf("cannot create temp directory: %v", err)
