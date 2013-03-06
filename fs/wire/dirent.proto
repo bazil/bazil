@@ -1,0 +1,35 @@
+package bazil.dirent;
+
+option go_package = "wire";
+
+import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
+import "bazil.org/bazil/cas/wire/manifest.proto";
+
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+
+message Dirent {
+  required uint64 inode = 1 [(gogoproto.nullable) = false];
+
+  required Type type = 2 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+
+  // TODO executable, xattr, acl
+  // TODO mtime
+  // TODO vector clocks
+}
+
+message Type {
+  option (gogoproto.union) = true;
+  optional File file = 1;
+  optional Dir dir = 2;
+};
+
+message File {
+  required bazil.cas.Manifest manifest = 1 [(gogoproto.nullable) = false];
+}
+
+// Dir is a directory stored fully in the database, not persisted
+// in objects.
+message Dir {
+}

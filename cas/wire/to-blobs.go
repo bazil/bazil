@@ -8,7 +8,7 @@ func (m *Manifest) ToBlob(type_ string) *blobs.Manifest {
 	return &blobs.Manifest{
 		Type:      type_,
 		Root:      m.Root,
-		Size:      m.Size,
+		Size:      m.Size_,
 		ChunkSize: m.ChunkSize,
 		Fanout:    m.Fanout,
 	}
@@ -17,7 +17,7 @@ func (m *Manifest) ToBlob(type_ string) *blobs.Manifest {
 func FromBlob(m *blobs.Manifest) Manifest {
 	return Manifest{
 		Root:      m.Root,
-		Size:      m.Size,
+		Size_:     m.Size,
 		ChunkSize: m.ChunkSize,
 		Fanout:    m.Fanout,
 	}

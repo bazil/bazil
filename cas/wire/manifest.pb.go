@@ -31,7 +31,7 @@ var _ = math.Inf
 
 type Manifest struct {
 	Root             bazil_org_bazil_cas.Key `protobuf:"bytes,1,req,name=root,customtype=bazil.org/bazil/cas.Key" json:"root"`
-	Size             uint64                  `protobuf:"varint,2,req,name=size" json:"size"`
+	Size_            uint64                  `protobuf:"varint,2,req,name=size" json:"size"`
 	ChunkSize        uint32                  `protobuf:"varint,3,req,name=chunkSize" json:"chunkSize"`
 	Fanout           uint32                  `protobuf:"varint,4,req,name=fanout" json:"fanout"`
 	XXX_unrecognized []byte                  `json:"-"`
@@ -41,9 +41,9 @@ func (m *Manifest) Reset()         { *m = Manifest{} }
 func (m *Manifest) String() string { return proto.CompactTextString(m) }
 func (*Manifest) ProtoMessage()    {}
 
-func (m *Manifest) GetSize() uint64 {
+func (m *Manifest) GetSize_() uint64 {
 	if m != nil {
-		return m.Size
+		return m.Size_
 	}
 	return 0
 }
@@ -117,7 +117,7 @@ func (m *Manifest) Unmarshal(data []byte) error {
 				}
 				b := data[index]
 				index++
-				m.Size |= (uint64(b) & 0x7F) << shift
+				m.Size_ |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -174,4 +174,96 @@ func (m *Manifest) Unmarshal(data []byte) error {
 		}
 	}
 	return nil
+}
+func (m *Manifest) Size() (n int) {
+	var l int
+	_ = l
+	l = m.Root.Size()
+	n += 1 + l + sovManifest(uint64(l))
+	n += 1 + sovManifest(uint64(m.Size_))
+	n += 1 + sovManifest(uint64(m.ChunkSize))
+	n += 1 + sovManifest(uint64(m.Fanout))
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func sovManifest(x uint64) (n int) {
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
+}
+func sozManifest(x uint64) (n int) {
+	return sovManifest(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+	return sovManifest(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *Manifest) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Manifest) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintManifest(data, i, uint64(m.Root.Size()))
+	n1, err := m.Root.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n1
+	data[i] = 0x10
+	i++
+	i = encodeVarintManifest(data, i, uint64(m.Size_))
+	data[i] = 0x18
+	i++
+	i = encodeVarintManifest(data, i, uint64(m.ChunkSize))
+	data[i] = 0x20
+	i++
+	i = encodeVarintManifest(data, i, uint64(m.Fanout))
+	if m.XXX_unrecognized != nil {
+		i += copy(data[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+func encodeFixed64Manifest(data []byte, offset int, v uint64) int {
+	data[offset] = uint8(v)
+	data[offset+1] = uint8(v >> 8)
+	data[offset+2] = uint8(v >> 16)
+	data[offset+3] = uint8(v >> 24)
+	data[offset+4] = uint8(v >> 32)
+	data[offset+5] = uint8(v >> 40)
+	data[offset+6] = uint8(v >> 48)
+	data[offset+7] = uint8(v >> 56)
+	return offset + 8
+}
+func encodeFixed32Manifest(data []byte, offset int, v uint32) int {
+	data[offset] = uint8(v)
+	data[offset+1] = uint8(v >> 8)
+	data[offset+2] = uint8(v >> 16)
+	data[offset+3] = uint8(v >> 24)
+	return offset + 4
+}
+func encodeVarintManifest(data []byte, offset int, v uint64) int {
+	for v >= 1<<7 {
+		data[offset] = uint8(v&0x7f | 0x80)
+		v >>= 7
+		offset++
+	}
+	data[offset] = uint8(v)
+	return offset + 1
 }

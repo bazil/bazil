@@ -8,6 +8,8 @@ import (
 
 import (
 	// CLI subcommands
+	_ "bazil.org/bazil/cli/create"
+	_ "bazil.org/bazil/cli/mount"
 	_ "bazil.org/bazil/cli/version"
 
 	// CLI debug tools
