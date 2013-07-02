@@ -42,7 +42,16 @@ func (k *KVFiles) Get(key []byte) ([]byte, error) {
 	safe := hex.EncodeToString(key)
 	path := path.Join(k.path, safe+".data")
 	data, err := ioutil.ReadFile(path)
-	return data, err
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, kv.NotFound{
+				Key: key,
+			}
+		}
+		// no specific error to return, so just pass it through
+		return nil, err
+	}
+	return data, nil
 }
 
 func Open(path string) (*KVFiles, error) {
