@@ -50,6 +50,7 @@ func (f *file) Attr() fuse.Attr {
 		Nlink: 1,
 		Uid:   env.MyUID,
 		Gid:   env.MyGID,
+		Size:  f.blob.Size(),
 	}
 }
 

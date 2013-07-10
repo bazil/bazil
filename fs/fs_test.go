@@ -253,6 +253,65 @@ func TestMkdir(t *testing.T) {
 	}
 }
 
+func TestStatFile(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
+	defer app.Close()
+
+	mnt := bazfstestutil.Mounted(t, app)
+	defer mnt.Close()
+
+	p := path.Join(mnt.Dir, "hello")
+	f, err := os.Create(p)
+	if err != nil {
+		t.Fatalf("cannot create hello: %v", err)
+	}
+	defer f.Close()
+	GREETING := "hello, world\n"
+	n, err := f.Write([]byte(GREETING))
+	if err != nil {
+		t.Fatalf("cannot write to hello: %v", err)
+	}
+	if n != len(GREETING) {
+		t.Fatalf("bad length write to hello: %d != %d", n, len(GREETING))
+	}
+	err = f.Close()
+	if err != nil {
+		t.Fatalf("closing hello failed: %v", err)
+	}
+
+	fi, err := os.Stat(p)
+	if err != nil {
+		t.Fatalf("cannot stat hello: %v", err)
+	}
+	mode := fi.Mode()
+	if (mode & os.ModeType) != 0 {
+		t.Errorf("hello is not a file: %#v", fi)
+	}
+	if mode.Perm() != 0644 {
+		t.Errorf("file has weird access mode: %v", mode.Perm())
+	}
+	switch stat := fi.Sys().(type) {
+	case *syscall.Stat_t:
+		if stat.Nlink != 1 {
+			t.Errorf("file has wrong link count: %v", stat.Nlink)
+		}
+		if stat.Uid != uint32(syscall.Getuid()) {
+			t.Errorf("file has wrong uid: %d", stat.Uid)
+		}
+		if stat.Gid != uint32(syscall.Getgid()) {
+			t.Errorf("file has wrong gid: %d", stat.Gid)
+		}
+		if stat.Gid != uint32(syscall.Getgid()) {
+			t.Errorf("file has wrong gid: %d", stat.Gid)
+		}
+	}
+	if fi.Size() != int64(len(GREETING)) {
+		t.Errorf("file has wrong size: %d != %d", fi.Size(), len(GREETING))
+	}
+}
+
 func TestPersistentMkdir(t *testing.T) {
 	tmp := tempdir.New(t)
 	defer tmp.Cleanup()
