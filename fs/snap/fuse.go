@@ -1,0 +1,127 @@
+package snap
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"syscall"
+
+	"bazil.org/bazil/cas/blobs"
+	"bazil.org/bazil/cas/chunks"
+	"bazil.org/bazil/fs/snap/wire"
+	"bazil.org/bazil/util/env"
+	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
+)
+
+// Serve this snapshot with FUSE, with this object store.
+func Open(chunkStore chunks.Store, dir *wire.Dir) (fusefs.Node, error) {
+	manifest := dir.Manifest.ToBlob("dir")
+	blob, err := blobs.Open(chunkStore, manifest)
+	if err != nil {
+		return nil, err
+	}
+	r, err := NewReader(blob, dir.Align)
+	if err != nil {
+		return nil, err
+	}
+	node := fuseDir{
+		chunkStore: chunkStore,
+		reader:     r,
+	}
+	return node, nil
+}
+
+type fuseDir struct {
+	chunkStore chunks.Store
+	reader     *Reader
+}
+
+var _ = fusefs.Node(fuseDir{})
+var _ = fusefs.NodeStringLookuper(fuseDir{})
+var _ = fusefs.NodeCreater(fuseDir{})
+var _ = fusefs.Handle(fuseDir{})
+var _ = fusefs.HandleReadDirer(fuseDir{})
+
+func (d fuseDir) Attr() fuse.Attr {
+	return fuse.Attr{
+		Mode:  os.ModeDir | 0555,
+		Nlink: 1,
+		Uid:   env.MyUID,
+		Gid:   env.MyGID,
+	}
+}
+
+const _MAX_INT64 = 9223372036854775807
+
+func (d fuseDir) Lookup(name string, intr fusefs.Intr) (fusefs.Node, fuse.Error) {
+	de, err := d.reader.Lookup(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fuse.ENOENT
+		}
+		return nil, fmt.Errorf("snap lookup error: %v", err)
+	}
+
+	switch {
+	case de.Type.File != nil:
+		manifest := de.Type.File.Manifest.ToBlob("file")
+		blob, err := blobs.Open(d.chunkStore, manifest)
+		if err != nil {
+			return nil, fmt.Errorf("snap file blob open error: %v", err)
+		}
+		child := fuseFile{
+			rat: blob,
+			de:  de,
+		}
+		return child, nil
+
+	case de.Type.Dir != nil:
+		child, err := Open(d.chunkStore, de.Type.Dir)
+		if err != nil {
+			return nil, fmt.Errorf("snap dir FUSE serving error: %v", err)
+		}
+		return child, nil
+
+	default:
+		return nil, fmt.Errorf("unknown entry in tree, %v", de.Type.GetValue())
+	}
+}
+
+func (d fuseDir) ReadDir(intr fusefs.Intr) ([]fuse.Dirent, fuse.Error) {
+	var list []fuse.Dirent
+	it := d.reader.Iter()
+	var de *wire.Dirent
+	var err error
+	for {
+		de, err = it.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return list, fmt.Errorf("snap readdir error: %v", err)
+		}
+		fde := fuse.Dirent{
+			Name: de.Name,
+		}
+		if de.Type.File != nil {
+			fde.Type = fuse.DT_File
+		} else if de.Type.Dir != nil {
+			fde.Type = fuse.DT_Dir
+		}
+		list = append(list, fde)
+	}
+	return list, nil
+}
+
+func (d fuseDir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fusefs.Intr) (fusefs.Node, fusefs.Handle, fuse.Error) {
+	return nil, nil, fuse.Errno(syscall.EROFS)
+}
+
+func stat_blocks(size uint64) uint64 {
+	r := size / 512
+	if size%512 > 0 {
+		r++
+	}
+	return r
+}
