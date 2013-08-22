@@ -48,16 +48,42 @@ func (k *Key) Bytes() []byte {
 	return buf
 }
 
+// IsSpecial returns true if the key is special.
+// Special keys are further categorized into:
+//
+//   - Empty key: test with k == Empty
+//   - Private keys: test with k.IsPrivate() or num, ok = k.Private()
+//   - Reserved keys: test with k.IsReserved(); includes the Invalid key
+func (k *Key) IsSpecial() bool {
+	return bytes.HasPrefix(k.object[:], specialPrefix)
+}
+
+func (k *Key) specialKind() byte {
+	return k.object[len(specialPrefix)]
+}
+
+// IsPrivate returns true if the key is private. Private keys can be
+// used to store 64 bits of data in them, but cannot be stored
+// persistently. See Private, NewKeyPrivate, NewKeyPrivateNum.
+func (k *Key) IsPrivate() bool {
+	return k.IsSpecial() && k.specialKind() == 0xFF
+}
+
 // Private extracts the private data from a Key in the private range.
 // The return value ok is false if the Key was not a private key.
 func (k *Key) Private() (num uint64, ok bool) {
-	if !bytes.HasPrefix(k.object[:], specialPrefix) ||
-		k.object[len(specialPrefix)] != 0xFF {
+	if !k.IsPrivate() {
 		return 0, false
 	}
 
 	num = binary.BigEndian.Uint64(k.object[len(specialPrefix)+1:])
 	return num, true
+}
+
+// IsReserved returns true if the key is reserved. Caller should never
+// use reserved keys.
+func (k *Key) IsReserved() bool {
+	return k.IsSpecial() && k.specialKind() != 0xFF && *k != Empty
 }
 
 func newKey(b []byte) Key {

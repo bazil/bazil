@@ -18,6 +18,15 @@ func TestKeyEmpty(t *testing.T) {
 	if g, e := k.String(), strings.Repeat("00", cas.KeySize); g != e {
 		t.Errorf("bad key: %q != %q", g, e)
 	}
+	if g, e := k.IsSpecial(), true; g != e {
+		t.Errorf("not Special: %v != %v", g, e)
+	}
+	if g, e := k.IsPrivate(), false; g != e {
+		t.Errorf("bad Private: %v != %v", g, e)
+	}
+	if g, e := k.IsReserved(), false; g != e {
+		t.Errorf("bad Reserved: %v != %v", g, e)
+	}
 }
 
 func TestKeySimple(t *testing.T) {
@@ -25,6 +34,15 @@ func TestKeySimple(t *testing.T) {
 	k := cas.NewKey(buf)
 	if g, e := k.String(), hex.EncodeToString(buf); g != e {
 		t.Errorf("bad key: %q != %q", g, e)
+	}
+	if g, e := k.IsSpecial(), false; g != e {
+		t.Errorf("bad Special: %v != %v", g, e)
+	}
+	if g, e := k.IsPrivate(), false; g != e {
+		t.Errorf("bad Private: %v != %v", g, e)
+	}
+	if g, e := k.IsReserved(), false; g != e {
+		t.Errorf("bad Reserved: %v != %v", g, e)
 	}
 }
 
@@ -61,6 +79,15 @@ func TestKeyInvalid(t *testing.T) {
 	if g, e := k, cas.Invalid; g != e {
 		t.Errorf("not Invalid: %q != %q", g, e)
 	}
+	if g, e := k.IsSpecial(), true; g != e {
+		t.Errorf("not Special: %v != %v", g, e)
+	}
+	if g, e := k.IsPrivate(), false; g != e {
+		t.Errorf("bad Private: %v != %v", g, e)
+	}
+	if g, e := k.IsReserved(), true; g != e {
+		t.Errorf("not Reserved: %v != %v", g, e)
+	}
 }
 
 func TestKeyInvalidPrivate(t *testing.T) {
@@ -89,6 +116,15 @@ func TestKeyNewPrivateNum(t *testing.T) {
 	}
 	if g, e := priv, uint64(31337); g != e {
 		t.Errorf("expected Private to match original: %v", g)
+	}
+	if g, e := k.IsSpecial(), true; g != e {
+		t.Errorf("not Special: %v != %v", g, e)
+	}
+	if g, e := k.IsPrivate(), true; g != e {
+		t.Errorf("not Private: %v != %v", g, e)
+	}
+	if g, e := k.IsReserved(), false; g != e {
+		t.Errorf("bad Reserved: %v != %v", g, e)
 	}
 }
 
