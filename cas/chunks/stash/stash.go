@@ -61,9 +61,12 @@ func (s *Stash) drop(key cas.Key) {
 // Clone is like Get but clones the chunk if it's not already private.
 // Chunks that are already private are returned as-is.
 //
+// A cloned chunk will have a buffer of size bytes. This is intended
+// to use for re-inflating zero-trimmed chunks.
+//
 // Modifying the returned chunk *will* cause the locally stored data
 // to change. This is the intended usage of a stash.
-func (s *Stash) Clone(key cas.Key, typ string, level uint8) (cas.Key, *chunks.Chunk, error) {
+func (s *Stash) Clone(key cas.Key, typ string, level uint8, size uint32) (cas.Key, *chunks.Chunk, error) {
 	priv, ok := key.Private()
 	if ok {
 		chunk, ok := s.local[priv]
@@ -83,7 +86,9 @@ func (s *Stash) Clone(key cas.Key, typ string, level uint8) (cas.Key, *chunks.Ch
 	}
 
 	// clone the byte slice
-	chunk.Buf = append([]byte(nil), chunk.Buf...)
+	tmp := make([]byte, size)
+	copy(tmp, chunk.Buf)
+	chunk.Buf = tmp
 
 	priv = s.ids.Get()
 	privkey := cas.NewKeyPrivateNum(priv)
