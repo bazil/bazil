@@ -149,6 +149,21 @@ func localChunkIndexes(fanout uint32, chunk uint32) []uint32 {
 	return index
 }
 
+// safeSlice returns a slice of buf if possible, and where buf is not
+// large enough to serve this slice, it returns a new slice of the
+// right size. In case buf ends in the middle of the range, the
+// available bytes are copied over to the new slice.
+func safeSlice(buf []byte, low int, high int) []byte {
+	if high <= len(buf) {
+		return buf[low:high]
+	}
+	s := make([]byte, high-low)
+	if low <= len(buf) {
+		copy(s, buf[low:])
+	}
+	return s
+}
+
 // lookup fetches the data chunk for given global byte offset.
 //
 // The returned Chunk remains zero trimmed.
@@ -175,7 +190,10 @@ func (blob *Blob) lookup(off uint64) (*chunks.Chunk, error) {
 		}
 
 		keyoff := int64(idx) * cas.KeySize
-		ptrKey = cas.NewKeyPrivate(chunk.Buf[keyoff : keyoff+cas.KeySize])
+		// zero trimming may have cut the key off, even in the middle
+		// TODO ugly int conversion
+		keybuf := safeSlice(chunk.Buf, int(keyoff), int(keyoff+cas.KeySize))
+		ptrKey = cas.NewKeyPrivate(keybuf)
 	}
 
 	chunk, err := blob.stash.Get(ptrKey, blob.m.Type, 0)
@@ -209,7 +227,11 @@ func (blob *Blob) ReadAt(p []byte, off int64) (n int, err error) {
 			}
 
 			loff := uint32(off % uint64(blob.m.ChunkSize))
-			copied := copy(p, chunk.Buf[loff:])
+			var copied int
+			// TODO ugly int conversion
+			if int(loff) <= len(chunk.Buf) {
+				copied = copy(p, chunk.Buf[loff:])
+			}
 			for len(p) > copied && loff+uint32(copied) <= blob.m.ChunkSize {
 				// handle case where chunk has been zero trimmed
 				p[copied] = '\x00'
@@ -301,7 +323,8 @@ func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
 		}
 
 		// clone it (nop if already cloned)
-		ptrKey, child, err := blob.stash.Clone(ptrKey, blob.m.Type, level, blob.m.Fanout*cas.KeySize)
+		size := blob.chunkSizeForLevel(level - 1)
+		ptrKey, child, err := blob.stash.Clone(ptrKey, blob.m.Type, level-1, size)
 		if err != nil {
 			return nil, err
 		}

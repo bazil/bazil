@@ -45,6 +45,27 @@ func TestEmptyRead(t *testing.T) {
 	}
 }
 
+func TestSparseRead(t *testing.T) {
+	const chunkSize = 4096
+	blob, err := blobs.Open(
+		&mock.InMemory{},
+		&blobs.Manifest{
+			Type:      "footype",
+			Size:      100,
+			ChunkSize: chunkSize,
+			Fanout:    2,
+		},
+	)
+	buf := make([]byte, 10)
+	n, err := blob.ReadAt(buf, 3)
+	if err != nil {
+		t.Errorf("unexpected read error: %v", err)
+	}
+	if g, e := n, 10; g != e {
+		t.Errorf("expected to read 0 bytes: %v != %v", g, e)
+	}
+}
+
 func TestEmptySave(t *testing.T) {
 	blob := emptyBlob(t, mock.NeverUsed{})
 	saved, err := blob.Save()
@@ -285,7 +306,7 @@ func TestWriteAndSaveLarge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
 	}
-	if g, e := saved.Root.String(), "d28b45ebc6976511771a909d606471826e94018407d90534e0346f729973ab193d9bc6f3e1ec9f29aa27fdacbcd140bdb7e3029b2d225e8b71e0ca7a80436223"; g != e {
+	if g, e := saved.Root.String(), "9f3f6815c7680f98e00fe9ab5edc85ba3f4ceb657b9562c35b5a865d970ea3270bab8c7aa3162cbaaa966ad84330f34a22aa9539b4c416f858c35c0775482665"; g != e {
 		t.Errorf("unexpected key: %q != %q", g, e)
 	}
 	if g, e := saved.Size, uint64(chunkSize+chunkSize); g != e {
