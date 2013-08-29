@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 
 	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
@@ -17,9 +18,10 @@ import (
 type bazil struct {
 	flag.FlagSet
 	Config struct {
-		Verbose bool
-		Debug   bool
-		DataDir flagx.AbsPath
+		Verbose    bool
+		Debug      bool
+		DataDir    flagx.AbsPath
+		CPUProfile string
 	}
 }
 
@@ -30,10 +32,27 @@ func (b *bazil) Setup() (ok bool) {
 		log := jog.New(nil)
 		fuse.Debug = log.Event
 	}
+
+	if b.Config.CPUProfile != "" {
+		f, err := os.Create(b.Config.CPUProfile)
+		if err != nil {
+			log.Printf("cpu profiling: %v", err)
+			return false
+		}
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			log.Printf("cpu profiling: %v", err)
+			return false
+		}
+	}
+
 	return true
 }
 
 func (b *bazil) Teardown() (ok bool) {
+	if b.Config.CPUProfile != "" {
+		pprof.StopCPUProfile()
+	}
 	return true
 }
 
@@ -49,6 +68,8 @@ func init() {
 	// ensure absolute path to make the control socket show up nicer
 	// in `ss` output
 	Bazil.Var(&Bazil.Config.DataDir, "data-dir", "path to filesystem state")
+
+	Bazil.StringVar(&Bazil.Config.CPUProfile, "cpuprofile", "", "write cpu profile to file")
 
 	subcommands.Register(&Bazil)
 }
