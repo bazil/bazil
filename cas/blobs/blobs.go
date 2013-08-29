@@ -10,6 +10,8 @@ import (
 	"bazil.org/bazil/cas/chunks/stash"
 )
 
+const debugLookup = true
+
 // Implementation terminology:
 //
 // Bytes have offsets, and chunks have indexes.
@@ -330,9 +332,21 @@ func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
 		}
 
 		// update the key in parent
-		copy(parentChunk.Buf[keyoff:keyoff+cas.KeySize], ptrKey.Bytes())
+		n := copy(parentChunk.Buf[keyoff:keyoff+cas.KeySize], ptrKey.Bytes())
+		if debugLookup {
+			if n != cas.KeySize {
+				panic(fmt.Errorf("lookupForWrite copied only %d of the key", n))
+			}
+		}
 		parentChunk = child
 	}
+
+	if debugLookup {
+		if parentChunk.Level != 0 {
+			panic(fmt.Errorf("lookupForWrite got a non-leaf: %v", parentChunk.Level))
+		}
+	}
+
 	return parentChunk, nil
 }
 
