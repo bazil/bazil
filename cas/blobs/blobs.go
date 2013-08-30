@@ -331,6 +331,12 @@ func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
 			return nil, err
 		}
 
+		if debugLookup {
+			if uint64(len(child.Buf)) != uint64(size) {
+				panic(fmt.Errorf("lookupForWrite clone for level %d made weird size %d != %d, key %v", level-1, len(child.Buf), size, ptrKey))
+			}
+		}
+
 		// update the key in parent
 		n := copy(parentChunk.Buf[keyoff:keyoff+cas.KeySize], ptrKey.Bytes())
 		if debugLookup {
@@ -344,6 +350,9 @@ func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
 	if debugLookup {
 		if parentChunk.Level != 0 {
 			panic(fmt.Errorf("lookupForWrite got a non-leaf: %v", parentChunk.Level))
+		}
+		if uint64(len(parentChunk.Buf)) != uint64(blob.m.ChunkSize) {
+			panic(fmt.Errorf("lookupForWrite got short leaf: %v", len(parentChunk.Buf)))
 		}
 	}
 
