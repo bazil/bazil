@@ -423,3 +423,38 @@ func TestWriteAndSaveLarge(t *testing.T) {
 		t.Errorf("unexpected size: %v != %v", g, e)
 	}
 }
+
+func BenchmarkWriteSmall(b *testing.B) {
+	blob := emptyBlob(b, &mock.InMemory{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(GREETING)))
+		_, err := blob.WriteAt(GREETING, 0)
+		if err != nil {
+			b.Fatalf("unexpected write error: %v", err)
+		}
+		_, err = blob.Save()
+		if err != nil {
+			b.Fatalf("unexpected error from Save: %v", err)
+		}
+	}
+}
+
+func BenchmarkWriteBig(b *testing.B) {
+	body := bytes.Repeat(GREETING, 1000000)
+	blob := emptyBlob(b, &mock.InMemory{})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.SetBytes(int64(len(body)))
+		_, err := blob.WriteAt(body, 0)
+		if err != nil {
+			b.Fatalf("unexpected write error: %v", err)
+		}
+		_, err = blob.Save()
+		if err != nil {
+			b.Fatalf("unexpected error from Save: %v", err)
+		}
+	}
+}
