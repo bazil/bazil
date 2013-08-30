@@ -234,7 +234,7 @@ func (blob *Blob) ReadAt(p []byte, off int64) (n int, err error) {
 			if int(loff) <= len(chunk.Buf) {
 				copied = copy(p, chunk.Buf[loff:])
 			}
-			for len(p) > copied && loff+uint32(copied) <= blob.m.ChunkSize {
+			for len(p) > copied && loff+uint32(copied) < blob.m.ChunkSize {
 				// handle case where chunk has been zero trimmed
 				p[copied] = '\x00'
 				copied++
@@ -406,7 +406,7 @@ func (blob *Blob) saveChunk(key cas.Key, level uint8) (cas.Key, error) {
 	}
 
 	if level > 0 {
-		for off := uint32(0); off+cas.KeySize < uint32(len(chunk.Buf)); off += cas.KeySize {
+		for off := uint32(0); off+cas.KeySize <= uint32(len(chunk.Buf)); off += cas.KeySize {
 			cur := cas.NewKeyPrivate(chunk.Buf[off : off+cas.KeySize])
 			if cur.IsReserved() {
 				return key, fmt.Errorf("invalid stored key: key @%d in %v is %v", off, key, chunk.Buf[off:off+cas.KeySize])
