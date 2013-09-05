@@ -1,8 +1,6 @@
 package stash
 
 import (
-	"fmt"
-
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/idpool"
@@ -49,11 +47,7 @@ func (s *Stash) Get(key cas.Key, typ string, level uint8) (*chunks.Chunk, error)
 	return chunk, err
 }
 
-func (s *Stash) drop(key cas.Key) {
-	priv, ok := key.Private()
-	if !ok {
-		panic(fmt.Sprintf("Cannot drop non-private key: %s", key))
-	}
+func (s *Stash) drop(priv uint64) {
 	s.ids.Put(priv)
 	delete(s.local, priv)
 }
@@ -116,6 +110,6 @@ func (s *Stash) Save(key cas.Key) (cas.Key, error) {
 	if err != nil {
 		return key, err
 	}
-	s.drop(key)
+	s.drop(priv)
 	return newkey, nil
 }
