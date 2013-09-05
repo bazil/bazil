@@ -80,7 +80,7 @@ func (s *Stash) Clone(key cas.Key, typ string, level uint8, size uint32) (cas.Ke
 		return key, chunk, nil
 	}
 
-	chunk, err := s.Get(key, typ, level)
+	chunk, err := s.chunks.Get(key, typ, level)
 	if err != nil {
 		return key, nil, err
 	}
