@@ -230,3 +230,25 @@ func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) 
 	}
 	return child, nil
 }
+
+func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
+	key := pathToKey(d.inode, req.Name)
+	err := d.fs.db.Update(func(tx *bolt.Tx) error {
+		bucket := d.fs.bucket(tx).Bucket(bucketDir)
+		if bucket == nil {
+			return errors.New("dir bucket missing")
+		}
+		buf := bucket.Get(key)
+		if buf == nil {
+			return fuse.ENOENT
+		}
+		// TODO unmarshal enough of buf to free inode
+		// TODO notify file it has been deleted!?
+		err := bucket.Delete(key)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
+}

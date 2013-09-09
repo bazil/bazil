@@ -434,3 +434,57 @@ func TestPersistentCreateFile(t *testing.T) {
 		}
 	}()
 }
+
+func TestRemoveFile(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
+	defer app.Close()
+
+	mnt := bazfstestutil.Mounted(t, app)
+	defer mnt.Close()
+
+	p := path.Join(mnt.Dir, "hello")
+	GREETING := "hello, world\n"
+	err := ioutil.WriteFile(p, []byte(GREETING), 0644)
+	if err != nil {
+		t.Fatalf("cannot create hello: %v", err)
+	}
+
+	err = os.Remove(p)
+	if err != nil {
+		t.Fatalf("cannot delete hello: %v", err)
+	}
+
+	dirf, err := os.Open(mnt.Dir)
+	if err != nil {
+		t.Fatalf("cannot open root dir: %v", err)
+	}
+	defer dirf.Close()
+	names, err := dirf.Readdirnames(10)
+	if err != nil && err != io.EOF {
+		t.Fatalf("cannot list root dir: %v", err)
+	}
+	if len(names) != 0 {
+		t.Errorf("unexpected content in root dir: %v", names)
+	}
+}
+
+func TestRemoveNonexistent(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
+	defer app.Close()
+
+	mnt := bazfstestutil.Mounted(t, app)
+	defer mnt.Close()
+
+	p := path.Join(mnt.Dir, "does-not-exist")
+	err := os.Remove(p)
+	if err == nil {
+		t.Fatalf("deleting non-existent file should have failed")
+	}
+	if !os.IsNotExist(err) {
+		t.Fatalf("deleting non-existent file gave wrong error: %v", err)
+	}
+}
