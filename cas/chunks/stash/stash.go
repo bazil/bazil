@@ -123,3 +123,10 @@ func (s *Stash) Save(key cas.Key) (cas.Key, error) {
 	s.drop(priv)
 	return newkey, nil
 }
+
+// Clear drops all the Private chunks held in this Stash. This is
+// useful e.g. when the contents of a Blob are completely rewritten.
+func (s *Stash) Clear() {
+	s.ids = idpool.Pool{}
+	s.local = make(map[uint64]*chunks.Chunk)
+}
