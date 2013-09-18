@@ -291,6 +291,60 @@ func (blob *Blob) grow(level uint8) error {
 	return nil
 }
 
+// chunk must be a Private chunk
+func (blob *Blob) discardAfter(chunk *chunks.Chunk, lidx uint32, level uint8) error {
+	if level == 0 {
+		return nil
+	}
+	for ; lidx < blob.m.Fanout; lidx++ {
+		keyoff := lidx * cas.KeySize
+		keybuf := chunk.Buf[keyoff : keyoff+cas.KeySize]
+		key := cas.NewKeyPrivate(keybuf)
+		if key.IsPrivate() {
+			// there can't be any Private chunks if they key wasn't Private
+			chunk, err := blob.stash.Get(key, blob.m.Type, level-1)
+			if err != nil {
+				return err
+			}
+			err = blob.discardAfter(chunk, 0, level-1)
+			if err != nil {
+				return err
+			}
+			blob.stash.Drop(key)
+		}
+		copy(chunk.Buf[keyoff:keyoff+cas.KeySize], cas.Empty.Bytes())
+	}
+	return nil
+}
+
+// Decreases depth, always selecting only the leftmost tree,
+// and dropping all Private chunks in the rest.
+func (blob *Blob) shrink(level uint8) error {
+	for blob.depth > level {
+		chunk, err := blob.stash.Get(blob.m.Root, blob.m.Type, blob.depth)
+		if err != nil {
+			return err
+		}
+
+		if blob.m.Root.IsPrivate() {
+			// blob.depth must be >0 if we're here, so it's always a
+			// pointer chunk; iterate all non-first keys and drop
+			// Private chunks
+			err = blob.discardAfter(chunk, 1, blob.depth)
+			if err != nil {
+				return err
+			}
+		}
+
+		// now all non-left top-level private nodes have been dropped
+		keybuf := safeSlice(chunk.Buf, 0, cas.KeySize)
+		key := cas.NewKeyPrivate(keybuf)
+		blob.m.Root = key
+		blob.depth -= 1
+	}
+	return nil
+}
+
 // lookupForWrite fetches the data chunk for the given offset and
 // ensures it is Private and reinflated, and thus writable.
 func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
@@ -447,6 +501,22 @@ func (blob *Blob) saveChunk(key cas.Key, level uint8) (cas.Key, error) {
 // Save persists the Blob into the Store and returns a new Manifest
 // that can be passed to Open later.
 func (blob *Blob) Save() (*Manifest, error) {
+	// make sure the tree is optimal depth, as later we rely purely on
+	// size to compute depth; this might happen because of errors on a
+	// write/truncate path
+	level := blob.computeLevel(blob.m.Size)
+	switch {
+	case blob.depth > level:
+		err := blob.shrink(level)
+		if err != nil {
+			return nil, err
+		}
+	case blob.depth < level:
+		err := blob.grow(level)
+		if err != nil {
+			return nil, err
+		}
+	}
 	k, err := blob.saveChunk(blob.m.Root, blob.depth)
 	if err != nil {
 		return nil, err
