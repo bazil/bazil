@@ -38,6 +38,10 @@ func (d *dir) getName() string {
 	return d.name
 }
 
+func (d *dir) setName(name string) {
+	d.name = name
+}
+
 func (d *dir) Attr() fuse.Attr {
 	return fuse.Attr{
 		Inode: d.inode,
@@ -303,4 +307,68 @@ func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 		return nil
 	})
 	return err
+}
+
+func (d *dir) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse.Error {
+	if newDir != d {
+		return fuse.Errno(syscall.EXDEV)
+	}
+
+	kOld := pathToKey(d.inode, req.OldName)
+	kNew := pathToKey(d.inode, req.NewName)
+
+	// the file getting overwritten
+	var loserInode uint64
+
+	err := d.fs.db.Update(func(tx *bolt.Tx) error {
+		bucket := d.fs.bucket(tx).Bucket(bucketDir)
+		if bucket == nil {
+			return errors.New("dir bucket missing")
+		}
+
+		// TODO don't need to load from db if req.OldName is in active.
+		// instead, save active state if we have it; call .save() not this
+		// kludge
+		bufOld := bucket.Get(kOld)
+		if bufOld == nil {
+			return fuse.ENOENT
+		}
+
+		{
+			// TODO don't need to load from db if req.NewName is in active
+			bufLoser := bucket.Get(kNew)
+			if bufLoser != nil {
+				// overwriting
+				deLoser, err := d.unmarshalDirent(bufLoser)
+				if err != nil {
+					return fmt.Errorf("dirent unmarshal problem: %v", err)
+				}
+				loserInode = deLoser.Inode
+			}
+		}
+
+		if err := bucket.Put(kNew, bufOld); err != nil {
+			return err
+		}
+		if err := bucket.Delete(kOld); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// if the source inode is active, record its new name
+	if nodeOld, ok := d.active[req.OldName]; ok {
+		nodeOld.setName(req.NewName)
+		delete(d.active, req.OldName)
+		d.active[req.NewName] = nodeOld
+	}
+
+	if loserInode > 0 {
+		// TODO free loser inode
+	}
+
+	return nil
 }

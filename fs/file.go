@@ -29,6 +29,10 @@ func (f *file) getName() string {
 	return f.name
 }
 
+func (f *file) setName(name string) {
+	f.name = name
+}
+
 func (f *file) marshal() (*wire.Dirent, error) {
 	de := &wire.Dirent{
 		Inode: f.inode,
