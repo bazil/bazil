@@ -54,6 +54,10 @@ func (f *file) Attr() fuse.Attr {
 	}
 }
 
+func (f *file) Forget() {
+	f.parent.forgetChild(f)
+}
+
 func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
 	n, err := f.blob.WriteAt(req.Data, req.Offset)
 	resp.Size = n

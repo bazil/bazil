@@ -489,6 +489,55 @@ func TestRemoveNonexistent(t *testing.T) {
 	}
 }
 
+func TestRemoveFileWhileOpen(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
+	defer app.Close()
+
+	mnt := bazfstestutil.Mounted(t, app)
+	defer mnt.Close()
+
+	p := path.Join(mnt.Dir, "hello")
+	f, err := os.Create(p)
+	if err != nil {
+		t.Fatalf("cannot create hello: %v", err)
+	}
+	defer f.Close()
+
+	err = os.Remove(p)
+	if err != nil {
+		t.Fatalf("cannot delete hello: %v", err)
+	}
+
+	// this must not resurrect a deleted file
+	GREETING := "hello, world\n"
+	n, err := f.Write([]byte(GREETING))
+	if err != nil {
+		t.Fatalf("cannot write to hello: %v", err)
+	}
+	if n != len(GREETING) {
+		t.Fatalf("bad length write to hello: %d != %d", n, len(GREETING))
+	}
+	err = f.Close()
+	if err != nil {
+		t.Fatalf("closing hello failed: %v", err)
+	}
+
+	dirf, err := os.Open(mnt.Dir)
+	if err != nil {
+		t.Fatalf("cannot open root dir: %v", err)
+	}
+	defer dirf.Close()
+	names, err := dirf.Readdirnames(10)
+	if err != nil && err != io.EOF {
+		t.Fatalf("cannot list root dir: %v", err)
+	}
+	if len(names) != 0 {
+		t.Errorf("unexpected content in root dir: %v", names)
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	tmp := tempdir.New(t)
 	defer tmp.Cleanup()

@@ -62,8 +62,10 @@ func Init(tx *bolt.Tx) error {
 
 func (v *Volume) Root() (fs.Node, fuse.Error) {
 	d := &dir{
-		inode: 1,
-		fs:    v,
+		inode:  1,
+		parent: nil,
+		fs:     v,
+		active: make(map[string]node),
 	}
 	return d, nil
 }

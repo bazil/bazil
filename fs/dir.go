@@ -18,9 +18,18 @@ import (
 )
 
 type dir struct {
-	inode uint64
-	name  string
-	fs    *Volume
+	inode  uint64
+	name   string
+	parent *dir
+	fs     *Volume
+
+	// each in-memory child, so we can return the same node on
+	// multiple Lookups and know what to do on .save()
+	//
+	// each child also stores its own name; if the value in the child,
+	// looked up in this map, does not equal the child, that means the
+	// child has been unlinked
+	active map[string]node
 }
 
 var _ = node(&dir{})
@@ -40,6 +49,10 @@ func (d *dir) Attr() fuse.Attr {
 }
 
 func (d *dir) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+	if child, ok := d.active[name]; ok {
+		return child, nil
+	}
+
 	key := pathToKey(d.inode, name)
 	var buf []byte
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
@@ -64,6 +77,7 @@ func (d *dir) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 	if err != nil {
 		return nil, fmt.Errorf("dirent node unmarshal problem: %v", err)
 	}
+	d.active[name] = child
 	return child, nil
 }
 
@@ -80,9 +94,11 @@ func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 	switch {
 	case de.Type.Dir != nil:
 		child := &dir{
-			inode: de.Inode,
-			name:  name,
-			fs:    d.fs,
+			inode:  de.Inode,
+			name:   name,
+			parent: d,
+			fs:     d.fs,
+			active: make(map[string]node),
 		}
 		return child, nil
 
@@ -133,6 +149,12 @@ func (d *dir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 }
 
 func (d *dir) save(tx *bolt.Tx, n node) error {
+	name := n.getName()
+	if have, ok := d.active[name]; !ok || have != n {
+		// unlinked
+		return nil
+	}
+
 	de, err := n.marshal()
 	if err != nil {
 		return fmt.Errorf("node save error: %v", err)
@@ -190,8 +212,10 @@ func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs
 				parent: d,
 				blob:   blob,
 			}
+			d.active[req.Name] = child
 
 			return d.save(tx, child)
+			// TODO clean up active on error
 		})
 		if err != nil {
 			return nil, nil, err
@@ -200,6 +224,25 @@ func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs
 	default:
 		return nil, nil, fuse.EPERM
 	}
+}
+
+func (d *dir) forgetChild(child node) {
+	name := child.getName()
+	if have, ok := d.active[name]; ok {
+		// have something by that name
+		if have == child {
+			// has not been overwritten
+			delete(d.active, name)
+		}
+	}
+}
+
+func (d *dir) Forget() {
+	if d.parent == nil {
+		// root dir, don't keep track
+		return
+	}
+	d.parent.forgetChild(d)
 }
 
 func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
@@ -216,11 +259,15 @@ func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) 
 			return err
 		}
 		child = &dir{
-			inode: inode,
-			name:  req.Name,
-			fs:    d.fs,
+			inode:  inode,
+			name:   req.Name,
+			parent: d,
+			fs:     d.fs,
+			active: make(map[string]node),
 		}
+		d.active[req.Name] = child
 		return d.save(tx, child)
+		// TODO clean up active on error
 	})
 	if err != nil {
 		if err == inodes.OutOfInodes {
@@ -238,16 +285,21 @@ func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 		if bucket == nil {
 			return errors.New("dir bucket missing")
 		}
-		buf := bucket.Get(key)
-		if buf == nil {
-			return fuse.ENOENT
+
+		// does it exist? can short-circuit existence check if active
+		if _, ok := d.active[req.Name]; !ok {
+			if bucket.Get(key) == nil {
+				return fuse.ENOENT
+			}
 		}
-		// TODO unmarshal enough of buf to free inode
-		// TODO notify file it has been deleted!?
+
 		err := bucket.Delete(key)
 		if err != nil {
 			return err
 		}
+		delete(d.active, req.Name)
+
+		// TODO free inode
 		return nil
 	})
 	return err
