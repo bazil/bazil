@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
@@ -466,6 +467,119 @@ func trim(b []byte) []byte {
 		end--
 	}
 	return b[:end]
+}
+
+func zeroSlice(p []byte) {
+	for len(p) > 0 {
+		p[0] = 0
+		p = p[1:]
+	}
+}
+
+const debugTruncate = true
+
+// Truncate adjusts the size of the blob. If the new size is less than
+// the old size, data past that point is lost. If the new size is
+// greater than the old size, the new part is full of zeroes.
+func (blob *Blob) Truncate(size uint64) error {
+	switch {
+	case size == 0:
+		// special case shrink to nothing
+		blob.m.Root = cas.Empty
+		blob.m.Size = 0
+		blob.stash.Clear()
+
+	case size < blob.m.Size:
+		// shrink
+
+		// i really am starting to hate the idea of file offsets being
+		// int64's, but can't fight all the windmills at once.
+		if size > math.MaxInt64 {
+			return errors.New("cannot discard past 63-bit file size")
+		}
+
+		// we know size>0 from above
+		off := size - 1
+		gidx := uint32(off / uint64(blob.m.ChunkSize))
+		lidxs := localChunkIndexes(blob.m.Fanout, gidx)
+		err := blob.shrink(uint8(len(lidxs)))
+		if err != nil {
+			return err
+		}
+
+		// we don't need to always cow here (if everything is
+		// perfectly aligned / already zero), but it's a rare enough
+		// case that let's not care for now
+		//
+		// TODO this makes a tight loop on Open and Save wasteful
+
+		{
+			// TODO clone all the way down to be able to trim leaf chunk,
+			// abusing lookupForWrite for now
+
+			// we know size > 0 from above
+			_, err := blob.lookupForWrite(size - 1)
+			if err != nil {
+				return err
+			}
+		}
+
+		// now zero-fill on the right; guaranteed cow by the above kludge
+		key := blob.m.Root
+		if debugTruncate {
+			if !key.IsPrivate() {
+				panic(fmt.Errorf("Truncate root is not private: %v", key))
+			}
+		}
+		for level := blob.depth; level > 0; level-- {
+			chunk, err := blob.stash.Get(key, blob.m.Type, level)
+			if err != nil {
+				return err
+			}
+			err = blob.discardAfter(chunk, lidxs[level-1]+1, level)
+			if err != nil {
+				return err
+			}
+			keyoff := int64(lidxs[level-1]) * cas.KeySize
+			keybuf := chunk.Buf[keyoff : keyoff+cas.KeySize]
+			key = cas.NewKeyPrivate(keybuf)
+			if debugTruncate {
+				if !key.IsPrivate() {
+					panic(fmt.Errorf("Truncate key at level %d not private: %v", level, key))
+				}
+			}
+		}
+
+		// and finally the leaf chunk
+		chunk, err := blob.stash.Get(key, blob.m.Type, 0)
+		if err != nil {
+			return err
+		}
+		{
+			// TODO is there anything to clear here; beware modulo wraparound
+
+			// size is also the offset of the next byte
+			loff := uint32(size % uint64(blob.m.ChunkSize))
+			zeroSlice(chunk.Buf[loff:])
+		}
+
+		// TODO what's the right time to adjust size, wrt errors
+		blob.m.Size = size
+
+		// TODO unit tests that checks we don't leak chunks?
+
+	case size > blob.m.Size:
+		// grow
+		off := size - 1
+		gidx := uint32(off / uint64(blob.m.ChunkSize))
+		lidxs := localChunkIndexes(blob.m.Fanout, gidx)
+		err := blob.grow(uint8(len(lidxs)))
+		if err != nil {
+			return err
+		}
+		blob.m.Size = size
+	}
+	return nil
 }
 
 func (blob *Blob) saveChunk(key cas.Key, level uint8) (cas.Key, error) {

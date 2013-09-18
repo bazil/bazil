@@ -424,6 +424,225 @@ func TestWriteAndSaveLarge(t *testing.T) {
 	}
 }
 
+func TestWriteTruncateZero(t *testing.T) {
+	const chunkSize = 4096
+	const fanout = 64
+	blob, err := blobs.Open(&mock.InMemory{}, &blobs.Manifest{
+		Type:      "footype",
+		ChunkSize: chunkSize,
+		Fanout:    fanout,
+	})
+	if err != nil {
+		t.Fatalf("cannot open blob: %v", err)
+	}
+
+	n, err := blob.WriteAt(bytes.Join([][]byte{
+		bytes.Repeat([]byte{'x'}, chunkSize),
+		bytes.Repeat([]byte{'y'}, chunkSize),
+	}, []byte{}), 0)
+	if err != nil {
+		t.Fatalf("unexpected write error: %v", err)
+	}
+	if g, e := n, 2*chunkSize; g != e {
+		t.Errorf("unexpected write length: %v != %v", g, e)
+	}
+
+	_, err = blob.Save()
+	if err != nil {
+		t.Fatalf("unexpected error from Save: %v", err)
+	}
+
+	err = blob.Truncate(0)
+	if err != nil {
+		t.Fatalf("unexpected Truncate error: %v", err)
+	}
+
+	if g, e := blob.Size(), uint64(0); g != e {
+		t.Errorf("unexpected manifest size: %v != %v", g, e)
+	}
+
+	saved, err := blob.Save()
+	if err != nil {
+		t.Errorf("unexpected error from Save: %v", err)
+	}
+	if g, e := saved.Root, cas.Empty; g != e {
+		t.Errorf("unexpected key: %v != %v", g, e)
+	}
+	if g, e := saved.Size, uint64(0); g != e {
+		t.Errorf("unexpected size: %v != %v", g, e)
+	}
+}
+
+func TestWriteTruncateShrink(t *testing.T) {
+	const chunkSize = 4096
+	const fanout = 64
+	chunkStore := &mock.InMemory{}
+	blob, err := blobs.Open(chunkStore, &blobs.Manifest{
+		Type:      "footype",
+		ChunkSize: chunkSize,
+		Fanout:    fanout,
+	})
+	if err != nil {
+		t.Fatalf("cannot open blob: %v", err)
+	}
+
+	n, err := blob.WriteAt(bytes.Join([][]byte{
+		bytes.Repeat([]byte{'x'}, chunkSize),
+		bytes.Repeat([]byte{'y'}, chunkSize),
+	}, []byte{}), 0)
+	if err != nil {
+		t.Fatalf("unexpected write error: %v", err)
+	}
+	if g, e := n, 2*chunkSize; g != e {
+		t.Errorf("unexpected write length: %v != %v", g, e)
+	}
+
+	_, err = blob.Save()
+	if err != nil {
+		t.Fatalf("unexpected error from Save: %v", err)
+	}
+
+	// shrink enough to need less depth in tree
+	const newSize = 5
+	err = blob.Truncate(newSize)
+	if err != nil {
+		t.Fatalf("unexpected Truncate error: %v", err)
+	}
+
+	if g, e := blob.Size(), uint64(newSize); g != e {
+		t.Errorf("unexpected manifest size: %v != %v", g, e)
+	}
+
+	// do +1 to trigger us seeing EOF too
+	buf := make([]byte, newSize+1)
+	n, err = blob.ReadAt(buf, 0)
+	if err != io.EOF {
+		t.Errorf("expected read EOF: %v", err)
+	}
+	if g, e := n, newSize; g != e {
+		t.Errorf("unexpected read length: %v != %v", g, e)
+	}
+	buf = buf[:n]
+	if g, e := buf, []byte("xxxxx"); !bytes.Equal(g, e) {
+		t.Errorf("unexpected read data: %q != %q", g, e)
+	}
+
+	saved, err := blob.Save()
+	if err != nil {
+		t.Fatalf("unexpected error from Save: %v", err)
+	}
+	if g, e := saved.Size, uint64(newSize); g != e {
+		t.Errorf("unexpected size: %v != %v", g, e)
+	}
+	{
+		blob, err := blobs.Open(chunkStore, saved)
+		if err != nil {
+			t.Fatalf("cannot open saved blob: %v", err)
+		}
+		buf := make([]byte, newSize+1)
+		n, err = blob.ReadAt(buf, 0)
+		if err != io.EOF {
+			t.Errorf("expected read EOF: %v", err)
+		}
+		if g, e := n, newSize; g != e {
+			t.Errorf("unexpected read length: %v != %v", g, e)
+		}
+		buf = buf[:n]
+		if g, e := buf, []byte("xxxxx"); !bytes.Equal(g, e) {
+			t.Errorf("unexpected read data: %q != %q", g, e)
+		}
+	}
+}
+
+func TestWriteTruncateGrow(t *testing.T) {
+	const chunkSize = 4096
+	const fanout = 64
+	chunkStore := &mock.InMemory{}
+	blob, err := blobs.Open(chunkStore, &blobs.Manifest{
+		Type:      "footype",
+		ChunkSize: chunkSize,
+		Fanout:    fanout,
+	})
+	if err != nil {
+		t.Fatalf("cannot open blob: %v", err)
+	}
+
+	n, err := blob.WriteAt(GREETING, 0)
+	if err != nil {
+		t.Fatalf("unexpected write error: %v", err)
+	}
+	if g, e := n, len(GREETING); g != e {
+		t.Errorf("unexpected write length: %v != %v", g, e)
+	}
+	if g, e := blob.Size(), uint64(len(GREETING)); g != e {
+		t.Errorf("unexpected manifest size: %v != %v", g, e)
+	}
+
+	_, err = blob.Save()
+	if err != nil {
+		t.Fatalf("unexpected error from Save: %v", err)
+	}
+
+	// grow enough to need a new chunk
+	const newSize = chunkSize + 3
+	err = blob.Truncate(newSize)
+	if err != nil {
+		t.Fatalf("unexpected Truncate error: %v", err)
+	}
+
+	if g, e := blob.Size(), uint64(newSize); g != e {
+		t.Errorf("unexpected manifest size: %v != %v", g, e)
+	}
+
+	// do +1 to trigger us seeing EOF too
+	buf := make([]byte, newSize+1)
+	n, err = blob.ReadAt(buf, 0)
+	if err != io.EOF {
+		t.Errorf("expected read EOF: %v", err)
+	}
+	if g, e := n, newSize; g != e {
+		t.Errorf("unexpected read length: %v != %v", g, e)
+	}
+	buf = buf[:n]
+	want := bytes.Join([][]byte{
+		GREETING,
+		make([]byte, newSize-len(GREETING)),
+	}, []byte{})
+	if g, e := buf, want; !bytes.Equal(g, e) {
+		t.Errorf("unexpected read data: %q != %q", g, e)
+	}
+
+	saved, err := blob.Save()
+	if err != nil {
+		t.Fatalf("unexpected error from Save: %v", err)
+	}
+	if g, e := saved.Size, uint64(newSize); g != e {
+		t.Errorf("unexpected size: %v != %v", g, e)
+	}
+	{
+		blob, err := blobs.Open(chunkStore, saved)
+		if err != nil {
+			t.Fatalf("cannot open saved blob: %v", err)
+		}
+		buf := make([]byte, newSize+1)
+		n, err = blob.ReadAt(buf, 0)
+		if err != io.EOF {
+			t.Errorf("expected read EOF: %v", err)
+		}
+		if g, e := n, newSize; g != e {
+			t.Errorf("unexpected read length: %v != %v", g, e)
+		}
+		buf = buf[:n]
+		want := bytes.Join([][]byte{
+			GREETING,
+			make([]byte, newSize-len(GREETING)),
+		}, []byte{})
+		if g, e := buf, want; !bytes.Equal(g, e) {
+			t.Errorf("unexpected read data: %q != %q", g, e)
+		}
+	}
+}
+
 func BenchmarkWriteSmall(b *testing.B) {
 	blob := emptyBlob(b, &mock.InMemory{})
 
