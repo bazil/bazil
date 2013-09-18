@@ -64,6 +64,7 @@ func EmptyManifest(type_ string) *Manifest {
 type Blob struct {
 	stash *stash.Stash
 	m     Manifest
+	depth uint8
 }
 
 var _ io.ReaderAt = &Blob{}
@@ -102,6 +103,22 @@ func (s SmallFanout) Error() string {
 	return fmt.Sprintf("Fanout is too small: %d", s.Given)
 }
 
+func (blob *Blob) computeLevel(size uint64) uint8 {
+	// convert size (count of bytes) to offset of last byte
+	if size == 0 {
+		return 0
+	}
+
+	off := size - 1
+	idx := uint32(off / uint64(blob.m.ChunkSize))
+	var level uint8
+	for idx > 0 {
+		idx /= blob.m.Fanout
+		level++
+	}
+	return level
+}
+
 // Open returns a new Blob, using the given chunk store and manifest.
 //
 // It makes a copy of the manifest, so the caller is free to use it in
@@ -126,6 +143,7 @@ func Open(chunkStore chunks.Store, manifest *Manifest) (*Blob, error) {
 		stash: stash.New(chunkStore),
 		m:     m,
 	}
+	blob.depth = blob.computeLevel(blob.m.Size)
 	return blob, nil
 }
 
@@ -175,7 +193,7 @@ func safeSlice(buf []byte, low int, high int) []byte {
 func (blob *Blob) lookup(off uint64) (*chunks.Chunk, error) {
 	gidx := uint32(off / uint64(blob.m.ChunkSize))
 	lidxs := localChunkIndexes(blob.m.Fanout, gidx)
-	level := blob.level()
+	level := blob.depth
 
 	// walk down from the root
 	var ptrKey = blob.m.Root
@@ -257,20 +275,20 @@ func (blob *Blob) chunkSizeForLevel(level uint8) uint32 {
 	}
 }
 
-func (blob *Blob) level() uint8 {
-	// convert size (count of bytes) to offset of last byte
-	if blob.m.Size == 0 {
-		return 0
-	}
-	off := blob.m.Size - 1
+func (blob *Blob) grow(level uint8) error {
+	// grow hash tree upward if needed
 
-	idx := uint32(off / uint64(blob.m.ChunkSize))
-	var level uint8
-	for idx > 0 {
-		idx /= blob.m.Fanout
-		level++
+	for blob.depth < level {
+		key, chunk, err := blob.stash.Clone(cas.Empty, blob.m.Type, blob.depth+1, blob.m.Fanout*cas.KeySize)
+		if err != nil {
+			return err
+		}
+
+		copy(chunk.Buf, blob.m.Root.Bytes())
+		blob.m.Root = key
+		blob.depth += 1
 	}
-	return level
+	return nil
 }
 
 // lookupForWrite fetches the data chunk for the given offset and
@@ -278,20 +296,13 @@ func (blob *Blob) level() uint8 {
 func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
 	gidx := uint32(off / uint64(blob.m.ChunkSize))
 	lidxs := localChunkIndexes(blob.m.Fanout, gidx)
-	level := blob.level()
 
-	// grow hash tree upward if needed
-	for int(level) < len(lidxs) {
-		key, chunk, err := blob.stash.Clone(cas.Empty, blob.m.Type, level+1, blob.m.Fanout*cas.KeySize)
-		if err != nil {
-			return nil, err
-		}
-
-		copy(chunk.Buf, blob.m.Root.Bytes())
-		// TODO don't change Root until you change Size, or errors lead to corruption
-		blob.m.Root = key
-		level += 1
+	err := blob.grow(uint8(len(lidxs)))
+	if err != nil {
+		return nil, err
 	}
+
+	level := blob.depth
 
 	var parentChunk *chunks.Chunk
 	{
@@ -436,7 +447,7 @@ func (blob *Blob) saveChunk(key cas.Key, level uint8) (cas.Key, error) {
 // Save persists the Blob into the Store and returns a new Manifest
 // that can be passed to Open later.
 func (blob *Blob) Save() (*Manifest, error) {
-	k, err := blob.saveChunk(blob.m.Root, blob.level())
+	k, err := blob.saveChunk(blob.m.Root, blob.depth)
 	if err != nil {
 		return nil, err
 	}
