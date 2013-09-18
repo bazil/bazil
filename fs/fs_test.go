@@ -488,3 +488,54 @@ func TestRemoveNonexistent(t *testing.T) {
 		t.Fatalf("deleting non-existent file gave wrong error: %v", err)
 	}
 }
+
+func TestTruncate(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
+	defer app.Close()
+
+	mnt := bazfstestutil.Mounted(t, app)
+	defer mnt.Close()
+
+	p := path.Join(mnt.Dir, "hello")
+	f, err := os.Create(p)
+	if err != nil {
+		t.Fatalf("cannot create hello: %v", err)
+	}
+	defer f.Close()
+	GREETING := "hello, world\n"
+	n, err := f.Write([]byte(GREETING))
+	if err != nil {
+		t.Fatalf("cannot write to hello: %v", err)
+	}
+	if n != len(GREETING) {
+		t.Fatalf("bad length write to hello: %d != %d", n, len(GREETING))
+	}
+	err = f.Close()
+	if err != nil {
+		t.Fatalf("closing hello failed: %v", err)
+	}
+
+	err = os.Truncate(p, 3)
+	if err != nil {
+		t.Fatalf("truncate failed: %v", err)
+	}
+
+	f2, err := os.Open(p)
+	if err != nil {
+		t.Fatalf("cannot open hello: %v", err)
+	}
+	defer f2.Close()
+	buf, err := ioutil.ReadAll(f2)
+	if err != nil {
+		t.Fatalf("cannot read from hello: %v", err)
+	}
+	if g, e := string(buf), GREETING[:3]; g != e {
+		t.Fatalf("hello content is wrong: %q != %q", g, e)
+	}
+	err = f2.Close()
+	if err != nil {
+		t.Fatalf("closing hello failed: %v", err)
+	}
+}

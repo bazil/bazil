@@ -92,3 +92,24 @@ func (f *file) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 
 	return nil
 }
+
+func (f *file) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, intr fs.Intr) fuse.Error {
+	valid := req.Valid
+	if valid.Size() {
+		err := f.blob.Truncate(req.Size)
+		if err != nil {
+			return err
+		}
+		valid &^= fuse.SetattrSize
+	}
+
+	// things we don't need to explicitly handle
+	valid &^= fuse.SetattrLockOwner
+
+	if valid != 0 {
+		// don't let an unhandled operation slip by without error
+		log.Printf("Setattr did not handle %v", valid)
+		return fuse.ENOSYS
+	}
+	return nil
+}
