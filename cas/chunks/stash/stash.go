@@ -52,6 +52,16 @@ func (s *Stash) drop(priv uint64) {
 	delete(s.local, priv)
 }
 
+// Drop forgets a Private chunk. The key may be reused, so caller must
+// not remember the old key.
+func (s *Stash) Drop(key cas.Key) {
+	priv, ok := key.Private()
+	if !ok {
+		return
+	}
+	s.drop(priv)
+}
+
 // Clone is like Get but clones the chunk if it's not already private.
 // Chunks that are already private are returned as-is.
 //
