@@ -20,7 +20,10 @@ func (k *KVFiles) Put(key, value []byte) error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmp.Name())
+	defer func() {
+		// silence errcheck
+		_ = os.Remove(tmp.Name())
+	}()
 
 	_, err = tmp.Write(value)
 	if err != nil {
