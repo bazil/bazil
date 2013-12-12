@@ -18,6 +18,8 @@ import (
 )
 
 type dir struct {
+	fs.NodeRef
+
 	inode  uint64
 	name   string
 	parent *dir
