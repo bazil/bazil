@@ -9,7 +9,7 @@ import (
 
 type Dir struct {
 	Path string
-	t    *testing.T
+	t    testing.TB
 }
 
 func (d Dir) Cleanup() {
@@ -55,7 +55,7 @@ func (d Dir) Subdir(name string) string {
 	return p
 }
 
-func New(t *testing.T) Dir {
+func New(t testing.TB) Dir {
 	parent := ""
 
 	// if we are running under "go test", use its temp dir
