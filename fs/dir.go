@@ -55,6 +55,9 @@ func (d *dir) Attr() fuse.Attr {
 }
 
 func (d *dir) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+	d.fs.mu.Lock()
+	defer d.fs.mu.Unlock()
+
 	if child, ok := d.active[name]; ok {
 		return child, nil
 	}
@@ -127,6 +130,9 @@ func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 }
 
 func (d *dir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+	d.fs.mu.Lock()
+	defer d.fs.mu.Unlock()
+
 	var entries []fuse.Dirent
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
 		bucket := d.fs.bucket(tx).Bucket(bucketDir)
@@ -154,6 +160,7 @@ func (d *dir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 	return entries, err
 }
 
+// caller does locking
 func (d *dir) save(tx *bolt.Tx, n node) error {
 	name := n.getName()
 	if have, ok := d.active[name]; !ok || have != n {
@@ -192,6 +199,9 @@ func (d *dir) marshal() (*wire.Dirent, error) {
 }
 
 func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
+	d.fs.mu.Lock()
+	defer d.fs.mu.Unlock()
+
 	// TODO check for duplicate name
 
 	switch req.Mode & os.ModeType {
@@ -232,6 +242,7 @@ func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs
 	}
 }
 
+// caller does locking
 func (d *dir) forgetChild(child node) {
 	name := child.getName()
 	if have, ok := d.active[name]; ok {
@@ -244,6 +255,9 @@ func (d *dir) forgetChild(child node) {
 }
 
 func (d *dir) Forget() {
+	d.fs.mu.Lock()
+	defer d.fs.mu.Unlock()
+
 	if d.parent == nil {
 		// root dir, don't keep track
 		return
@@ -252,6 +266,9 @@ func (d *dir) Forget() {
 }
 
 func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+	d.fs.mu.Lock()
+	defer d.fs.mu.Unlock()
+
 	// TODO handle req.Mode
 
 	var child node
@@ -285,6 +302,9 @@ func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) 
 }
 
 func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
+	d.fs.mu.Lock()
+	defer d.fs.mu.Unlock()
+
 	key := pathToKey(d.inode, req.Name)
 	err := d.fs.db.Update(func(tx *bolt.Tx) error {
 		bucket := d.fs.bucket(tx).Bucket(bucketDir)
@@ -312,6 +332,9 @@ func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 }
 
 func (d *dir) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse.Error {
+	d.fs.mu.Lock()
+	defer d.fs.mu.Unlock()
+
 	if newDir != d {
 		return fuse.Errno(syscall.EXDEV)
 	}

@@ -2,6 +2,7 @@ package fs
 
 import (
 	"encoding/binary"
+	"sync"
 
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/fs/wire"
@@ -12,6 +13,7 @@ import (
 )
 
 type Volume struct {
+	mu         sync.Mutex
 	db         *bolt.DB
 	volID      VolumeID
 	chunkStore chunks.Store

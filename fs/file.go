@@ -61,10 +61,16 @@ func (f *file) Attr() fuse.Attr {
 }
 
 func (f *file) Forget() {
+	f.parent.fs.mu.Lock()
+	defer f.parent.fs.mu.Unlock()
+
 	f.parent.forgetChild(f)
 }
 
 func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
+	f.parent.fs.mu.Lock()
+	defer f.parent.fs.mu.Unlock()
+
 	n, err := f.blob.WriteAt(req.Data, req.Offset)
 	resp.Size = n
 	if err != nil {
@@ -75,6 +81,9 @@ func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 }
 
 func (f *file) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
+	f.parent.fs.mu.Lock()
+	defer f.parent.fs.mu.Unlock()
+
 	// TODO only if dirty
 	err := f.parent.fs.db.Update(func(tx *bolt.Tx) error {
 		return f.parent.save(tx, f)
@@ -85,6 +94,9 @@ func (f *file) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 const maxInt64 = 9223372036854775807
 
 func (f *file) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
+	f.parent.fs.mu.Lock()
+	defer f.parent.fs.mu.Unlock()
+
 	if req.Offset < 0 {
 		panic("unreachable")
 	}
@@ -104,6 +116,9 @@ func (f *file) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 }
 
 func (f *file) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, intr fs.Intr) fuse.Error {
+	f.parent.fs.mu.Lock()
+	defer f.parent.fs.mu.Unlock()
+
 	valid := req.Valid
 	if valid.Size() {
 		err := f.blob.Truncate(req.Size)
