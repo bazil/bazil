@@ -11,7 +11,7 @@ import (
 	"bazil.org/bazil/util/tempdir"
 )
 
-func benchmarkWrite(b *testing.B, size int64) {
+func benchmark(b *testing.B, fn func(b *testing.B, mnt string)) {
 	tmp := tempdir.New(b)
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(b, tmp.Subdir("data"))
@@ -20,103 +20,103 @@ func benchmarkWrite(b *testing.B, size int64) {
 	mnt := bazfstestutil.Mounted(b, app)
 	defer mnt.Close()
 
-	counter := &bazfstestutil.CountReader{}
-	p := path.Join(mnt.Dir, "testcontent")
+	fn(b, mnt.Dir)
+}
 
-	b.ResetTimer()
-	b.SetBytes(size)
+func doWrites(size int64) func(b *testing.B, mnt string) {
+	return func(b *testing.B, mnt string) {
+		counter := &bazfstestutil.CountReader{}
+		p := path.Join(mnt, "testcontent")
 
-	for i := 0; i < b.N; i++ {
-		f, err := os.Create(p)
-		if err != nil {
-			b.Fatalf("create: %v", err)
-		}
-		defer f.Close()
+		b.ResetTimer()
+		b.SetBytes(size)
 
-		_, err = io.CopyN(f, counter, size)
-		if err != nil {
-			b.Fatalf("write: %v", err)
-		}
+		for i := 0; i < b.N; i++ {
+			f, err := os.Create(p)
+			if err != nil {
+				b.Fatalf("create: %v", err)
+			}
+			defer f.Close()
 
-		err = f.Close()
-		if err != nil {
-			b.Fatalf("close: %v", err)
+			_, err = io.CopyN(f, counter, size)
+			if err != nil {
+				b.Fatalf("write: %v", err)
+			}
+
+			err = f.Close()
+			if err != nil {
+				b.Fatalf("close: %v", err)
+			}
 		}
 	}
 }
 
 func BenchmarkWrite100(b *testing.B) {
-	benchmarkWrite(b, 100)
+	benchmark(b, doWrites(100))
 }
 
 func BenchmarkWrite10MB(b *testing.B) {
-	benchmarkWrite(b, 10*1024*1024)
+	benchmark(b, doWrites(10*1024*1024))
 }
 
 func BenchmarkWrite100MB(b *testing.B) {
-	benchmarkWrite(b, 100*1024*1024)
+	benchmark(b, doWrites(100*1024*1024))
 }
 
-func benchmarkRead(b *testing.B, size int64) {
-	tmp := tempdir.New(b)
-	defer tmp.Cleanup()
-	app := bazfstestutil.NewApp(b, tmp.Subdir("data"))
-	defer app.Close()
+func doReads(size int64) func(b *testing.B, mnt string) {
+	return func(b *testing.B, mnt string) {
+		p := path.Join(mnt, "testcontent")
 
-	mnt := bazfstestutil.Mounted(b, app)
-	defer mnt.Close()
-
-	p := path.Join(mnt.Dir, "testcontent")
-
-	{
-		counter := &bazfstestutil.CountReader{}
-		f, err := os.Create(p)
-		if err != nil {
-			b.Fatalf("create: %v", err)
-		}
-		defer f.Close()
-		_, err = io.CopyN(f, counter, size)
-		if err != nil {
-			b.Fatalf("read: %v", err)
-		}
-		err = f.Close()
-		if err != nil {
-			b.Fatalf("close: %v", err)
-		}
-	}
-
-	b.ResetTimer()
-	b.SetBytes(size)
-
-	for i := 0; i < b.N; i++ {
-		f, err := os.Open(p)
-		if err != nil {
-			b.Fatalf("close: %v", err)
+		{
+			counter := &bazfstestutil.CountReader{}
+			f, err := os.Create(p)
+			if err != nil {
+				b.Fatalf("create: %v", err)
+			}
+			defer f.Close()
+			_, err = io.CopyN(f, counter, size)
+			if err != nil {
+				b.Fatalf("read: %v", err)
+			}
+			err = f.Close()
+			if err != nil {
+				b.Fatalf("close: %v", err)
+			}
 		}
 
-		n, err := io.Copy(ioutil.Discard, f)
-		if err != nil {
-			b.Fatalf("read: %v", err)
-		}
-		if n != size {
-			b.Errorf("unexpected size: %d != %d", n, size)
-		}
+		b.ResetTimer()
+		b.SetBytes(size)
 
-		err = f.Close()
-		if err != nil {
-			b.Fatalf("close: %v", err)
+		for i := 0; i < b.N; i++ {
+			f, err := os.Open(p)
+			if err != nil {
+				b.Fatalf("close: %v", err)
+			}
+
+			n, err := io.Copy(ioutil.Discard, f)
+			if err != nil {
+				b.Fatalf("read: %v", err)
+			}
+			if n != size {
+				b.Errorf("unexpected size: %d != %d", n, size)
+			}
+
+			err = f.Close()
+			if err != nil {
+				b.Fatalf("close: %v", err)
+			}
 		}
 	}
 }
 
 func BenchmarkRead100(b *testing.B) {
-	benchmarkRead(b, 100)
+	benchmark(b, doReads(100))
 }
 
 func BenchmarkRead10MB(b *testing.B) {
-	benchmarkRead(b, 10*1024*1024)
+	benchmark(b, doReads(10*1024*1024))
 }
 
 func BenchmarkRead100MB(b *testing.B) {
-	benchmarkRead(b, 100*1024*1024)
+	benchmark(b, doReads(100*1024*1024))
 }
