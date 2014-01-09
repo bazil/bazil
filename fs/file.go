@@ -129,7 +129,7 @@ func (f *file) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, int
 	}
 
 	// things we don't need to explicitly handle
-	valid &^= fuse.SetattrLockOwner
+	valid &^= fuse.SetattrLockOwner | fuse.SetattrHandle
 
 	if valid != 0 {
 		// don't let an unhandled operation slip by without error
