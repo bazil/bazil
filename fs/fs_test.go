@@ -7,10 +7,16 @@ import (
 	"path"
 	"syscall"
 	"testing"
+	"time"
 
 	bazfstestutil "bazil.org/bazil/fs/fstestutil"
 	"bazil.org/bazil/util/tempdir"
 )
+
+func init() {
+	// hangs are all too common, set default timeout
+	bazfstestutil.SetDefaultTimeout(10 * time.Second)
+}
 
 func TestSimple(t *testing.T) {
 	tmp := tempdir.New(t)
