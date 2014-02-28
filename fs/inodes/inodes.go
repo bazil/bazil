@@ -7,9 +7,9 @@ package inodes
 
 import (
 	"encoding/binary"
-	"math"
 	"syscall"
 
+	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	"github.com/boltdb/bolt"
 )
@@ -57,11 +57,11 @@ func Allocate(bucket *bolt.Bucket) (uint64, error) {
 		i = maxReservedInode
 	}
 
-	if i == math.MaxUint64 {
+	i++
+
+	if i&tokens.InodeKindMask != tokens.InodeKindNormal {
 		return 0, OutOfInodes
 	}
-
-	i++
 
 	var buf [8]byte
 	inodeToBytes(i, buf[:])
