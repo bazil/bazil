@@ -140,3 +140,32 @@ func (d *listSnaps) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.E
 	}
 	return n, nil
 }
+
+var _ = fs.HandleReadDirer(&listSnaps{})
+
+func (d *listSnaps) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+	d.fs.mu.Lock()
+	defer d.fs.mu.Unlock()
+
+	var entries []fuse.Dirent
+
+	err := d.fs.db.View(func(tx *bolt.Tx) error {
+		bucket := d.fs.bucket(tx).Bucket(bucketSnap)
+		if bucket == nil {
+			return errors.New("snapshot bucket missing")
+		}
+		c := bucket.Cursor()
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			fde := fuse.Dirent{
+				Name: string(k),
+				Type: fuse.DT_Dir,
+			}
+			entries = append(entries, fde)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return entries, nil
+}

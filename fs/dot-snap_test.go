@@ -63,3 +63,52 @@ func TestSnapRecord(t *testing.T) {
 		}
 	}
 }
+
+func TestSnapList(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
+	defer app.Close()
+
+	mnt := bazfstestutil.Mounted(t, app)
+	defer mnt.Close()
+
+	// make some snapshots
+	{
+		err := os.Mkdir(path.Join(mnt.Dir, ".snap", "snapone"), 0755)
+		if err != nil {
+			t.Fatalf("snapshot failed: %v", err)
+		}
+		err = os.Mkdir(path.Join(mnt.Dir, ".snap", "snaptwo"), 0755)
+		if err != nil {
+			t.Fatalf("snapshot failed: %v", err)
+		}
+		err = os.Mkdir(path.Join(mnt.Dir, ".snap", "alphabetical"), 0755)
+		if err != nil {
+			t.Fatalf("snapshot failed: %v", err)
+		}
+	}
+
+	// list snapshots
+	{
+		fis, err := ioutil.ReadDir(path.Join(mnt.Dir, ".snap"))
+		if err != nil {
+			t.Fatalf("listing snapshots failed: %v\n", err)
+		}
+		for _, fi := range fis {
+			if fi.Mode() != os.ModeDir|0555 {
+				t.Errorf("snapshot has bad mode: %q is %#o", fi.Name(), fi.Mode())
+			}
+			// TODO fi.ModTime()
+		}
+		if g, e := len(fis), 3; g != e {
+			t.Fatalf("wrong number of snapshots: %d != %d: %v", g, e, fis)
+		}
+		expect := []string{"alphabetical", "snapone", "snaptwo"}
+		for i, fi := range fis {
+			if g, e := fi.Name(), expect[i]; g != e {
+				t.Errorf("wrong snapshot entry: %q != %q", g, e)
+			}
+		}
+	}
+}
