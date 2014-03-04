@@ -14,8 +14,6 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-const maxReservedInode = 1023
-
 func inodeToBytes(inode uint64, buf []byte) {
 	binary.BigEndian.PutUint64(buf, inode)
 }
@@ -51,10 +49,9 @@ func Allocate(bucket *bolt.Bucket) (uint64, error) {
 		i = bytesToInode(k)
 	}
 
-	// reserve a few inodes for internal use; currently just
-	// inode 1 is the root dir
-	if i < maxReservedInode {
-		i = maxReservedInode
+	// reserve a few inodes for internal use
+	if i < tokens.MaxReservedInode {
+		i = tokens.MaxReservedInode
 	}
 
 	i++

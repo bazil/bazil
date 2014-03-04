@@ -1,5 +1,10 @@
 package tokens
 
+const (
+	InodeRoot        uint64 = 1
+	MaxReservedInode uint64 = 1023
+)
+
 // the top half of inode space is reserved for dynamically allocated
 // inodes
 const (
