@@ -1,0 +1,14 @@
+package bazil.cas;
+
+option go_package = "wire";
+
+import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
+
+option (gogoproto.unmarshaler_all) = true;
+
+message Manifest {
+  required bytes root = 1 [(gogoproto.customtype) = "bazil.org/bazil/cas.Key", (gogoproto.nullable) = false];
+  required uint64 size = 2 [(gogoproto.nullable) = false];
+  required uint32 chunkSize = 3 [(gogoproto.nullable) = false];
+  required uint32 fanout = 4 [(gogoproto.nullable) = false];
+}
