@@ -4,7 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
+
+	"bazil.org/bazil/pb"
+
+	"code.google.com/p/gogoprotobuf/proto"
 )
 
 // Size of the CAS keys in bytes.
@@ -85,6 +90,32 @@ func (k *Key) Private() (num uint64, ok bool) {
 func (k *Key) IsReserved() bool {
 	return k.IsSpecial() && k.specialKind() != 0xFF && *k != Empty
 }
+
+func (k *Key) Unmarshal(b []byte) error {
+	if len(b) != KeySize {
+		return &BadKeySizeError{Key: b}
+	}
+	*k = NewKey(b)
+	if *k == Invalid {
+		return errors.New("invalid key")
+	}
+	return nil
+}
+
+var _ = proto.Unmarshaler(&Key{})
+
+func (k *Key) MarshalTo(data []byte) (n int, err error) {
+	n = copy(data, k.object[:])
+	return n, nil
+}
+
+var _ = pb.Marshaler(&Key{})
+
+func (*Key) Size() int {
+	return KeySize
+}
+
+var _ = proto.Sizer(&Key{})
 
 func newKey(b []byte) Key {
 	k := Key{}
