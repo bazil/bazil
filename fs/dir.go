@@ -99,17 +99,24 @@ func (d *dir) unmarshalDirent(buf []byte) (*wire.Dirent, error) {
 	return &de, nil
 }
 
+func (d *dir) reviveDir(de *wire.Dirent, name string) (*dir, error) {
+	if de.Type.Dir == nil {
+		return nil, fmt.Errorf("tried to revive non-directory as directory: %v", de.GetValue())
+	}
+	child := &dir{
+		inode:  de.Inode,
+		name:   name,
+		parent: d,
+		fs:     d.fs,
+		active: make(map[string]node),
+	}
+	return child, nil
+}
+
 func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 	switch {
 	case de.Type.Dir != nil:
-		child := &dir{
-			inode:  de.Inode,
-			name:   name,
-			parent: d,
-			fs:     d.fs,
-			active: make(map[string]node),
-		}
-		return child, nil
+		return d.reviveDir(de, name)
 
 	case de.Type.File != nil:
 		manifest := de.Type.File.Manifest.ToBlob("file")
