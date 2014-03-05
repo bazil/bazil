@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"bazil.org/bazil/cas/chunks"
+	"bazil.org/bazil/fs/inodes"
 	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
@@ -71,6 +72,12 @@ func (v *Volume) Root() (fs.Node, fuse.Error) {
 	}
 	return d, nil
 }
+
+func (*Volume) GenerateInode(parent uint64, name string) uint64 {
+	return inodes.Dynamic(parent, name)
+}
+
+var _ = fs.FSInodeGenerator(&Volume{})
 
 func pathToKey(parentInode uint64, name string) []byte {
 	buf := make([]byte, 8+len(name))
