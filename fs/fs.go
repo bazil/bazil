@@ -25,6 +25,7 @@ var _ = fs.FS(&Volume{})
 var bucketVolume = []byte(tokens.BucketVolume)
 var bucketDir = []byte("dir")
 var bucketInode = []byte("inode")
+var bucketSnap = []byte("snap")
 
 func (v *Volume) bucket(tx *bolt.Tx) *bolt.Bucket {
 	b := tx.Bucket(bucketVolume)
@@ -58,6 +59,9 @@ func Init(tx *bolt.Tx) error {
 		return err
 	}
 	if _, err := b.CreateBucketIfNotExists(bucketInode); err != nil {
+		return err
+	}
+	if _, err := b.CreateBucketIfNotExists(bucketSnap); err != nil {
 		return err
 	}
 	return nil
