@@ -40,3 +40,9 @@ message Dir {
   // indirection costs for a few bytes.
   required uint32 align = 2 [(gogoproto.nullable) = false];
 }
+
+// Snapshot as it is stored into CAS.
+message Snapshot {
+  required string name = 1 [(gogoproto.nullable) = false];
+  required bazil.snap.Dir contents = 2 [(gogoproto.nullable) = false];
+}

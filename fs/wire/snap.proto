@@ -1,0 +1,14 @@
+package bazil.db;
+
+option go_package = "wire";
+
+import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
+
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+
+// Snapshot as it is stored into database.
+message SnapshotRef {
+  required bytes key = 1 [(gogoproto.customtype) = "bazil.org/bazil/cas.Key", (gogoproto.nullable) = false];
+}

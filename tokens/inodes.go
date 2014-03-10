@@ -2,6 +2,7 @@ package tokens
 
 const (
 	InodeRoot        uint64 = 1
+	InodeSnap        uint64 = 2
 	MaxReservedInode uint64 = 1023
 )
 

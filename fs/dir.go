@@ -8,7 +8,10 @@ import (
 	"syscall"
 
 	"bazil.org/bazil/cas/blobs"
+	wirecas "bazil.org/bazil/cas/wire"
 	"bazil.org/bazil/fs/inodes"
+	"bazil.org/bazil/fs/snap"
+	wiresnap "bazil.org/bazil/fs/snap/wire"
 	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
@@ -55,6 +58,13 @@ func (d *dir) Attr() fuse.Attr {
 }
 
 func (d *dir) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+	if d.inode == 1 && name == ".snap" {
+		return &listSnaps{
+			fs:      d.fs,
+			rootDir: d,
+		}, nil
+	}
+
 	d.fs.mu.Lock()
 	defer d.fs.mu.Unlock()
 
@@ -402,5 +412,73 @@ func (d *dir) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse
 		// TODO free loser inode
 	}
 
+	return nil
+}
+
+// snapshot records a snapshot of the directory and stores it in wde
+func (d *dir) snapshot(tx *bolt.Tx, out *wiresnap.Dir, intr fs.Intr) error {
+	// NOT HOLDING THE LOCK, accessing database snapshot ONLY
+
+	// TODO move bucket lookup to caller?
+	bucket := d.fs.bucket(tx).Bucket(bucketDir)
+	if bucket == nil {
+		return errors.New("dir bucket missing")
+	}
+
+	manifest := blobs.EmptyManifest("dir")
+	blob, err := blobs.Open(d.fs.chunkStore, manifest)
+	if err != nil {
+		return err
+	}
+	w := snap.NewWriter(blob)
+
+	c := bucket.Cursor()
+	prefix := pathToKey(d.inode, "")
+	for k, v := c.Seek(prefix); k != nil; k, v = c.Next() {
+		if !bytes.HasPrefix(k, prefix) {
+			// past the end of the directory
+			break
+		}
+
+		name := string(k[len(prefix):])
+		de, err := d.unmarshalDirent(v)
+		if err != nil {
+			return err
+		}
+		sde := wiresnap.Dirent{
+			Name: name,
+		}
+		switch {
+		case de.Type.File != nil:
+			// TODO d.reviveNode would do blobs.Open and that's a bit
+			// too much work; rework the apis
+			sde.Type.File = &wiresnap.File{
+				Manifest: de.Type.File.Manifest,
+			}
+		case de.Type.Dir != nil:
+			child, err := d.reviveDir(de, name)
+			if err != nil {
+				return err
+			}
+			sde.Type.Dir = &wiresnap.Dir{}
+			err = child.snapshot(tx, sde.Type.Dir, intr)
+			if err != nil {
+				return err
+			}
+		default:
+			return errors.New("TODO")
+		}
+		err = w.Add(&sde)
+		if err != nil {
+			return err
+		}
+	}
+
+	manifest, err = blob.Save()
+	if err != nil {
+		return err
+	}
+	out.Manifest = wirecas.FromBlob(manifest)
+	out.Align = w.Align()
 	return nil
 }

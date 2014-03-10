@@ -13,6 +13,7 @@
 		Type
 		File
 		Dir
+		Snapshot
 */
 package wire
 
@@ -110,6 +111,30 @@ func (m *Dir) GetAlign() uint32 {
 		return m.Align
 	}
 	return 0
+}
+
+type Snapshot struct {
+	Name             string `protobuf:"bytes,1,req,name=name" json:"name"`
+	Contents         Dir    `protobuf:"bytes,2,req,name=contents" json:"contents"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *Snapshot) Reset()         { *m = Snapshot{} }
+func (m *Snapshot) String() string { return proto.CompactTextString(m) }
+func (*Snapshot) ProtoMessage()    {}
+
+func (m *Snapshot) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *Snapshot) GetContents() Dir {
+	if m != nil {
+		return m.Contents
+	}
+	return Dir{}
 }
 
 func init() {
@@ -445,6 +470,94 @@ func (m *Dir) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+func (m *Snapshot) Unmarshal(data []byte) error {
+	l := len(data)
+	index := 0
+	for index < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if index >= l {
+				return io1.ErrUnexpectedEOF
+			}
+			b := data[index]
+			index++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return code_google_com_p_gogoprotobuf_proto1.ErrWrongType
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io1.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + int(stringLen)
+			if postIndex > l {
+				return io1.ErrUnexpectedEOF
+			}
+			m.Name = string(data[index:postIndex])
+			index = postIndex
+		case 2:
+			if wireType != 2 {
+				return code_google_com_p_gogoprotobuf_proto1.ErrWrongType
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io1.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + msglen
+			if postIndex > l {
+				return io1.ErrUnexpectedEOF
+			}
+			if err := m.Contents.Unmarshal(data[index:postIndex]); err != nil {
+				return err
+			}
+			index = postIndex
+		default:
+			var sizeOfWire int
+			for {
+				sizeOfWire++
+				wire >>= 7
+				if wire == 0 {
+					break
+				}
+			}
+			index -= sizeOfWire
+			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			if err != nil {
+				return err
+			}
+			if (index + skippy) > l {
+				return io1.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
+			index += skippy
+		}
+	}
+	return nil
+}
 func (this *Type) GetValue() interface{} {
 	if this.File != nil {
 		return this.File
@@ -510,6 +623,18 @@ func (m *Dir) Size() (n int) {
 	l = m.Manifest.Size()
 	n += 1 + l + sovSnap(uint64(l))
 	n += 1 + sovSnap(uint64(m.Align))
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+func (m *Snapshot) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Name)
+	n += 1 + l + sovSnap(uint64(l))
+	l = m.Contents.Size()
+	n += 1 + l + sovSnap(uint64(l))
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -656,6 +781,38 @@ func (m *Dir) MarshalTo(data []byte) (n int, err error) {
 	data[i] = 0x10
 	i++
 	i = encodeVarintSnap(data, i, uint64(m.Align))
+	if m.XXX_unrecognized != nil {
+		i += copy(data[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+func (m *Snapshot) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *Snapshot) MarshalTo(data []byte) (n int, err error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintSnap(data, i, uint64(len(m.Name)))
+	i += copy(data[i:], m.Name)
+	data[i] = 0x12
+	i++
+	i = encodeVarintSnap(data, i, uint64(m.Contents.Size()))
+	n6, err := m.Contents.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n6
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}

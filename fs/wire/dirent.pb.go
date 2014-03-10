@@ -7,6 +7,7 @@
 
 	It is generated from these files:
 		bazil.org/bazil/fs/wire/dirent.proto
+		bazil.org/bazil/fs/wire/snap.proto
 
 	It has these top-level messages:
 		Dirent
