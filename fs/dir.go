@@ -352,6 +352,8 @@ func (d *dir) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse
 	d.fs.mu.Lock()
 	defer d.fs.mu.Unlock()
 
+	// if you ever change this, also guard against renaming into
+	// special directories like .snap; check type of newDir is *dir
 	if newDir != d {
 		return fuse.Errno(syscall.EXDEV)
 	}
