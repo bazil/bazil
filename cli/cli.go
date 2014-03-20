@@ -10,14 +10,31 @@ import (
 	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/defaults"
+	"bazil.org/fuse"
+	"github.com/tv42/jog"
 )
 
 type bazil struct {
 	flag.FlagSet
 	Config struct {
 		Verbose bool
+		Debug   bool
 		DataDir flagx.AbsPath
 	}
+}
+
+var _ = Service(&bazil{})
+
+func (b *bazil) Setup() (ok bool) {
+	if b.Config.Debug {
+		log := jog.New(nil)
+		fuse.Debug = log.Event
+	}
+	return true
+}
+
+func (b *bazil) Teardown() (ok bool) {
+	return true
 }
 
 // Bazil allows command-line callables access to global flags, such as
@@ -26,6 +43,7 @@ var Bazil = bazil{}
 
 func init() {
 	Bazil.BoolVar(&Bazil.Config.Verbose, "v", false, "verbose output")
+	Bazil.BoolVar(&Bazil.Config.Debug, "debug", false, "debug output")
 
 	Bazil.Config.DataDir = flagx.AbsPath(defaults.DataDir())
 	// ensure absolute path to make the control socket show up nicer
