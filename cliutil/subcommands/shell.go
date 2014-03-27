@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 
@@ -15,6 +16,12 @@ type command struct {
 	pkg string
 	cmd interface{}
 }
+
+type commandSorter []command
+
+func (a commandSorter) Len() int           { return len(a) }
+func (a commandSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a commandSorter) Less(i, j int) bool { return a[i].pkg < a[j].pkg }
 
 // Shell is a collection of commands, identified by the package that
 // defines them.
@@ -70,6 +77,7 @@ func (s *Shell) listSubcommands(pkg string) []command {
 			found = append(found, c)
 		}
 	}
+	sort.Sort(commandSorter(found))
 	return found
 }
 
