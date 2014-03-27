@@ -28,7 +28,7 @@ Options:
   -v=false: verbose output
 
 Commands:
-  sum`+"\t\t"+`sum two numbers
+  sum    sum two numbers
 `; g != e {
 		t.Errorf("unexpected usage:\n%s", g)
 		t.Logf("got: %q", g)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"text/tabwriter"
 
 	"bazil.org/bazil/cliutil/positional"
 )
@@ -135,17 +136,19 @@ func (r *Result) UsageTo(w io.Writer) {
 
 		// +1 for the slash
 		dropPrefix := len(r.last().pkg) + 1
+
+		wTab := tabwriter.NewWriter(w, 0, 0, 4, ' ', 0)
 		for _, c := range subs {
 			desc := ""
 			if d, ok := c.cmd.(DescriptionGetter); ok {
 				desc = d.GetDescription()
 			}
-			// TODO use tabwriter
 			subcommand := strings.Replace(c.pkg[dropPrefix:], "/", " ", -1)
 			if desc != "" {
-				desc = "\t\t" + desc
+				desc = "\t" + desc
 			}
-			fmt.Fprintf(w, "  %s%s\n", subcommand, desc)
+			fmt.Fprintf(wTab, "  %s%s\n", subcommand, desc)
 		}
+		wTab.Flush()
 	}
 }
