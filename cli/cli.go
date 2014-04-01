@@ -7,13 +7,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
+	"bazil.org/bazil/defaults"
 )
 
 type bazil struct {
 	flag.FlagSet
 	Config struct {
 		Verbose bool
+		DataDir flagx.AbsPath
 	}
 }
 
@@ -23,6 +26,12 @@ var Bazil = bazil{}
 
 func init() {
 	Bazil.BoolVar(&Bazil.Config.Verbose, "v", false, "verbose output")
+
+	Bazil.Config.DataDir = flagx.AbsPath(defaults.DataDir())
+	// ensure absolute path to make the control socket show up nicer
+	// in `ss` output
+	Bazil.Var(&Bazil.Config.DataDir, "data-dir", "path to filesystem state")
+
 	subcommands.Register(&Bazil)
 }
 
