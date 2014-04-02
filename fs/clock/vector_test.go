@@ -34,6 +34,25 @@ func TestMergeSimple(t *testing.T) {
 	}
 }
 
+func TestRebaseSimple(t *testing.T) {
+	var a vector
+	a.update(10, 1)
+	a.update(11, 1)
+	var b vector
+	b.merge(a)
+	a.update(10, 2)
+	b.update(12, 3)
+
+	a.rebase(b)
+
+	if g, e := b.String(), `{10:1 11:1 12:3}`; g != e {
+		t.Errorf("bad rebase: %s != %s", g, e)
+	}
+	if g, e := a.String(), `{10:2}`; g != e {
+		t.Errorf("bad rebase: %s != %s", g, e)
+	}
+}
+
 func TestCompareLEEmpty(t *testing.T) {
 	var a vector
 	var b vector

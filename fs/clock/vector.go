@@ -83,6 +83,37 @@ func (v *vector) merge(other vector) {
 	}
 }
 
+// rebase sets v to only include the items not in other.
+func (v *vector) rebase(other vector) {
+	myIdx := 0
+	otherIdx := 0
+outer:
+	for myIdx < len(v.list) && otherIdx < len(other.list) {
+		switch {
+		case v.list[myIdx].id < other.list[otherIdx].id:
+			// we have an item other does not, keep it
+			myIdx++
+			continue outer
+		case v.list[myIdx].id > other.list[otherIdx].id:
+			// other has extra items, never mind
+			otherIdx++
+			continue outer
+		default:
+			// same ids
+			if v.list[myIdx].t > other.list[otherIdx].t {
+				// need to preserve entry
+				myIdx++
+			} else {
+				// can simplify, remove the entry
+				copy(v.list[myIdx:], v.list[myIdx+1:])
+				v.list = v.list[:len(v.list)-1]
+			}
+			otherIdx++
+			continue outer
+		}
+	}
+}
+
 // compareLE tests if A <= B.
 func compareLE(a, b vector) bool {
 	aIdx := 0
