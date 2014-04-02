@@ -266,3 +266,28 @@ func TestFigure5D(t *testing.T) {
 	a.ValidateFile()
 	b.ValidateFile()
 }
+
+func TestFigure8(t *testing.T) {
+	a := clock.Create(10, 1)
+	a.UpdateSync(10, 2)
+
+	b := &clock.Clock{}
+	b.ResolveTheirs(a)
+	b.Update(11, 4)
+
+	c := &clock.Clock{}
+
+	if g, e := clock.Sync(b, c), clock.Copy; g != e {
+		t.Errorf("bad sync decision: %v is to %v -> %v != %v", a, b, g, e)
+	}
+	c.ResolveTheirs(b)
+	c.UpdateSync(12, 5)
+
+	if g, e := c.String(), `{sync{10:2 11:4 12:5} mod{10:1 11:4} create{10:1}}`; g != e {
+		t.Errorf("bad state C: %v != %v", g, e)
+	}
+
+	a.ValidateFile()
+	b.ValidateFile()
+	c.ValidateFile()
+}

@@ -53,11 +53,19 @@ func (s *Clock) Update(id Peer, now Epoch) {
 	s.sync.update(id, now)
 }
 
+// UpdateSync updates the sync time only for id to point to time now.
+//
+// Caller guarantees if an entry exists for id already, now is greater
+// than or equal to the old value.
+func (s *Clock) UpdateSync(id Peer, now Epoch) {
+	s.sync.update(id, now)
+}
+
 // ResolveTheirs records a conflict resolution in favor of other.
 func (s *Clock) ResolveTheirs(other *Clock) {
 	s.mod = vector{}
 	s.mod.merge(other.mod)
-	s.sync.merge(other.mod)
+	s.sync.merge(other.sync)
 	// vpair paper is silent on what to do with create times; if we
 	// don't do this, s.create can remain empty
 	if len(s.create.list) == 0 {
@@ -68,7 +76,7 @@ func (s *Clock) ResolveTheirs(other *Clock) {
 // ResolveOurs records a conflict resolution in favor of us.
 func (s *Clock) ResolveOurs(other *Clock) {
 	// no change to s.mod
-	s.sync.merge(other.mod)
+	s.sync.merge(other.sync)
 	// no change to s.create
 }
 
@@ -76,7 +84,7 @@ func (s *Clock) ResolveOurs(other *Clock) {
 // content.
 func (s *Clock) ResolveNew(other *Clock) {
 	s.mod.merge(other.mod)
-	s.sync.merge(other.mod)
+	s.sync.merge(other.sync)
 	// no change to s.create
 }
 
