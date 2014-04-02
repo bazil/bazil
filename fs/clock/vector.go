@@ -68,6 +68,12 @@ func (v *vector) update(id Peer, now Epoch) {
 	v.list[i].t = now
 }
 
+// updateSimplify adds id at time now to the vector, knowing that only
+// one entry needs to be preserved.
+func (v *vector) updateSimplify(id Peer, now Epoch) {
+	v.list = []item{{id: id, t: now}}
+}
+
 func (v *vector) merge(other vector) {
 	for _, o := range other.list {
 		i := v.add(o.id)

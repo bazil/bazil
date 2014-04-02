@@ -48,10 +48,10 @@ func TestFigure2B(t *testing.T) {
 	}
 	a.ResolveTheirs(&b)
 
-	if g, e := a.String(), `{sync{10:1 11:3} mod{10:1 11:3} create{10:1}}`; g != e {
+	if g, e := a.String(), `{sync{10:1 11:3} mod{11:3} create{10:1}}`; g != e {
 		t.Errorf("bad state A: %v != %v", g, e)
 	}
-	if g, e := b.String(), `{sync{10:1 11:3} mod{10:1 11:3} create{10:1}}`; g != e {
+	if g, e := b.String(), `{sync{10:1 11:3} mod{11:3} create{10:1}}`; g != e {
 		t.Errorf("bad state B: %v != %v", g, e)
 	}
 
@@ -76,7 +76,7 @@ func TestFigure2C(t *testing.T) {
 	if g, e := a.String(), `{sync{10:3} mod{10:3} create{10:1}}`; g != e {
 		t.Errorf("bad state A: %v != %v", g, e)
 	}
-	if g, e := b.String(), `{sync{10:1 11:3} mod{10:1 11:3} create{10:1}}`; g != e {
+	if g, e := b.String(), `{sync{10:1 11:3} mod{11:3} create{10:1}}`; g != e {
 		t.Errorf("bad state B: %v != %v", g, e)
 	}
 
@@ -273,7 +273,8 @@ func TestFigure8(t *testing.T) {
 
 	b := &clock.Clock{}
 	b.ResolveTheirs(a)
-	b.Update(11, 4)
+	// Figure 8 does not contain the compressed modtime optimization.
+	b.UpdateParent(11, 4)
 
 	c := &clock.Clock{}
 

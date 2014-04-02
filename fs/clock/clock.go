@@ -46,9 +46,26 @@ func Create(id Peer, now Epoch) *Clock {
 // Update adds or updates the version vector entry for id to point to
 // time now.
 //
+// As an optimization, it removes all the other modification time
+// entries. This is only safe for files, not directories; see section
+// 3.5.2 "Encoding Modification Times" of the Tra paper.
+//
+// Caller guarantees that one of the following is true:
+//     - now is greater than any old value seen for peer id
+//     - now is equal to an earlier value for this peer id, and no
+//       other peer ids have been updated since that Update
+func (s *Clock) Update(id Peer, now Epoch) {
+	s.mod.updateSimplify(id, now)
+	s.sync.update(id, now)
+}
+
+// UpdateParent is like Update, but does not simplify the modification
+// time version vector. It is safe to use for directories and other
+// entities where updates are not necessarily sequenced.
+//
 // Caller guarantees if an entry exists for id already, now is greater
 // than or equal to the old value.
-func (s *Clock) Update(id Peer, now Epoch) {
+func (s *Clock) UpdateParent(id Peer, now Epoch) {
 	s.mod.update(id, now)
 	s.sync.update(id, now)
 }
