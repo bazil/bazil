@@ -83,6 +83,11 @@ func (s *Clock) UpdateFromChild(child *Clock) {
 	s.mod.merge(child.mod)
 }
 
+// UpdateFromParent simplifies child sync times based on the parent.
+func (s *Clock) UpdateFromParent(parent *Clock) {
+	s.sync.rebase(parent.sync)
+}
+
 // ResolveTheirs records a conflict resolution in favor of other.
 func (s *Clock) ResolveTheirs(other *Clock) {
 	s.mod = vector{}
