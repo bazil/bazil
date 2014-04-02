@@ -30,8 +30,8 @@ func TestFigure2A(t *testing.T) {
 		t.Errorf("bad state B: %v != %v", g, e)
 	}
 
-	a.ValidateFile()
-	b.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure2B(t *testing.T) {
@@ -55,8 +55,8 @@ func TestFigure2B(t *testing.T) {
 		t.Errorf("bad state B: %v != %v", g, e)
 	}
 
-	a.ValidateFile()
-	b.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure2C(t *testing.T) {
@@ -80,8 +80,8 @@ func TestFigure2C(t *testing.T) {
 		t.Errorf("bad state B: %v != %v", g, e)
 	}
 
-	a.ValidateFile()
-	b.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure3B(t *testing.T) {
@@ -123,9 +123,9 @@ func TestFigure3B(t *testing.T) {
 		t.Errorf("bad sync decision: %v is to %v -> %v != %v", a, b, g, e)
 	}
 
-	a.ValidateFile()
-	b.ValidateFile()
-	c.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	c.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure3C(t *testing.T) {
@@ -167,9 +167,9 @@ func TestFigure3C(t *testing.T) {
 		t.Errorf("bad sync decision: %v is to %v -> %v != %v", a, b, g, e)
 	}
 
-	a.ValidateFile()
-	b.ValidateFile()
-	c.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	c.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure3D(t *testing.T) {
@@ -211,9 +211,9 @@ func TestFigure3D(t *testing.T) {
 		t.Errorf("bad sync decision: %v is to %v -> %v != %v", a, b, g, e)
 	}
 
-	a.ValidateFile()
-	b.ValidateFile()
-	c.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	c.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure5A(t *testing.T) {
@@ -233,8 +233,8 @@ func TestFigure5A(t *testing.T) {
 	}
 	a.ResolveTheirs(b)
 
-	a.ValidateFile()
-	b.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure5C(t *testing.T) {
@@ -247,8 +247,8 @@ func TestFigure5C(t *testing.T) {
 	}
 	a.ResolveTheirs(b)
 
-	a.ValidateFile()
-	b.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure5D(t *testing.T) {
@@ -263,8 +263,8 @@ func TestFigure5D(t *testing.T) {
 	}
 	a.ResolveTheirs(b)
 
-	a.ValidateFile()
-	b.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure8(t *testing.T) {
@@ -288,14 +288,15 @@ func TestFigure8(t *testing.T) {
 		t.Errorf("bad state C: %v != %v", g, e)
 	}
 
-	a.ValidateFile()
-	b.ValidateFile()
-	c.ValidateFile()
+	a.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	b.ValidateFile(&clock.Clock{ /* dummy parent */ })
+	c.ValidateFile(&clock.Clock{ /* dummy parent */ })
 }
 
 func TestFigure12(t *testing.T) {
 	a_dx := clock.Create(10, 1)
 	a_dy := clock.Create(10, 1)
+	a_d := &clock.Clock{}
 
 	b_dx := &clock.Clock{}
 	b_dy := &clock.Clock{}
@@ -336,12 +337,12 @@ func TestFigure12(t *testing.T) {
 		t.Errorf("bad state C d: %v != %v", g, e)
 	}
 
-	a_dx.ValidateFile()
-	a_dy.ValidateFile()
+	a_dx.ValidateFile(a_d)
+	a_dy.ValidateFile(a_d)
 
-	b_dx.ValidateFile()
-	b_dy.ValidateFile()
+	b_dx.ValidateFile(b_d)
+	b_dy.ValidateFile(b_d)
 
-	c_dx.ValidateFile()
-	c_dy.ValidateFile()
+	c_dx.ValidateFile(c_d)
+	c_dy.ValidateFile(c_d)
 }
