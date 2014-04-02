@@ -61,6 +61,11 @@ func (s *Clock) UpdateSync(id Peer, now Epoch) {
 	s.sync.update(id, now)
 }
 
+// UpdateFromChild tracks child modification times in the parent.
+func (s *Clock) UpdateFromChild(child *Clock) {
+	s.mod.merge(child.mod)
+}
+
 // ResolveTheirs records a conflict resolution in favor of other.
 func (s *Clock) ResolveTheirs(other *Clock) {
 	s.mod = vector{}

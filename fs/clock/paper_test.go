@@ -291,3 +291,56 @@ func TestFigure8(t *testing.T) {
 	b.ValidateFile()
 	c.ValidateFile()
 }
+
+func TestFigure12(t *testing.T) {
+	a_dx := clock.Create(10, 1)
+	a_dy := clock.Create(10, 1)
+
+	b_dx := &clock.Clock{}
+	b_dy := &clock.Clock{}
+	b_d := &clock.Clock{}
+
+	// TODO involve dir
+	b_dx.ResolveTheirs(a_dx)
+	b_d.UpdateFromChild(b_dx)
+	b_dx.UpdateSync(11, 3)
+	b_dy.UpdateSync(11, 3)
+
+	c_dx := &clock.Clock{}
+	c_dy := &clock.Clock{}
+	c_d := &clock.Clock{}
+
+	c_dy.ResolveTheirs(a_dy)
+	c_d.UpdateFromChild(c_dy)
+	c_dx.UpdateSync(12, 3)
+	c_dy.UpdateSync(12, 3)
+
+	if g, e := b_dx.String(), `{sync{10:1 11:3} mod{10:1} create{10:1}}`; g != e {
+		t.Errorf("bad state B d/x: %v != %v", g, e)
+	}
+	if g, e := b_dy.String(), `{sync{11:3} mod{} create{}}`; g != e {
+		t.Errorf("bad state B d/y: %v != %v", g, e)
+	}
+	if g, e := b_d.String(), `{sync{} mod{10:1} create{}}`; g != e {
+		t.Errorf("bad state B d: %v != %v", g, e)
+	}
+
+	if g, e := c_dx.String(), `{sync{12:3} mod{} create{}}`; g != e {
+		t.Errorf("bad state C d/x: %v != %v", g, e)
+	}
+	if g, e := c_dy.String(), `{sync{10:1 12:3} mod{10:1} create{10:1}}`; g != e {
+		t.Errorf("bad state C d/y: %v != %v", g, e)
+	}
+	if g, e := c_d.String(), `{sync{} mod{10:1} create{}}`; g != e {
+		t.Errorf("bad state C d: %v != %v", g, e)
+	}
+
+	a_dx.ValidateFile()
+	a_dy.ValidateFile()
+
+	b_dx.ValidateFile()
+	b_dy.ValidateFile()
+
+	c_dx.ValidateFile()
+	c_dy.ValidateFile()
+}
