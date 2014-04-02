@@ -20,10 +20,27 @@ type Epoch uint64
 
 // Clock is a logical clock.
 //
-// The zero value is a valid empty clock.
+// The zero value is a valid empty clock, but most callers should call
+// Create to get the creation time set up.
 type Clock struct {
 	sync vector
 	mod  vector
+	// create is always of length 1
+	//
+	// TODO could make it an item not a vector, but then we can't
+	// use compareLE.
+	create vector
+}
+
+// Create returns a new Vector Pair that knows it was created by id at
+// time now.
+func Create(id Peer, now Epoch) *Clock {
+	c := &Clock{
+		sync:   vector{list: []item{{id: id, t: now}}},
+		mod:    vector{list: []item{{id: id, t: now}}},
+		create: vector{list: []item{{id: id, t: now}}},
+	}
+	return c
 }
 
 // Update adds or updates the version vector entry for id to point to
@@ -41,12 +58,18 @@ func (s *Clock) ResolveTheirs(other *Clock) {
 	s.mod = vector{}
 	s.mod.merge(other.mod)
 	s.sync.merge(other.mod)
+	// vpair paper is silent on what to do with create times; if we
+	// don't do this, s.create can remain empty
+	if len(s.create.list) == 0 {
+		s.create.merge(other.create)
+	}
 }
 
 // ResolveOurs records a conflict resolution in favor of us.
 func (s *Clock) ResolveOurs(other *Clock) {
 	// no change to s.mod
 	s.sync.merge(other.mod)
+	// no change to s.create
 }
 
 // ResolveNew records a conflict resolution in favor of newly created
@@ -54,10 +77,11 @@ func (s *Clock) ResolveOurs(other *Clock) {
 func (s *Clock) ResolveNew(other *Clock) {
 	s.mod.merge(other.mod)
 	s.sync.merge(other.mod)
+	// no change to s.create
 }
 
 func (s Clock) String() string {
-	return fmt.Sprintf("{sync%s mod%s}", s.sync, s.mod)
+	return fmt.Sprintf("{sync%s mod%s create%s}", s.sync, s.mod, s.create)
 }
 
 // Action is a suggested action to take to combine two data items.
@@ -87,6 +111,20 @@ func Sync(a, b *Clock) Action {
 	}
 
 	if compareLE(b.mod, a.sync) {
+		return Copy
+	}
+
+	return Conflict
+}
+
+// SyncToMissing returns what action receiving state from A to B
+// should cause us to take. B does not exist currently.
+func SyncToMissing(a, b *Clock) Action {
+	if compareLE(a.mod, b.sync) {
+		return Nothing
+	}
+
+	if !compareLE(a.create, b.sync) {
 		return Copy
 	}
 
