@@ -1,6 +1,10 @@
 package clock
 
-import "testing"
+import (
+	"path/filepath"
+	"runtime"
+	"testing"
+)
 
 func TestStringEmpty(t *testing.T) {
 	var v vector
@@ -79,4 +83,76 @@ func TestCompareLEConcurrent(t *testing.T) {
 	if g, e := compareLE(a, b), false; g != e {
 		t.Errorf("bad comparison: %s is to %s -> %v != %v", a, b, g, e)
 	}
+}
+
+func le(t testing.TB, a, b vector) {
+	if !compareLE(a, b) {
+		_, file, line, _ := runtime.Caller(1)
+		file = filepath.Base(file)
+		t.Errorf("%s:%d: expected a<=b: %s </= %s", file, line, a, b)
+	}
+}
+
+func nle(t testing.TB, a, b vector) {
+	if compareLE(a, b) {
+		_, file, line, _ := runtime.Caller(1)
+		file = filepath.Base(file)
+		t.Errorf("%s:%d: expected a<=b: %s </= %s", file, line, a, b)
+	}
+}
+
+func TestCompareScenarios(t *testing.T) {
+	var a vector
+	var b vector
+	le(t, a, b)
+	b.update(10, 1)
+	le(t, a, b)
+	nle(t, b, a)
+	a.update(10, 1)
+	le(t, a, b)
+	le(t, b, a)
+	a.update(11, 1)
+	nle(t, a, b)
+	le(t, b, a)
+	b.update(10, 2)
+	nle(t, a, b)
+	nle(t, b, a)
+	b.update(11, 1)
+	le(t, a, b)
+	nle(t, b, a)
+	b.update(11, 2)
+	le(t, a, b)
+	nle(t, b, a)
+}
+
+func TestCompareConcurrent(t *testing.T) {
+	var a vector
+	var b vector
+	a.update(10, 1)
+	b.merge(a)
+	b.update(11, 1)
+	a.update(12, 1)
+	nle(t, a, b)
+	nle(t, b, a)
+	a.update(13, 1)
+	nle(t, a, b)
+	nle(t, b, a)
+}
+
+func TestMergeDiverged(t *testing.T) {
+	var a vector
+	var b vector
+	a.update(10, 2)
+	a.update(11, 1)
+	a.update(12, 1)
+	b.update(10, 1)
+	b.update(11, 2)
+	b.update(13, 1)
+
+	b.merge(a)
+	le(t, a, b)
+	// make them equal for easy validation
+	a.update(11, 2)
+	a.update(13, 1)
+	le(t, b, a)
 }
