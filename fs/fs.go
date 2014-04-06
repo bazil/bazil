@@ -11,6 +11,7 @@ import (
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
+	"code.google.com/p/goprotobuf/proto"
 	"github.com/boltdb/bolt"
 )
 
@@ -68,7 +69,17 @@ func Create(db *bolt.DB, volumeName string) error {
 			if exists != nil {
 				return errors.New("volume name exists already")
 			}
-			err := bucket.Put(key, id.Bytes())
+			volConf := wire.VolumeConfig{
+				VolumeID: id.Bytes(),
+				Storage: wire.KV{
+					Local: &wire.KV_Local{},
+				},
+			}
+			buf, err := proto.Marshal(&volConf)
+			if err != nil {
+				return err
+			}
+			err = bucket.Put(key, buf)
 			if err != nil {
 				return err
 			}

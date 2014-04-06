@@ -9,10 +9,13 @@ import (
 
 	"bazil.org/bazil/cas/chunks/kvchunks"
 	"bazil.org/bazil/fs"
+	"bazil.org/bazil/fs/wire"
+	"bazil.org/bazil/kv"
 	"bazil.org/bazil/kv/kvfiles"
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
+	"code.google.com/p/goprotobuf/proto"
 	"github.com/boltdb/bolt"
 )
 
@@ -130,36 +133,68 @@ type MountInfo struct {
 	VolumeID fs.VolumeID
 }
 
+func (app *App) openKV(conf *wire.KV) (kv.KV, error) {
+	var kvstores []kv.KV
+
+	if conf.Local != nil {
+		kvpath := filepath.Join(app.DataDir, "chunks")
+		s, err := kvfiles.Open(kvpath)
+		if err != nil {
+			return nil, err
+		}
+		kvstores = append(kvstores, s)
+	}
+
+	if len(conf.External) > 0 {
+		return nil, errors.New("external storage not supported yet")
+	}
+
+	if len(conf.XXX_unrecognized) > 0 {
+		return nil, fmt.Errorf("unknown storage: %v", conf)
+	}
+
+	if len(kvstores) != 1 {
+		return nil, errors.New("volume must have exactly one storage location for now")
+	}
+
+	return kvstores[0], nil
+}
+
 // Mount makes the contents of the volume visible at the given
 // mountpoint. If Mount returns with a nil error, the mount has
 // occurred.
 func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) {
 	// TODO obey `bazil -debug server run`
 
-	kvpath := filepath.Join(app.DataDir, "chunks")
-	kvstore, err := kvfiles.Open(kvpath)
-	if err != nil {
-		return nil, err
-	}
-	chunkStore := kvchunks.New(kvstore)
-
 	var vol *fs.Volume
 	var volumeID *fs.VolumeID
 	var ready = make(chan error, 1)
 	app.mounts.Lock()
-	err = app.DB.View(func(tx *bolt.Tx) error {
+	err := app.DB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(tokens.BucketVolName))
 		val := bucket.Get([]byte(volumeName))
 		if val == nil {
 			return errors.New("volume not found")
 		}
-		volumeID, err = fs.NewVolumeID(val)
+		var volConf wire.VolumeConfig
+		if err := proto.Unmarshal(val, &volConf); err != nil {
+			return err
+		}
+		var err error
+		volumeID, err = fs.NewVolumeID(volConf.VolumeID)
 		if err != nil {
 			return err
 		}
 		if _, ok := app.mounts.open[*volumeID]; ok {
 			return errors.New("volume already mounted")
 		}
+
+		kvstore, err := app.openKV(&volConf.Storage)
+		if err != nil {
+			return err
+		}
+
+		chunkStore := kvchunks.New(kvstore)
 		vol, err = fs.Open(app.DB, chunkStore, volumeID)
 		if err != nil {
 			return err

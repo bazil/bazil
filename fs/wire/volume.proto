@@ -1,0 +1,27 @@
+package bazil.db;
+
+option go_package = "wire";
+
+import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
+
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+
+message KV {
+  message Local{}
+  optional Local local = 1;
+
+  message External {
+    required string path = 1 [(gogoproto.nullable) = false];
+  }
+  repeated External external = 2;
+
+}
+
+message VolumeConfig {
+  // Must be exactly 64 bytes long.
+  required bytes volumeID = 1 [(gogoproto.nullable) = false];
+
+  required KV storage = 2 [(gogoproto.nullable) = false];
+}
