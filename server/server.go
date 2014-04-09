@@ -12,6 +12,7 @@ import (
 	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/kv/kvfiles"
+	"bazil.org/bazil/kv/kvmulti"
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
@@ -145,19 +146,19 @@ func (app *App) openKV(conf *wire.KV) (kv.KV, error) {
 		kvstores = append(kvstores, s)
 	}
 
-	if len(conf.External) > 0 {
-		return nil, errors.New("external storage not supported yet")
+	for _, ext := range conf.External {
+		s, err := kvfiles.Open(ext.Path)
+		if err != nil {
+			return nil, err
+		}
+		kvstores = append(kvstores, s)
 	}
 
 	if len(conf.XXX_unrecognized) > 0 {
 		return nil, fmt.Errorf("unknown storage: %v", conf)
 	}
 
-	if len(kvstores) != 1 {
-		return nil, errors.New("volume must have exactly one storage location for now")
-	}
-
-	return kvstores[0], nil
+	return kvmulti.New(kvstores...), nil
 }
 
 // Mount makes the contents of the volume visible at the given
