@@ -11,8 +11,9 @@ import (
 )
 
 type App struct {
-	DataDir string
-	DB      *bolt.DB
+	DataDir  string
+	lockFile *os.File
+	DB       *bolt.DB
 }
 
 func New(dataDir string) (app *App, err error) {
@@ -20,6 +21,18 @@ func New(dataDir string) (app *App, err error) {
 	if err != nil && !os.IsExist(err) {
 		return nil, err
 	}
+
+	lockPath := filepath.Join(dataDir, "lock")
+	lockFile, err := lock(lockPath)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			// if we're reporting an error, also unlock
+			_ = lockFile.Close()
+		}
+	}()
 
 	kvpath := filepath.Join(dataDir, "chunks")
 	err = kvfiles.Create(kvpath)
@@ -51,12 +64,14 @@ func New(dataDir string) (app *App, err error) {
 	}
 
 	app = &App{
-		DataDir: dataDir,
-		DB:      db,
+		DataDir:  dataDir,
+		lockFile: lockFile,
+		DB:       db,
 	}
 	return app, nil
 }
 
 func (app *App) Close() {
 	app.DB.Close()
+	app.lockFile.Close()
 }
