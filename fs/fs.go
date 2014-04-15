@@ -5,6 +5,8 @@ import (
 	"errors"
 	"sync"
 
+	"crypto/rand"
+
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/fs/inodes"
 	"bazil.org/bazil/fs/wire"
@@ -69,10 +71,16 @@ func Create(db *bolt.DB, volumeName string) error {
 			if exists != nil {
 				return errors.New("volume name exists already")
 			}
+			var secret [32]byte
+			if _, err := rand.Read(secret[:]); err != nil {
+				return err
+			}
 			volConf := wire.VolumeConfig{
 				VolumeID: id.Bytes(),
 				Storage: wire.KV{
-					Local: &wire.KV_Local{},
+					Local: &wire.KV_Local{
+						Secret: secret[:],
+					},
 				},
 			}
 			buf, err := proto.Marshal(&volConf)
