@@ -21,6 +21,7 @@ type Volume struct {
 }
 
 var _ = fs.FS(&Volume{})
+var _ = fs.FSIniter(&Volume{})
 
 var bucketVolume = []byte(tokens.BucketVolume)
 var bucketDir = []byte("dir")
@@ -64,6 +65,12 @@ func Init(tx *bolt.Tx) error {
 	if _, err := b.CreateBucketIfNotExists(bucketSnap); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (f *Volume) Init(req *fuse.InitRequest, resp *fuse.InitResponse, intr fs.Intr) fuse.Error {
+	resp.MaxReadahead = 32 * 1024 * 1024
+	resp.Flags |= fuse.InitAsyncRead
 	return nil
 }
 
