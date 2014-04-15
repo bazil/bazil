@@ -1,19 +1,34 @@
 package server
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
+	"bazil.org/bazil/cas/chunks/kvchunks"
 	"bazil.org/bazil/fs"
 	"bazil.org/bazil/kv/kvfiles"
 	"bazil.org/bazil/tokens"
+	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
 )
+
+type mountState struct {
+	// closed after the serve loop has exited
+	unmounted chan struct{}
+}
 
 type App struct {
 	DataDir  string
 	lockFile *os.File
 	DB       *bolt.DB
+	mounts   struct {
+		sync.Mutex
+		open map[fs.VolumeID]*mountState
+	}
 }
 
 func New(dataDir string) (app *App, err error) {
@@ -53,7 +68,7 @@ func New(dataDir string) (app *App, err error) {
 		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketVolume)); err != nil {
 			return err
 		}
-		if err := fs.Init(tx); err != nil {
+		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketVolName)); err != nil {
 			return err
 		}
 		return nil
@@ -68,10 +83,123 @@ func New(dataDir string) (app *App, err error) {
 		lockFile: lockFile,
 		DB:       db,
 	}
+	app.mounts.open = make(map[fs.VolumeID]*mountState)
 	return app, nil
 }
 
 func (app *App) Close() {
 	app.DB.Close()
 	app.lockFile.Close()
+}
+
+// TODO this function smells
+func (app *App) serveMount(vol *fs.Volume, id *fs.VolumeID, mountpoint string) error {
+	conn, err := fuse.Mount(mountpoint)
+	if err != nil {
+		return fmt.Errorf("mount fail: %v", err)
+	}
+
+	serveErr := make(chan error, 1)
+	go func() {
+		defer func() {
+			// remove map entry on unmount or failed mount
+			app.mounts.Lock()
+			delete(app.mounts.open, *id)
+			app.mounts.Unlock()
+		}()
+		defer conn.Close()
+		serveErr <- fusefs.Serve(conn, vol)
+	}()
+
+	select {
+	case <-conn.Ready:
+		if conn.MountError != nil {
+			return fmt.Errorf("mount fail (delayed): %v", err)
+		}
+		return nil
+	case err = <-serveErr:
+		// Serve quit early
+		if err != nil {
+			return fmt.Errorf("filesystem failure: %v", err)
+		}
+		return errors.New("Serve exited early")
+	}
+}
+
+type MountInfo struct {
+	VolumeID fs.VolumeID
+}
+
+// Mount makes the contents of the volume visible at the given
+// mountpoint. If Mount returns with a nil error, the mount has
+// occurred.
+func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) {
+	// TODO obey `bazil -debug server run`
+
+	kvpath := filepath.Join(app.DataDir, "chunks")
+	kvstore, err := kvfiles.Open(kvpath)
+	if err != nil {
+		return nil, err
+	}
+	chunkStore := kvchunks.New(kvstore)
+
+	var vol *fs.Volume
+	var volumeID *fs.VolumeID
+	var ready = make(chan error, 1)
+	app.mounts.Lock()
+	err = app.DB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(tokens.BucketVolName))
+		val := bucket.Get([]byte(volumeName))
+		if val == nil {
+			return errors.New("volume not found")
+		}
+		volumeID, err = fs.NewVolumeID(val)
+		if err != nil {
+			return err
+		}
+		if _, ok := app.mounts.open[*volumeID]; ok {
+			return errors.New("volume already mounted")
+		}
+		vol, err = fs.Open(app.DB, chunkStore, volumeID)
+		if err != nil {
+			return err
+		}
+		mnt := &mountState{
+			unmounted: make(chan struct{}),
+		}
+		go func() {
+			defer close(mnt.unmounted)
+			ready <- app.serveMount(vol, volumeID, mountpoint)
+		}()
+		app.mounts.open[*volumeID] = mnt
+		return nil
+	})
+	app.mounts.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	err = <-ready
+	if err != nil {
+		return nil, err
+	}
+	info := &MountInfo{
+		VolumeID: *volumeID,
+	}
+	return info, nil
+}
+
+var NotMountedError = errors.New("not currently mounted")
+
+func (app *App) WaitForUnmount(volumeID *fs.VolumeID) error {
+	app.mounts.Lock()
+	// we hold onto mnt after releasing the lock, but it's safe in
+	// this case; gc keeps it pinned, and we don't look at mutable
+	// data
+	mnt, ok := app.mounts.open[*volumeID]
+	app.mounts.Unlock()
+	if !ok {
+		return NotMountedError
+	}
+	<-mnt.unmounted
+	return nil
 }

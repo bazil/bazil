@@ -16,8 +16,9 @@ func benchmark(b *testing.B, fn func(b *testing.B, mnt string)) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(b, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(b, app, "default")
 
-	mnt := bazfstestutil.Mounted(b, app)
+	mnt := bazfstestutil.Mounted(b, app, "default")
 	defer mnt.Close()
 
 	fn(b, mnt.Dir)

@@ -2,6 +2,7 @@ package fs
 
 import (
 	"encoding/binary"
+	"errors"
 	"sync"
 
 	"bazil.org/bazil/cas/chunks"
@@ -24,6 +25,7 @@ var _ = fs.FS(&Volume{})
 var _ = fs.FSIniter(&Volume{})
 
 var bucketVolume = []byte(tokens.BucketVolume)
+var bucketVolName = []byte(tokens.BucketVolName)
 var bucketDir = []byte("dir")
 var bucketInode = []byte("inode")
 var bucketSnap = []byte("snap")
@@ -35,34 +37,59 @@ func (v *Volume) bucket(tx *bolt.Tx) *bolt.Bucket {
 }
 
 // Open returns a FUSE filesystem instance serving content from the
-// given database and chunk store. The result can be passed to
-// bazil.org/fuse/fs#Serve to start serving file access requests from
-// the kernel.
-func Open(db *bolt.DB, chunkStore chunks.Store) (*Volume, error) {
+// given volume. The result can be passed to bazil.org/fuse/fs#Serve
+// to start serving file access requests from the kernel.
+//
+// Caller guarantees volume ID exists at least as long as requests are
+// served for this file system.
+func Open(db *bolt.DB, chunkStore chunks.Store, volumeID *VolumeID) (*Volume, error) {
 	fs := &Volume{}
-	copy(fs.volID[:], "defaultvol") // TODO
 	fs.db = db
+	fs.volID = *volumeID
 	fs.chunkStore = chunkStore
 	return fs, nil
 }
 
-// TODO this needs to go away
-func Init(tx *bolt.Tx) error {
-	b := tx.Bucket(bucketVolume)
-	var volID VolumeID
-	copy(volID[:], "defaultvol") // TODO
-	var err error
-	b, err = b.CreateBucketIfNotExists(volID.Bytes())
+// Create a new volume.
+func Create(db *bolt.DB, volumeName string) error {
+	// uniqueness of id is guaranteed by tx.CreateBucket refusing to
+	// create the per-volume buckets on collision. this leads to an
+	// ugly error, but it's boil-the-oceans rare
+	id, err := RandomVolumeID()
 	if err != nil {
 		return err
 	}
-	if _, err := b.CreateBucketIfNotExists(bucketDir); err != nil {
-		return err
-	}
-	if _, err := b.CreateBucketIfNotExists(bucketInode); err != nil {
-		return err
-	}
-	if _, err := b.CreateBucketIfNotExists(bucketSnap); err != nil {
+	err = db.Update(func(tx *bolt.Tx) error {
+
+		{
+			bucket := tx.Bucket(bucketVolName)
+			key := []byte(volumeName)
+			exists := bucket.Get(key)
+			if exists != nil {
+				return errors.New("volume name exists already")
+			}
+			err := bucket.Put(key, id.Bytes())
+			if err != nil {
+				return err
+			}
+		}
+
+		bucket := tx.Bucket(bucketVolume)
+		if bucket, err = bucket.CreateBucket(id.Bytes()); err != nil {
+			return err
+		}
+		if _, err := bucket.CreateBucket(bucketDir); err != nil {
+			return err
+		}
+		if _, err := bucket.CreateBucket(bucketInode); err != nil {
+			return err
+		}
+		if _, err := bucket.CreateBucket(bucketSnap); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 	return nil

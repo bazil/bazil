@@ -23,8 +23,9 @@ func TestSimple(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	fi, err := os.Stat(mnt.Dir)
@@ -77,8 +78,9 @@ func TestCreateFile(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -122,8 +124,9 @@ func TestReadFile(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -168,8 +171,9 @@ func TestAppend(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -232,8 +236,9 @@ func TestMkdir(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "sub")
@@ -264,8 +269,9 @@ func TestStatFile(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -323,9 +329,10 @@ func TestPersistentMkdir(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
 	func() {
-		mnt := bazfstestutil.Mounted(t, app)
+		mnt := bazfstestutil.Mounted(t, app, "default")
 		defer mnt.Close()
 
 		p := path.Join(mnt.Dir, "subdir")
@@ -336,9 +343,10 @@ func TestPersistentMkdir(t *testing.T) {
 	}()
 
 	t.Logf("Unmounted to check persistency")
+	time.Sleep(3 * time.Second)
 
 	func() {
-		mnt := bazfstestutil.Mounted(t, app)
+		mnt := bazfstestutil.Mounted(t, app, "default")
 		defer mnt.Close()
 
 		dirf, err := os.Open(mnt.Dir)
@@ -373,11 +381,12 @@ func TestPersistentCreateFile(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
 	GREETING := "hello, world\n"
 
 	func() {
-		mnt := bazfstestutil.Mounted(t, app)
+		mnt := bazfstestutil.Mounted(t, app, "default")
 		defer mnt.Close()
 
 		p := path.Join(mnt.Dir, "hello")
@@ -402,7 +411,7 @@ func TestPersistentCreateFile(t *testing.T) {
 	t.Logf("Unmounted to check persistency")
 
 	func() {
-		mnt := bazfstestutil.Mounted(t, app)
+		mnt := bazfstestutil.Mounted(t, app, "default")
 		defer mnt.Close()
 
 		dirf, err := os.Open(mnt.Dir)
@@ -446,8 +455,9 @@ func TestRemoveFile(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -481,8 +491,9 @@ func TestRemoveNonexistent(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "does-not-exist")
@@ -500,8 +511,9 @@ func TestRemoveFileWhileOpen(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -549,8 +561,9 @@ func TestTruncate(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -600,8 +613,9 @@ func TestRename(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -668,8 +682,9 @@ func TestRenameOverwrite(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	one := path.Join(mnt.Dir, "one")
@@ -719,8 +734,9 @@ func TestRenameCrossDir(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	p := path.Join(mnt.Dir, "hello")
@@ -773,8 +789,9 @@ func TestRenameFileWhileOpen(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	one := path.Join(mnt.Dir, "one")
@@ -835,9 +852,10 @@ func TestRenameOverwriteWhileOpen(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
 	func() {
-		mnt := bazfstestutil.Mounted(t, app)
+		mnt := bazfstestutil.Mounted(t, app, "default")
 		defer mnt.Close()
 
 		one := path.Join(mnt.Dir, "one")
@@ -877,7 +895,7 @@ func TestRenameOverwriteWhileOpen(t *testing.T) {
 	t.Logf("Unmounted to flush cache")
 
 	func() {
-		mnt := bazfstestutil.Mounted(t, app)
+		mnt := bazfstestutil.Mounted(t, app, "default")
 		defer mnt.Close()
 
 		dirf, err := os.Open(mnt.Dir)

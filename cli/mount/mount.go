@@ -1,6 +1,7 @@
 package mount
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"path/filepath"
@@ -11,8 +12,10 @@ import (
 	"bazil.org/bazil/fs"
 	"bazil.org/bazil/kv/kvfiles"
 	"bazil.org/bazil/server"
+	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
+	"github.com/boltdb/bolt"
 	"github.com/tv42/jog"
 )
 
@@ -39,7 +42,20 @@ func (c *mountCommand) Run() error {
 	}
 	chunkStore := kvchunks.New(kvstore)
 
-	filesys, err := fs.Open(app.DB, chunkStore)
+	// TODO hardcoded volume "default"
+	var volID fs.VolumeID
+	if err := app.DB.View(func(tx *bolt.Tx) error {
+		val := tx.Bucket([]byte(tokens.BucketVolName)).Get([]byte("default"))
+		if val == nil {
+			return errors.New("volume not found")
+		}
+		copy(volID[:], val)
+		return nil
+	}); err != nil {
+		return fmt.Errorf("cannot create default volume: %v", err)
+	}
+
+	filesys, err := fs.Open(app.DB, chunkStore, &volID)
 	if err != nil {
 		return fmt.Errorf("fs open: %v", err)
 	}

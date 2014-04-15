@@ -1,14 +1,15 @@
 package fstestutil
 
 import (
-	"path/filepath"
+	"io/ioutil"
+	"log"
+	"os"
 	"testing"
+	"time"
 
-	"bazil.org/bazil/cas/chunks/kvchunks"
 	"bazil.org/bazil/fs"
-	"bazil.org/bazil/kv/kvfiles"
 	"bazil.org/bazil/server"
-	"bazil.org/fuse/fs/fstestutil"
+	"bazil.org/fuse"
 )
 
 func NewApp(t testing.TB, dataDir string) *server.App {
@@ -19,25 +20,64 @@ func NewApp(t testing.TB, dataDir string) *server.App {
 	return app
 }
 
+func CreateVolume(t testing.TB, app *server.App, volumeName string) {
+	err := fs.Create(app.DB, volumeName)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+type Mount struct {
+	// Dir is the temporary directory where the filesystem is mounted.
+	Dir  string
+	Info *server.MountInfo
+
+	app    *server.App
+	closed bool
+}
+
+// Close unmounts the filesystem and waits for fs.Serve to return.
+//
+// TODO not true: Any returned error will be stored in Err.
+//
+//  It is safe to call Close multiple times.
+func (mnt *Mount) Close() {
+	if mnt.closed {
+		return
+	}
+	mnt.closed = true
+	for tries := 0; tries < 1000; tries++ {
+		err := fuse.Unmount(mnt.Dir)
+		if err != nil {
+			// TODO do more than log?
+			// TODO use lazy unmount where available?
+			log.Printf("unmount error: %v", err)
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		break
+	}
+	mnt.app.WaitForUnmount(&mnt.Info.VolumeID)
+	os.Remove(mnt.Dir)
+}
+
 // TODO this vs. bazil.org/fuse/fs/fstestutil#Mounted
-func Mounted(t testing.TB, app *server.App) *fstestutil.Mount {
-	// TODO this doesn't belong here
-	kvpath := filepath.Join(app.DataDir, "chunks")
-	kvstore, err := kvfiles.Open(kvpath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	chunkStore := kvchunks.New(kvstore)
-
-	filesys, err := fs.Open(app.DB, chunkStore)
-	if err != nil {
-		t.Fatalf("FS new fail: %v\n", err)
-	}
-
-	info, err := fstestutil.MountedT(t, filesys)
+func Mounted(t testing.TB, app *server.App, volumeName string) *Mount {
+	mountpoint, err := ioutil.TempDir("", "bazil-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return info
+	// TODO make it log debug if `go test ./fs -fuse.debug`
+	info, err := app.Mount(volumeName, mountpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mnt := &Mount{
+		Dir:  mountpoint,
+		Info: info,
+		app:  app,
+	}
+	return mnt
 }

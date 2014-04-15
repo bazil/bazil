@@ -17,8 +17,9 @@ func TestSnapRecord(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	// write test data
@@ -69,8 +70,9 @@ func TestSnapList(t *testing.T) {
 	defer tmp.Cleanup()
 	app := bazfstestutil.NewApp(t, tmp.Subdir("data"))
 	defer app.Close()
+	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app)
+	mnt := bazfstestutil.Mounted(t, app, "default")
 	defer mnt.Close()
 
 	// make some snapshots
