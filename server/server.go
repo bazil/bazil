@@ -13,6 +13,7 @@ import (
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/kv/kvfiles"
 	"bazil.org/bazil/kv/kvmulti"
+	"bazil.org/bazil/kv/untrusted"
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
@@ -139,17 +140,31 @@ func (app *App) openKV(conf *wire.KV) (kv.KV, error) {
 
 	if conf.Local != nil {
 		kvpath := filepath.Join(app.DataDir, "chunks")
-		s, err := kvfiles.Open(kvpath)
+		var s kv.KV
+		var err error
+		s, err = kvfiles.Open(kvpath)
 		if err != nil {
 			return nil, err
+		}
+		if conf.Local.Secret != nil {
+			var secret [32]byte
+			copy(secret[:], conf.Local.Secret)
+			s = untrusted.New(s, &secret)
 		}
 		kvstores = append(kvstores, s)
 	}
 
 	for _, ext := range conf.External {
-		s, err := kvfiles.Open(ext.Path)
+		var s kv.KV
+		var err error
+		s, err = kvfiles.Open(ext.Path)
 		if err != nil {
 			return nil, err
+		}
+		if ext.Secret != nil {
+			var secret [32]byte
+			copy(secret[:], ext.Secret)
+			s = untrusted.New(s, &secret)
 		}
 		kvstores = append(kvstores, s)
 	}

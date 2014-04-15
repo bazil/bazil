@@ -9,11 +9,16 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 
 message KV {
-  message Local{}
+  message Local{
+    // Must be exactly 32 bytes long.
+    optional bytes secret = 1 [(gogoproto.nullable) = false];
+  }
   optional Local local = 1;
 
   message External {
     required string path = 1 [(gogoproto.nullable) = false];
+    // Must be exactly 32 bytes long.
+    optional bytes secret = 2 [(gogoproto.nullable) = false];
   }
   repeated External external = 2;
 

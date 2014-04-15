@@ -43,6 +43,7 @@ func (m *KV) GetExternal() []*KV_External {
 }
 
 type KV_Local struct {
+	Secret           []byte `protobuf:"bytes,1,opt,name=secret" json:"secret"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
@@ -50,8 +51,16 @@ func (m *KV_Local) Reset()         { *m = KV_Local{} }
 func (m *KV_Local) String() string { return proto.CompactTextString(m) }
 func (*KV_Local) ProtoMessage()    {}
 
+func (m *KV_Local) GetSecret() []byte {
+	if m != nil {
+		return m.Secret
+	}
+	return nil
+}
+
 type KV_External struct {
 	Path             string `protobuf:"bytes,1,req,name=path" json:"path"`
+	Secret           []byte `protobuf:"bytes,2,opt,name=secret" json:"secret"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
@@ -64,6 +73,13 @@ func (m *KV_External) GetPath() string {
 		return m.Path
 	}
 	return ""
+}
+
+func (m *KV_External) GetSecret() []byte {
+	if m != nil {
+		return m.Secret
+	}
+	return nil
 }
 
 type VolumeConfig struct {
@@ -201,7 +217,30 @@ func (m *KV_Local) Unmarshal(data []byte) error {
 			}
 		}
 		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io3.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + byteLen
+			if postIndex > l {
+				return io3.ErrUnexpectedEOF
+			}
+			m.Secret = append(m.Secret, data[index:postIndex]...)
+			index = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -265,6 +304,28 @@ func (m *KV_External) Unmarshal(data []byte) error {
 				return io3.ErrUnexpectedEOF
 			}
 			m.Path = string(data[index:postIndex])
+			index = postIndex
+		case 2:
+			if wireType != 2 {
+				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if index >= l {
+					return io3.ErrUnexpectedEOF
+				}
+				b := data[index]
+				index++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			postIndex := index + byteLen
+			if postIndex > l {
+				return io3.ErrUnexpectedEOF
+			}
+			m.Secret = append(m.Secret, data[index:postIndex]...)
 			index = postIndex
 		default:
 			var sizeOfWire int
@@ -398,6 +459,8 @@ func (m *KV) Size() (n int) {
 func (m *KV_Local) Size() (n int) {
 	var l int
 	_ = l
+	l = len(m.Secret)
+	n += 1 + l + sovVolume(uint64(l))
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -407,6 +470,8 @@ func (m *KV_External) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Path)
+	n += 1 + l + sovVolume(uint64(l))
+	l = len(m.Secret)
 	n += 1 + l + sovVolume(uint64(l))
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -497,6 +562,10 @@ func (m *KV_Local) MarshalTo(data []byte) (n int, err error) {
 	_ = i
 	var l int
 	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintVolume(data, i, uint64(len(m.Secret)))
+	i += copy(data[i:], m.Secret)
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}
@@ -521,6 +590,10 @@ func (m *KV_External) MarshalTo(data []byte) (n int, err error) {
 	i++
 	i = encodeVarintVolume(data, i, uint64(len(m.Path)))
 	i += copy(data[i:], m.Path)
+	data[i] = 0x12
+	i++
+	i = encodeVarintVolume(data, i, uint64(len(m.Secret)))
+	i += copy(data[i:], m.Secret)
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}
