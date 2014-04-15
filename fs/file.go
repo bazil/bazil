@@ -67,6 +67,12 @@ func (f *file) Forget() {
 	f.parent.forgetChild(f)
 }
 
+func (f *file) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
+	// allow kernel to use buffer cache
+	resp.Flags &^= fuse.OpenDirectIO
+	return f, nil
+}
+
 func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
 	f.parent.fs.mu.Lock()
 	defer f.parent.fs.mu.Unlock()
