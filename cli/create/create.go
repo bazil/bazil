@@ -3,7 +3,6 @@ package create
 import (
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
-	"bazil.org/bazil/fs"
 	"bazil.org/bazil/server"
 )
 
@@ -15,10 +14,6 @@ func (c *createCommand) Run() error {
 	dataDir := clibazil.Bazil.Config.DataDir.String()
 	app, err := server.New(dataDir)
 	if err != nil {
-		return err
-	}
-
-	if err := fs.Create(app.DB, "default"); err != nil {
 		return err
 	}
 

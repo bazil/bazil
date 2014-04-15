@@ -4,13 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"time"
 
 	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/defaults"
+	"bazil.org/bazil/util/httpunix"
 	"bazil.org/fuse"
 	"github.com/tv42/jog"
 )
@@ -23,6 +26,7 @@ type bazil struct {
 		DataDir    flagx.AbsPath
 		CPUProfile string
 	}
+	Control http.Client
 }
 
 var _ = Service(&bazil{})
@@ -44,6 +48,16 @@ func (b *bazil) Setup() (ok bool) {
 			log.Printf("cpu profiling: %v", err)
 			return false
 		}
+	}
+
+	u := &httpunix.HTTPUnixTransport{
+		DialTimeout:           100 * time.Millisecond,
+		RequestTimeout:        1 * time.Second,
+		ResponseHeaderTimeout: 1 * time.Second,
+	}
+	u.RegisterLocation("bazil", filepath.Join(b.Config.DataDir.String(), "control"))
+	b.Control = http.Client{
+		Transport: u,
 	}
 
 	return true

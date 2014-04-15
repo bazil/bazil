@@ -9,8 +9,11 @@ import (
 import (
 	// CLI subcommands
 	_ "bazil.org/bazil/cli/create"
-	_ "bazil.org/bazil/cli/mount"
+	_ "bazil.org/bazil/cli/server/ping"
+	_ "bazil.org/bazil/cli/server/run"
 	_ "bazil.org/bazil/cli/version"
+	_ "bazil.org/bazil/cli/volume/create"
+	_ "bazil.org/bazil/cli/volume/mount"
 
 	// CLI debug tools
 	_ "bazil.org/bazil/cli/debug/bolt"
