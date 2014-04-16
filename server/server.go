@@ -101,6 +101,10 @@ func (app *App) Close() {
 func (app *App) serveMount(vol *fs.Volume, id *fs.VolumeID, mountpoint string) error {
 	conn, err := fuse.Mount(mountpoint)
 	if err != nil {
+		// remove map entry if the mount never took place
+		app.mounts.Lock()
+		delete(app.mounts.open, *id)
+		app.mounts.Unlock()
 		return fmt.Errorf("mount fail: %v", err)
 	}
 
