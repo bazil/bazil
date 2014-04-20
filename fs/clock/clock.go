@@ -8,12 +8,18 @@
 //  http://swtch.com/tra/
 package clock
 
-import "fmt"
+import (
+	"encoding"
+	"fmt"
+)
 
 // A Peer is a replica that may create new versions of the tracked
 // data. Peers are identified by small unsigned integers, for
 // efficiency.
 type Peer uint32
+
+// MaxPeer is the largest possible value a Peer can have.
+const MaxPeer = ^Peer(0)
 
 // Epoch is a logical clock timestamp. Time 0 is never valid.
 type Epoch uint64
@@ -31,6 +37,9 @@ type Clock struct {
 	// use compareLE.
 	create vector
 }
+
+var _ = encoding.BinaryMarshaler(&Clock{})
+var _ = encoding.BinaryUnmarshaler(&Clock{})
 
 // Create returns a new Vector Pair that knows it was created by id at
 // time now.
