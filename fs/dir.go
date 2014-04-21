@@ -140,6 +140,13 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		}, nil
 	}
 
+	if name == ".bazil" {
+		return &dotBazil{
+			fs:     d.fs,
+			parent: d,
+		}, nil
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
