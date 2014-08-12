@@ -61,7 +61,7 @@ func New(dataDir string) (app *App, err error) {
 	}
 
 	dbpath := filepath.Join(dataDir, "bazil.bolt")
-	db, err := bolt.Open(dbpath, 0600)
+	db, err := bolt.Open(dbpath, 0600, nil)
 	if err != nil {
 		return nil, err
 	}

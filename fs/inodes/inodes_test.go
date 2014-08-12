@@ -20,7 +20,7 @@ func TestAllocate(t *testing.T) {
 		os.Remove(tmp.Name())
 	}()
 
-	db, err := bolt.Open(tmp.Name(), 0666)
+	db, err := bolt.Open(tmp.Name(), 0666, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestAllocateMultiple(t *testing.T) {
 		os.Remove(tmp.Name())
 	}()
 
-	db, err := bolt.Open(tmp.Name(), 0666)
+	db, err := bolt.Open(tmp.Name(), 0666, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
