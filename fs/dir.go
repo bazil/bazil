@@ -38,6 +38,14 @@ type dir struct {
 }
 
 var _ = node(&dir{})
+var _ = fs.Node(&dir{})
+var _ = fs.NodeCreater(&dir{})
+var _ = fs.NodeForgetter(&dir{})
+var _ = fs.NodeMkdirer(&dir{})
+var _ = fs.NodeRemover(&dir{})
+var _ = fs.NodeRenamer(&dir{})
+var _ = fs.NodeStringLookuper(&dir{})
+var _ = fs.HandleReadDirer(&dir{})
 
 func (d *dir) getName() string {
 	return d.name

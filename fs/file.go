@@ -26,6 +26,13 @@ type file struct {
 }
 
 var _ = node(&file{})
+var _ = fs.Node(&file{})
+var _ = fs.NodeForgetter(&file{})
+var _ = fs.NodeOpener(&file{})
+var _ = fs.NodeSetattrer(&file{})
+var _ = fs.HandleFlusher(&file{})
+var _ = fs.HandleReader(&file{})
+var _ = fs.HandleWriter(&file{})
 
 func (f *file) getName() string {
 	return f.name

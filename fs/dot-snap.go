@@ -25,6 +25,10 @@ type listSnaps struct {
 }
 
 var _ = fs.Node(&listSnaps{})
+var _ = fs.NodeMkdirer(&listSnaps{})
+var _ = fs.NodeStringLookuper(&listSnaps{})
+var _ = fs.Handle(&listSnaps{})
+var _ = fs.HandleReadDirer(&listSnaps{})
 
 func (d *listSnaps) Attr() fuse.Attr {
 	return fuse.Attr{

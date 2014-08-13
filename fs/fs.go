@@ -26,6 +26,7 @@ type Volume struct {
 
 var _ = fs.FS(&Volume{})
 var _ = fs.FSIniter(&Volume{})
+var _ = fs.FSInodeGenerator(&Volume{})
 
 var bucketVolume = []byte(tokens.BucketVolume)
 var bucketVolName = []byte(tokens.BucketVolName)
