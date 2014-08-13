@@ -646,9 +646,9 @@ func TestWriteTruncateGrow(t *testing.T) {
 func BenchmarkWriteSmall(b *testing.B) {
 	blob := emptyBlob(b, &mock.InMemory{})
 
+	b.SetBytes(int64(len(GREETING)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		b.SetBytes(int64(len(GREETING)))
 		_, err := blob.WriteAt(GREETING, 0)
 		if err != nil {
 			b.Fatalf("unexpected write error: %v", err)
@@ -664,9 +664,9 @@ func BenchmarkWriteBig(b *testing.B) {
 	body := bytes.Repeat(GREETING, 1000000)
 	blob := emptyBlob(b, &mock.InMemory{})
 
+	b.SetBytes(int64(len(body)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		b.SetBytes(int64(len(body)))
 		_, err := blob.WriteAt(body, 0)
 		if err != nil {
 			b.Fatalf("unexpected write error: %v", err)

@@ -29,8 +29,8 @@ func doWrites(size int64) func(b *testing.B, mnt string) {
 		counter := &bazfstestutil.CountReader{}
 		p := path.Join(mnt, "testcontent")
 
-		b.ResetTimer()
 		b.SetBytes(size)
+		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
 			f, err := os.Create(p)
@@ -85,8 +85,8 @@ func doReads(size int64) func(b *testing.B, mnt string) {
 			}
 		}
 
-		b.ResetTimer()
 		b.SetBytes(size)
+		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
 			f, err := os.Open(p)
