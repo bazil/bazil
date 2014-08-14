@@ -5,7 +5,7 @@ import (
 
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
-	"github.com/dchest/blake2b"
+	"github.com/codahale/blake2"
 )
 
 const personalizationPrefix = "bazil:"
@@ -20,13 +20,13 @@ var replaceSpecial = []byte{0xC0, 0x11, 0x1D, 0xED, 0x00}
 //
 // Hash makes sure to never return a Special Key.
 func Hash(chunk *chunks.Chunk) cas.Key {
-	var pers [blake2b.PersonSize]byte
+	var pers [blake2.PersonalSize]byte
 	copy(pers[:], personalizationPrefix)
 	copy(pers[len(personalizationPrefix):], chunk.Type)
-	config := &blake2b.Config{
-		Size:   cas.KeySize,
-		Person: pers[:],
-		Tree: &blake2b.Tree{
+	config := &blake2.Config{
+		Size:     cas.KeySize,
+		Personal: pers[:],
+		Tree: &blake2.Tree{
 			// We are faking tree mode without any intent to actually
 			// follow all the rules, to be able to feed the level
 			// into the hash function. These settings are dubious, but
@@ -38,13 +38,7 @@ func Hash(chunk *chunks.Chunk) cas.Key {
 			NodeDepth: chunk.Level,
 		},
 	}
-	h, err := blake2b.New(config)
-	if err != nil {
-		// we don't let outside data directly influence the config, so
-		// this is always localized programmer error
-		panic(fmt.Errorf("blake2b config error: %v", err))
-	}
-
+	h := blake2.New(config)
 	if len(chunk.Buf) == 0 {
 		return cas.Empty
 	}
