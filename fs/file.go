@@ -30,6 +30,7 @@ var _ = fs.Node(&file{})
 var _ = fs.NodeForgetter(&file{})
 var _ = fs.NodeOpener(&file{})
 var _ = fs.NodeSetattrer(&file{})
+var _ = fs.NodeFsyncer(&file{})
 var _ = fs.HandleFlusher(&file{})
 var _ = fs.HandleReader(&file{})
 var _ = fs.HandleWriter(&file{})
@@ -93,7 +94,7 @@ func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 	return nil
 }
 
-func (f *file) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
+func (f *file) flush(intr fs.Intr) fuse.Error {
 	f.parent.fs.mu.Lock()
 	defer f.parent.fs.mu.Unlock()
 
@@ -102,6 +103,10 @@ func (f *file) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 		return f.parent.save(tx, f)
 	})
 	return err
+}
+
+func (f *file) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
+	return f.flush(intr)
 }
 
 const maxInt64 = 9223372036854775807
@@ -150,4 +155,10 @@ func (f *file) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, int
 		return fuse.ENOSYS
 	}
 	return nil
+}
+
+func (f *file) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
+	// flush forces writes to backing stores; we don't current
+	// differentiate between the backing stores writing vs syncing.
+	return f.flush(intr)
 }
