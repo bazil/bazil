@@ -17,7 +17,7 @@ import (
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
-	"code.google.com/p/goprotobuf/proto"
+	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/boltdb/bolt"
 )
 
