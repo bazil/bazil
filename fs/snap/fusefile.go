@@ -36,7 +36,7 @@ func (e fuseFile) Attr() fuse.Attr {
 }
 
 func (e fuseFile) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fusefs.Intr) (fusefs.Handle, fuse.Error) {
-	if req.Flags&syscall.O_ACCMODE != syscall.O_RDONLY {
+	if !req.Flags.IsReadOnly() {
 		return nil, fuse.Errno(syscall.EACCES)
 	}
 
