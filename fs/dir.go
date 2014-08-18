@@ -268,8 +268,7 @@ func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs
 }
 
 // caller does locking
-func (d *dir) forgetChild(child node) {
-	name := child.getName()
+func (d *dir) forgetChild(name string, child node) {
 	if have, ok := d.active[name]; ok {
 		// have something by that name
 		if have == child {
@@ -282,12 +281,11 @@ func (d *dir) forgetChild(child node) {
 func (d *dir) Forget() {
 	d.fs.mu.Lock()
 	defer d.fs.mu.Unlock()
-
 	if d.parent == nil {
 		// root dir, don't keep track
 		return
 	}
-	d.parent.forgetChild(d)
+	d.parent.forgetChild(d.name, d)
 }
 
 func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {

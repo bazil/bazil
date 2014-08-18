@@ -72,7 +72,7 @@ func (f *file) Forget() {
 	f.parent.fs.mu.Lock()
 	defer f.parent.fs.mu.Unlock()
 
-	f.parent.forgetChild(f)
+	f.parent.forgetChild(f.name, f)
 }
 
 func (f *file) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
