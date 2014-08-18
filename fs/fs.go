@@ -148,6 +148,5 @@ type node interface {
 	fs.Node
 
 	marshal() (*wire.Dirent, error)
-	getName() string
 	setName(name string)
 }

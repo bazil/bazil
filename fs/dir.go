@@ -47,10 +47,6 @@ var _ = fs.NodeRenamer(&dir{})
 var _ = fs.NodeStringLookuper(&dir{})
 var _ = fs.HandleReadDirer(&dir{})
 
-func (d *dir) getName() string {
-	return d.name
-}
-
 func (d *dir) setName(name string) {
 	d.name = name
 }

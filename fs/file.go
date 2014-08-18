@@ -35,10 +35,6 @@ var _ = fs.HandleFlusher(&file{})
 var _ = fs.HandleReader(&file{})
 var _ = fs.HandleWriter(&file{})
 
-func (f *file) getName() string {
-	return f.name
-}
-
 func (f *file) setName(name string) {
 	f.name = name
 }
