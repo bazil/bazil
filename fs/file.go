@@ -100,7 +100,7 @@ func (f *file) flush(intr fs.Intr) fuse.Error {
 
 	// TODO only if dirty
 	err := f.parent.fs.db.Update(func(tx *bolt.Tx) error {
-		return f.parent.save(tx, f)
+		return f.parent.save(tx, f.name, f)
 	})
 	return err
 }

@@ -186,8 +186,7 @@ func (d *dir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 }
 
 // caller does locking
-func (d *dir) save(tx *bolt.Tx, n node) error {
-	name := n.getName()
+func (d *dir) save(tx *bolt.Tx, name string, n node) error {
 	if have, ok := d.active[name]; !ok || have != n {
 		// unlinked
 		return nil
@@ -203,7 +202,7 @@ func (d *dir) save(tx *bolt.Tx, n node) error {
 		return fmt.Errorf("Dirent marshal error: %v", err)
 	}
 
-	key := pathToKey(d.inode, n.getName())
+	key := pathToKey(d.inode, name)
 	bucket := d.fs.bucket(tx).Bucket(bucketDir)
 	if bucket == nil {
 		return errors.New("dir bucket missing")
@@ -255,7 +254,7 @@ func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs
 			}
 			d.active[req.Name] = child
 
-			return d.save(tx, child)
+			return d.save(tx, req.Name, child)
 			// TODO clean up active on error
 		})
 		if err != nil {
@@ -312,7 +311,7 @@ func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) 
 			active: make(map[string]node),
 		}
 		d.active[req.Name] = child
-		return d.save(tx, child)
+		return d.save(tx, req.Name, child)
 		// TODO clean up active on error
 	})
 	if err != nil {
