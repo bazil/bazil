@@ -7,7 +7,7 @@ import (
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/tokens"
 	"code.google.com/p/go.crypto/nacl/secretbox"
-	"github.com/dchest/blake2b"
+	"github.com/codahale/blake2"
 )
 
 type Convergent struct {
@@ -22,15 +22,12 @@ var _ = kv.KV(&Convergent{})
 var personalizeKey = []byte(tokens.Blake2bPersonalizationConvergentKey)
 
 func (s *Convergent) computeBoxedKey(key []byte) []byte {
-	conf := blake2b.Config{
-		Size:   cas.KeySize,
-		Key:    s.secret[:],
-		Person: personalizeKey,
+	conf := blake2.Config{
+		Size:     cas.KeySize,
+		Key:      s.secret[:],
+		Personal: personalizeKey,
 	}
-	h, err := blake2b.New(&conf)
-	if err != nil {
-		panic(fmt.Errorf("blake2 config failure: %v", err))
-	}
+	h := blake2.New(&conf)
 	// hash.Hash docs say it never fails
 	_, _ = h.Write(key)
 	return h.Sum(nil)
@@ -43,14 +40,11 @@ var personalizeNonce = []byte(tokens.Blake2bPersonalizationConvergentNonce)
 // Nonce summarizes key, type and level so mismatch of e.g. type can
 // be detected.
 func (s *Convergent) makeNonce(key []byte) *[nonceSize]byte {
-	conf := blake2b.Config{
-		Size:   nonceSize,
-		Person: personalizeNonce,
+	conf := blake2.Config{
+		Size:     nonceSize,
+		Personal: personalizeNonce,
 	}
-	h, err := blake2b.New(&conf)
-	if err != nil {
-		panic(fmt.Errorf("blake2 config failure: %v", err))
-	}
+	h := blake2.New(&conf)
 	// hash.Hash docs say it never fails
 	_, _ = h.Write(key)
 
