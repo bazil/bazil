@@ -22,6 +22,7 @@ func (k *KVFiles) Put(key, value []byte) error {
 	}
 	defer func() {
 		// silence errcheck
+		_ = tmp.Close()
 		_ = os.Remove(tmp.Name())
 	}()
 
