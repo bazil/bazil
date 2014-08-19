@@ -3,7 +3,6 @@ package fs
 import (
 	"encoding/binary"
 	"errors"
-	"sync"
 
 	"crypto/rand"
 
@@ -18,7 +17,6 @@ import (
 )
 
 type Volume struct {
-	mu         sync.Mutex
 	db         *bolt.DB
 	volID      VolumeID
 	chunkStore chunks.Store

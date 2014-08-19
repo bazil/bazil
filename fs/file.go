@@ -3,6 +3,7 @@ package fs
 import (
 	"io"
 	"log"
+	"sync"
 
 	"bazil.org/bazil/cas/blobs"
 	wirecas "bazil.org/bazil/cas/wire"
@@ -17,9 +18,13 @@ type file struct {
 	fs.NodeRef
 
 	inode  uint64
-	name   string
 	parent *dir
-	blob   *blobs.Blob
+
+	// mu protects the fields below.
+	mu sync.Mutex
+
+	name string
+	blob *blobs.Blob
 
 	// when was this entry last changed
 	// TODO: written time.Time
@@ -36,10 +41,15 @@ var _ = fs.HandleReader(&file{})
 var _ = fs.HandleWriter(&file{})
 
 func (f *file) setName(name string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.name = name
 }
 
 func (f *file) marshal() (*wire.Dirent, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	de := &wire.Dirent{
 		Inode: f.inode,
 	}
@@ -54,6 +64,9 @@ func (f *file) marshal() (*wire.Dirent, error) {
 }
 
 func (f *file) Attr() fuse.Attr {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	return fuse.Attr{
 		Inode: f.inode,
 		Mode:  0644,
@@ -65,9 +78,6 @@ func (f *file) Attr() fuse.Attr {
 }
 
 func (f *file) Forget() {
-	f.parent.fs.mu.Lock()
-	defer f.parent.fs.mu.Unlock()
-
 	f.parent.forgetChild(f.name, f)
 }
 
@@ -78,8 +88,8 @@ func (f *file) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr
 }
 
 func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
-	f.parent.fs.mu.Lock()
-	defer f.parent.fs.mu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	n, err := f.blob.WriteAt(req.Data, req.Offset)
 	resp.Size = n
@@ -91,9 +101,6 @@ func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 }
 
 func (f *file) flush(intr fs.Intr) fuse.Error {
-	f.parent.fs.mu.Lock()
-	defer f.parent.fs.mu.Unlock()
-
 	// TODO only if dirty
 	err := f.parent.fs.db.Update(func(tx *bolt.Tx) error {
 		return f.parent.save(tx, f.name, f)
@@ -108,8 +115,8 @@ func (f *file) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
 const maxInt64 = 9223372036854775807
 
 func (f *file) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
-	f.parent.fs.mu.Lock()
-	defer f.parent.fs.mu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	if req.Offset < 0 {
 		panic("unreachable")
@@ -130,8 +137,8 @@ func (f *file) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 }
 
 func (f *file) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, intr fs.Intr) fuse.Error {
-	f.parent.fs.mu.Lock()
-	defer f.parent.fs.mu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	valid := req.Valid
 	if valid.Size() {

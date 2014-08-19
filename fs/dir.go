@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"syscall"
 
 	"bazil.org/bazil/cas/blobs"
@@ -24,9 +25,13 @@ type dir struct {
 	fs.NodeRef
 
 	inode  uint64
-	name   string
 	parent *dir
 	fs     *Volume
+
+	// mu protects the fields below.
+	mu sync.Mutex
+
+	name string
 
 	// each in-memory child, so we can return the same node on
 	// multiple Lookups and know what to do on .save()
@@ -48,6 +53,8 @@ var _ = fs.NodeStringLookuper(&dir{})
 var _ = fs.HandleReadDirer(&dir{})
 
 func (d *dir) setName(name string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.name = name
 }
 
@@ -69,8 +76,8 @@ func (d *dir) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
 		}, nil
 	}
 
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	if child, ok := d.active[name]; ok {
 		return child, nil
@@ -151,8 +158,8 @@ func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 }
 
 func (d *dir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	var entries []fuse.Dirent
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
@@ -182,7 +189,7 @@ func (d *dir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
 }
 
 // caller does locking
-func (d *dir) save(tx *bolt.Tx, name string, n node) error {
+func (d *dir) saveInternal(tx *bolt.Tx, name string, n node) error {
 	if have, ok := d.active[name]; !ok || have != n {
 		// unlinked
 		return nil
@@ -218,9 +225,15 @@ func (d *dir) marshal() (*wire.Dirent, error) {
 	return de, nil
 }
 
+func (d *dir) save(tx *bolt.Tx, name string, n node) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.saveInternal(tx, name, n)
+}
+
 func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	// TODO check for duplicate name
 
@@ -250,7 +263,7 @@ func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs
 			}
 			d.active[req.Name] = child
 
-			return d.save(tx, req.Name, child)
+			return d.saveInternal(tx, req.Name, child)
 			// TODO clean up active on error
 		})
 		if err != nil {
@@ -264,6 +277,9 @@ func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs
 
 // caller does locking
 func (d *dir) forgetChild(name string, child node) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if have, ok := d.active[name]; ok {
 		// have something by that name
 		if have == child {
@@ -274,8 +290,6 @@ func (d *dir) forgetChild(name string, child node) {
 }
 
 func (d *dir) Forget() {
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
 	if d.parent == nil {
 		// root dir, don't keep track
 		return
@@ -284,8 +298,8 @@ func (d *dir) Forget() {
 }
 
 func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	// TODO handle req.Mode
 
@@ -307,7 +321,7 @@ func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) 
 			active: make(map[string]node),
 		}
 		d.active[req.Name] = child
-		return d.save(tx, req.Name, child)
+		return d.saveInternal(tx, req.Name, child)
 		// TODO clean up active on error
 	})
 	if err != nil {
@@ -320,8 +334,8 @@ func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) 
 }
 
 func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	key := pathToKey(d.inode, req.Name)
 	err := d.fs.db.Update(func(tx *bolt.Tx) error {
@@ -350,11 +364,13 @@ func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 }
 
 func (d *dir) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse.Error {
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	// if you ever change this, also guard against renaming into
 	// special directories like .snap; check type of newDir is *dir
+	//
+	// also worry about deadlocks
 	if newDir != d {
 		return fuse.Errno(syscall.EXDEV)
 	}

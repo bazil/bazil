@@ -87,10 +87,6 @@ var _ = fs.NodeMkdirer(&listSnaps{})
 // Mkdir takes a snapshot of this volume and records it under the
 // given name.
 func (d *listSnaps) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
-	// TODO this lock is too much
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
-
 	var snapshot = wiresnap.Snapshot{
 		Name: req.Name,
 	}
@@ -148,8 +144,7 @@ func (d *listSnaps) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.E
 var _ = fs.HandleReadDirer(&listSnaps{})
 
 func (d *listSnaps) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
-	d.fs.mu.Lock()
-	defer d.fs.mu.Unlock()
+	// NOT HOLDING LOCKS, accessing database snapshot ONLY
 
 	var entries []fuse.Dirent
 
