@@ -7,6 +7,7 @@ import (
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/control"
 	"bazil.org/bazil/server"
+	"github.com/cespare/gomaxprocs"
 )
 
 type runCommand struct {
@@ -15,6 +16,7 @@ type runCommand struct {
 }
 
 func (cmd *runCommand) Run() error {
+	gomaxprocs.SetToNumCPU()
 	app, err := server.New(clibazil.Bazil.Config.DataDir.String())
 	if err != nil {
 		return err
