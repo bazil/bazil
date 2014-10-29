@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"bazil.org/bazil/cas/chunks/kvchunks"
 	"bazil.org/bazil/fs"
@@ -36,6 +37,10 @@ type App struct {
 		open map[fs.VolumeID]*mountState
 	}
 	Keys *CryptoKeys
+	tls  struct {
+		config atomic.Value
+		gen    sync.Mutex
+	}
 }
 
 func New(dataDir string) (app *App, err error) {
