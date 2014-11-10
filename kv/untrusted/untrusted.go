@@ -6,8 +6,8 @@ import (
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/tokens"
-	"code.google.com/p/go.crypto/nacl/secretbox"
 	"github.com/codahale/blake2"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
 type Convergent struct {
