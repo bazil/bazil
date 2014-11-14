@@ -18,19 +18,18 @@
 */
 package wire
 
-import proto "code.google.com/p/gogoprotobuf/proto"
-import json "encoding/json"
+import proto "github.com/gogo/protobuf/proto"
 import math "math"
 
-// discarding unused import gogoproto "code.google.com/p/gogoprotobuf/gogoproto/gogo.pb"
+// discarding unused import gogoproto "github.com/gogo/protobuf/gogoproto/gogo.pb"
 import bazil_cas "bazil.org/bazil/cas/wire"
 
 import io1 "io"
-import code_google_com_p_gogoprotobuf_proto1 "code.google.com/p/gogoprotobuf/proto"
+import fmt1 "fmt"
+import github_com_gogo_protobuf_proto1 "github.com/gogo/protobuf/proto"
 
-// Reference proto, json, and math imports to suppress error if they are not otherwise used.
+// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type Dirent struct {
@@ -90,6 +89,8 @@ func (m *File) GetManifest() bazil_cas.Manifest {
 	return bazil_cas.Manifest{}
 }
 
+// Dir is a directory stored fully in the database, not persisted
+// in objects.
 type Dir struct {
 	XXX_unrecognized []byte `json:"-"`
 }
@@ -121,7 +122,7 @@ func (m *Dirent) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto1.ErrWrongType
+				return fmt1.Errorf("proto: wrong wireType = %d for field Inode", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
@@ -136,7 +137,7 @@ func (m *Dirent) Unmarshal(data []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto1.ErrWrongType
+				return fmt1.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -168,7 +169,7 @@ func (m *Dirent) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto1.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -202,7 +203,7 @@ func (m *Type) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto1.ErrWrongType
+				return fmt1.Errorf("proto: wrong wireType = %d for field File", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -229,7 +230,7 @@ func (m *Type) Unmarshal(data []byte) error {
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto1.ErrWrongType
+				return fmt1.Errorf("proto: wrong wireType = %d for field Dir", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -264,7 +265,7 @@ func (m *Type) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto1.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -298,7 +299,7 @@ func (m *File) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto1.ErrWrongType
+				return fmt1.Errorf("proto: wrong wireType = %d for field Manifest", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -330,7 +331,7 @@ func (m *File) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto1.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -371,7 +372,7 @@ func (m *Dir) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto1.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto1.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -416,6 +417,7 @@ func (m *Dirent) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Type) Size() (n int) {
 	var l int
 	_ = l
@@ -432,6 +434,7 @@ func (m *Type) Size() (n int) {
 	}
 	return n
 }
+
 func (m *File) Size() (n int) {
 	var l int
 	_ = l
@@ -442,6 +445,7 @@ func (m *File) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Dir) Size() (n int) {
 	var l int
 	_ = l
@@ -462,7 +466,6 @@ func sovDirent(x uint64) (n int) {
 	return n
 }
 func sozDirent(x uint64) (n int) {
-	return sovDirent(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 	return sovDirent(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *Dirent) Marshal() (data []byte, err error) {
@@ -496,6 +499,7 @@ func (m *Dirent) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Type) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -536,6 +540,7 @@ func (m *Type) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *File) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -564,6 +569,7 @@ func (m *File) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Dir) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -584,6 +590,7 @@ func (m *Dir) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func encodeFixed64Dirent(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	data[offset+1] = uint8(v >> 8)

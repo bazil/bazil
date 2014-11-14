@@ -12,8 +12,8 @@ import (
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/boltdb/bolt"
+	"github.com/gogo/protobuf/proto"
 )
 
 type Volume struct {

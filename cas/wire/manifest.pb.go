@@ -13,20 +13,19 @@
 */
 package wire
 
-import proto "code.google.com/p/gogoprotobuf/proto"
-import json "encoding/json"
+import proto "github.com/gogo/protobuf/proto"
 import math "math"
 
-// discarding unused import gogoproto "code.google.com/p/gogoprotobuf/gogoproto/gogo.pb"
+// discarding unused import gogoproto "github.com/gogo/protobuf/gogoproto/gogo.pb"
 
 import bazil_org_bazil_cas "bazil.org/bazil/cas"
 
 import io "io"
-import code_google_com_p_gogoprotobuf_proto "code.google.com/p/gogoprotobuf/proto"
+import fmt "fmt"
+import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
 
-// Reference proto, json, and math imports to suppress error if they are not otherwise used.
+// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type Manifest struct {
@@ -85,7 +84,7 @@ func (m *Manifest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -109,7 +108,7 @@ func (m *Manifest) Unmarshal(data []byte) error {
 			index = postIndex
 		case 2:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Size_", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
@@ -124,7 +123,7 @@ func (m *Manifest) Unmarshal(data []byte) error {
 			}
 		case 3:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunkSize", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
@@ -139,7 +138,7 @@ func (m *Manifest) Unmarshal(data []byte) error {
 			}
 		case 4:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Fanout", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
 				if index >= l {
@@ -162,7 +161,7 @@ func (m *Manifest) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -200,7 +199,6 @@ func sovManifest(x uint64) (n int) {
 	return n
 }
 func sozManifest(x uint64) (n int) {
-	return sovManifest(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 	return sovManifest(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *Manifest) Marshal() (data []byte, err error) {
@@ -240,6 +238,7 @@ func (m *Manifest) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func encodeFixed64Manifest(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	data[offset+1] = uint8(v >> 8)

@@ -9,7 +9,7 @@ import (
 
 	"bazil.org/bazil/pb"
 
-	"code.google.com/p/gogoprotobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 // Size of the CAS keys in bytes.

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"code.google.com/p/gogoprotobuf/proto"
 	"github.com/boltdb/bolt"
+	"github.com/gogo/protobuf/proto"
 
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"

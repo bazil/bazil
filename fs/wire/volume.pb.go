@@ -4,18 +4,17 @@
 
 package wire
 
-import proto "code.google.com/p/gogoprotobuf/proto"
-import json "encoding/json"
+import proto "github.com/gogo/protobuf/proto"
 import math "math"
 
-// discarding unused import gogoproto "code.google.com/p/gogoprotobuf/gogoproto/gogo.pb"
+// discarding unused import gogoproto "github.com/gogo/protobuf/gogoproto/gogo.pb"
 
 import io3 "io"
-import code_google_com_p_gogoprotobuf_proto3 "code.google.com/p/gogoprotobuf/proto"
+import fmt3 "fmt"
+import github_com_gogo_protobuf_proto3 "github.com/gogo/protobuf/proto"
 
-// Reference proto, json, and math imports to suppress error if they are not otherwise used.
+// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type KV struct {
@@ -43,6 +42,7 @@ func (m *KV) GetExternal() []*KV_External {
 }
 
 type KV_Local struct {
+	// Must be exactly 32 bytes long.
 	Secret           []byte `protobuf:"bytes,1,opt,name=secret" json:"secret"`
 	XXX_unrecognized []byte `json:"-"`
 }
@@ -59,7 +59,8 @@ func (m *KV_Local) GetSecret() []byte {
 }
 
 type KV_External struct {
-	Path             string `protobuf:"bytes,1,req,name=path" json:"path"`
+	Path string `protobuf:"bytes,1,req,name=path" json:"path"`
+	// Must be exactly 32 bytes long.
 	Secret           []byte `protobuf:"bytes,2,opt,name=secret" json:"secret"`
 	XXX_unrecognized []byte `json:"-"`
 }
@@ -83,6 +84,7 @@ func (m *KV_External) GetSecret() []byte {
 }
 
 type VolumeConfig struct {
+	// Must be exactly 64 bytes long.
 	VolumeID         []byte `protobuf:"bytes,1,req,name=volumeID" json:"volumeID"`
 	Storage          KV     `protobuf:"bytes,2,req,name=storage" json:"storage"`
 	XXX_unrecognized []byte `json:"-"`
@@ -129,7 +131,7 @@ func (m *KV) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+				return fmt3.Errorf("proto: wrong wireType = %d for field Local", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -156,7 +158,7 @@ func (m *KV) Unmarshal(data []byte) error {
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+				return fmt3.Errorf("proto: wrong wireType = %d for field External", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -187,7 +189,7 @@ func (m *KV) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto3.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto3.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -221,7 +223,7 @@ func (m *KV_Local) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+				return fmt3.Errorf("proto: wrong wireType = %d for field Secret", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -251,7 +253,7 @@ func (m *KV_Local) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto3.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto3.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -285,7 +287,7 @@ func (m *KV_External) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+				return fmt3.Errorf("proto: wrong wireType = %d for field Path", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -307,7 +309,7 @@ func (m *KV_External) Unmarshal(data []byte) error {
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+				return fmt3.Errorf("proto: wrong wireType = %d for field Secret", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -337,7 +339,7 @@ func (m *KV_External) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto3.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto3.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -371,7 +373,7 @@ func (m *VolumeConfig) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+				return fmt3.Errorf("proto: wrong wireType = %d for field VolumeID", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -393,7 +395,7 @@ func (m *VolumeConfig) Unmarshal(data []byte) error {
 			index = postIndex
 		case 2:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto3.ErrWrongType
+				return fmt3.Errorf("proto: wrong wireType = %d for field Storage", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -425,7 +427,7 @@ func (m *VolumeConfig) Unmarshal(data []byte) error {
 				}
 			}
 			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto3.Skip(data[index:])
+			skippy, err := github_com_gogo_protobuf_proto3.Skip(data[index:])
 			if err != nil {
 				return err
 			}
@@ -456,6 +458,7 @@ func (m *KV) Size() (n int) {
 	}
 	return n
 }
+
 func (m *KV_Local) Size() (n int) {
 	var l int
 	_ = l
@@ -466,6 +469,7 @@ func (m *KV_Local) Size() (n int) {
 	}
 	return n
 }
+
 func (m *KV_External) Size() (n int) {
 	var l int
 	_ = l
@@ -478,6 +482,7 @@ func (m *KV_External) Size() (n int) {
 	}
 	return n
 }
+
 func (m *VolumeConfig) Size() (n int) {
 	var l int
 	_ = l
@@ -502,7 +507,6 @@ func sovVolume(x uint64) (n int) {
 	return n
 }
 func sozVolume(x uint64) (n int) {
-	return sovVolume(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 	return sovVolume(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *KV) Marshal() (data []byte, err error) {
@@ -547,6 +551,7 @@ func (m *KV) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *KV_Local) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -571,6 +576,7 @@ func (m *KV_Local) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *KV_External) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -599,6 +605,7 @@ func (m *KV_External) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *VolumeConfig) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -631,6 +638,7 @@ func (m *VolumeConfig) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func encodeFixed64Volume(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	data[offset+1] = uint8(v >> 8)

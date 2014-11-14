@@ -16,9 +16,10 @@ func gopath() []string {
 }
 
 func includeArgs(gopath []string) []string {
-	l := make([]string, len(gopath))
-	for i, p := range gopath {
-		l[i] = "-I" + filepath.Join(p, "src")
+	l := make([]string, 0, 2*len(gopath))
+	for _, p := range gopath {
+		l = append(l, "-I"+filepath.Join(p, "src"))
+		l = append(l, "-I"+filepath.Join(p, "src", "github.com/gogo/protobuf/protobuf"))
 	}
 	return l
 }

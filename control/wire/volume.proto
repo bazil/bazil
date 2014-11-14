@@ -1,7 +1,7 @@
 package bazil.control;
 
 option go_package = "wire";
-import "code.google.com/p/gogoprotobuf/gogoproto/gogo.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 option (gogoproto.unmarshaler_all) = true;
 option (gogoproto.sizer_all) = true;
