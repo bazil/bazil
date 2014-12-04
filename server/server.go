@@ -35,6 +35,7 @@ type App struct {
 		sync.Mutex
 		open map[fs.VolumeID]*mountState
 	}
+	Keys *CryptoKeys
 }
 
 func New(dataDir string) (app *App, err error) {
@@ -99,10 +100,16 @@ func New(dataDir string) (app *App, err error) {
 		return nil, err
 	}
 
+	keys, err := loadOrGenerateKeys(db)
+	if err != nil {
+		return nil, err
+	}
+
 	app = &App{
 		DataDir:  dataDir,
 		lockFile: lockFile,
 		DB:       db,
+		Keys:     keys,
 	}
 	app.mounts.open = make(map[fs.VolumeID]*mountState)
 	return app, nil
