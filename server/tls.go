@@ -11,6 +11,9 @@ import (
 	"encoding/hex"
 	"math/big"
 	"time"
+
+	"bazil.org/bazil/util/edtls"
+	"github.com/agl/ed25519"
 )
 
 const (
@@ -19,7 +22,7 @@ const (
 	tlsRegen = 1 * time.Hour
 )
 
-func (*App) generateTLSConfig() (*tls.Config, error) {
+func (*App) generateTLSConfig(signPub *[ed25519.PublicKeySize]byte, signPriv *[ed25519.PrivateKeySize]byte) (*tls.Config, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, err
@@ -43,6 +46,11 @@ func (*App) generateTLSConfig() (*tls.Config, error) {
 		DNSNames:     []string{hostname},
 		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
 	}
+
+	if err := edtls.Vouch(signPub, signPriv, srvTemplate, &key.PublicKey); err != nil {
+		return nil, err
+	}
+
 	certDER, err := x509.CreateCertificate(rand.Reader, srvTemplate, srvTemplate, &key.PublicKey, key)
 	if err != nil {
 		return nil, err
@@ -95,7 +103,7 @@ func (app *App) GetTLSConfig() (*tls.Config, error) {
 	}
 	// we now hold the lock and really should generate the cert; error
 	// here just means others will try again
-	conf, err := app.generateTLSConfig()
+	conf, err := app.generateTLSConfig(app.Keys.Sign.Pub, app.Keys.Sign.Priv)
 	if err == nil {
 		app.tls.config.Store(conf)
 	}
