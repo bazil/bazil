@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package bazil.peer;
+
+option go_package = "wire";
+
+message Peer {
+  uint32 id = 1;
+}

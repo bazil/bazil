@@ -17,4 +17,12 @@ const (
 	// encryption. Key is user-friendly name, value is the 32-byte
 	// secret.
 	BucketSharing = "sharing"
+
+	// The DB bucket that contains peers by public key.
+	BucketPeer = "peer"
+
+	// The DB bucket that contains peers by sequential ID. Value is
+	// just the raw public key, or empty for tombstone. Peer IDs are
+	// never reused.
+	BucketPeerID = "peerID"
 )

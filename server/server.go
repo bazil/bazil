@@ -98,6 +98,12 @@ func New(dataDir string) (app *App, err error) {
 				return err
 			}
 		}
+		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketPeer)); err != nil {
+			return err
+		}
+		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketPeerID)); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
