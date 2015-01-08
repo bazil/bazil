@@ -104,6 +104,9 @@ func New(dataDir string) (app *App, err error) {
 		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketPeerID)); err != nil {
 			return err
 		}
+		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketPeerAddr)); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {

@@ -25,4 +25,8 @@ const (
 	// just the raw public key, or empty for tombstone. Peer IDs are
 	// never reused.
 	BucketPeerID = "peerID"
+
+	// The DB bucket that contains peer addresses. Key is peer public
+	// key, value is host:port.
+	BucketPeerAddr = "peerAddr"
 )

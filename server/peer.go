@@ -14,6 +14,7 @@ import (
 
 var bucketPeer = []byte(tokens.BucketPeer)
 var bucketPeerID = []byte(tokens.BucketPeerID)
+var bucketPeerAddr = []byte(tokens.BucketPeerAddr)
 
 var (
 	ErrPeerNotFound = errors.New("peer not found")
