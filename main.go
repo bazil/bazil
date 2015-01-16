@@ -22,6 +22,7 @@ import (
 	_ "bazil.org/bazil/cli/debug/cas/chunk/add"
 	_ "bazil.org/bazil/cli/debug/cas/chunk/get"
 	_ "bazil.org/bazil/cli/debug/hash"
+	_ "bazil.org/bazil/cli/debug/pubkey"
 )
 
 func main() {
