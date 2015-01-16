@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 
+	"bazil.org/bazil/kv"
+	"bazil.org/bazil/kv/kvmulti"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/server/wire"
 	"bazil.org/bazil/tokens"
@@ -15,9 +17,11 @@ import (
 var bucketPeer = []byte(tokens.BucketPeer)
 var bucketPeerID = []byte(tokens.BucketPeerID)
 var bucketPeerAddr = []byte(tokens.BucketPeerAddr)
+var bucketPeerStorage = []byte(tokens.BucketPeerStorage)
 
 var (
-	ErrPeerNotFound = errors.New("peer not found")
+	ErrPeerNotFound     = errors.New("peer not found")
+	ErrNoStorageForPeer = errors.New("no storage offered to peer")
 )
 
 func (app *App) findPeer(tx *bolt.Tx, pub *[ed25519.PublicKeySize]byte) (*peer.Peer, error) {
@@ -109,4 +113,33 @@ func (app *App) MakePeer(pub *[ed25519.PublicKeySize]byte) (*peer.Peer, error) {
 		return nil, err
 	}
 	return p, nil
+}
+
+func (app *App) OpenKVForPeer(pub *[ed25519.PublicKeySize]byte) (kv.KV, error) {
+	var msg wire.PeerStorage
+	find := func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bucketPeerStorage)
+		val := bucket.Get(pub[:])
+		if val == nil {
+			return ErrNoStorageForPeer
+		}
+		if err := proto.Unmarshal(val, &msg); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := app.DB.View(find); err != nil {
+		return nil, err
+	}
+
+	var kvstores []kv.KV
+	for backend, _ := range msg.Backends {
+		s, err := app.openStorage(backend)
+		if err != nil {
+			return nil, err
+		}
+		kvstores = append(kvstores, s)
+	}
+
+	return kvmulti.New(kvstores...), nil
 }

@@ -10,6 +10,8 @@ It is generated from these files:
 
 It has these top-level messages:
 	Peer
+	PeerStorageConfig
+	PeerStorage
 */
 package wire
 
@@ -25,6 +27,29 @@ type Peer struct {
 func (m *Peer) Reset()         { *m = Peer{} }
 func (m *Peer) String() string { return proto.CompactTextString(m) }
 func (*Peer) ProtoMessage()    {}
+
+type PeerStorageConfig struct {
+}
+
+func (m *PeerStorageConfig) Reset()         { *m = PeerStorageConfig{} }
+func (m *PeerStorageConfig) String() string { return proto.CompactTextString(m) }
+func (*PeerStorageConfig) ProtoMessage()    {}
+
+type PeerStorage struct {
+	// key is the backend
+	Backends map[string]*PeerStorageConfig `protobuf:"bytes,1,rep,name=backends" json:"backends,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+}
+
+func (m *PeerStorage) Reset()         { *m = PeerStorage{} }
+func (m *PeerStorage) String() string { return proto.CompactTextString(m) }
+func (*PeerStorage) ProtoMessage()    {}
+
+func (m *PeerStorage) GetBackends() map[string]*PeerStorageConfig {
+	if m != nil {
+		return m.Backends
+	}
+	return nil
+}
 
 func init() {
 }
