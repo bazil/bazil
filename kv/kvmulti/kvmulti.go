@@ -31,7 +31,7 @@ func (m *Multi) Get(key []byte) ([]byte, error) {
 	if firstErr != nil {
 		return nil, firstErr
 	}
-	return nil, kv.NotFoundError{}
+	return nil, kv.NotFoundError{Key: key}
 }
 
 func (m *Multi) Put(key, value []byte) error {
