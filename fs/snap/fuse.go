@@ -42,7 +42,7 @@ var _ = fusefs.Node(fuseDir{})
 var _ = fusefs.NodeStringLookuper(fuseDir{})
 var _ = fusefs.NodeCreater(fuseDir{})
 var _ = fusefs.Handle(fuseDir{})
-var _ = fusefs.HandleReadDirer(fuseDir{})
+var _ = fusefs.HandleReadDirAller(fuseDir{})
 
 func (d fuseDir) Attr() fuse.Attr {
 	return fuse.Attr{
@@ -89,7 +89,7 @@ func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 	}
 }
 
-func (d fuseDir) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
+func (d fuseDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var list []fuse.Dirent
 	it := d.reader.Iter()
 	var de *wire.Dirent

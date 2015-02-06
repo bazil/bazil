@@ -51,7 +51,7 @@ var _ = fs.NodeMkdirer(&dir{})
 var _ = fs.NodeRemover(&dir{})
 var _ = fs.NodeRenamer(&dir{})
 var _ = fs.NodeStringLookuper(&dir{})
-var _ = fs.HandleReadDirer(&dir{})
+var _ = fs.HandleReadDirAller(&dir{})
 
 func (d *dir) setName(name string) {
 	d.mu.Lock()
@@ -158,7 +158,7 @@ func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 	return nil, fmt.Errorf("dirent unknown type: %v", de.GetValue())
 }
 
-func (d *dir) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
+func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 

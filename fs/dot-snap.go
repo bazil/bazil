@@ -29,7 +29,7 @@ var _ = fs.Node(&listSnaps{})
 var _ = fs.NodeMkdirer(&listSnaps{})
 var _ = fs.NodeStringLookuper(&listSnaps{})
 var _ = fs.Handle(&listSnaps{})
-var _ = fs.HandleReadDirer(&listSnaps{})
+var _ = fs.HandleReadDirAller(&listSnaps{})
 
 func (d *listSnaps) Attr() fuse.Attr {
 	return fuse.Attr{
@@ -142,9 +142,9 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 	return n, nil
 }
 
-var _ = fs.HandleReadDirer(&listSnaps{})
+var _ = fs.HandleReadDirAller(&listSnaps{})
 
-func (d *listSnaps) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
+func (d *listSnaps) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	// NOT HOLDING LOCKS, accessing database snapshot ONLY
 
 	var entries []fuse.Dirent
