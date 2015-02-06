@@ -81,25 +81,26 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return child, nil
 	}
 
+	var de *wire.Dirent
 	key := pathToKey(d.inode, name)
-	var buf []byte
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
 		bucket := d.fs.bucket(tx).Bucket(bucketDir)
 		if bucket == nil {
 			return errors.New("dir bucket missing")
 		}
-		buf = bucket.Get(key)
+		buf := bucket.Get(key)
+		if buf == nil {
+			return fuse.ENOENT
+		}
+		var err error
+		de, err = d.unmarshalDirent(buf)
+		if err != nil {
+			return fmt.Errorf("dirent unmarshal problem: %v", err)
+		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
-	}
-	if buf == nil {
-		return nil, fuse.ENOENT
-	}
-	de, err := d.unmarshalDirent(buf)
-	if err != nil {
-		return nil, fmt.Errorf("dirent unmarshal problem: %v", err)
 	}
 	child, err := d.reviveNode(de, name)
 	if err != nil {
