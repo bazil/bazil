@@ -21,7 +21,7 @@ func NewReader(rat io.ReaderAt, align uint32) (*Reader, error) {
 	return reader, nil
 }
 
-// TODO how does Intr tie into this.. and rat.ReadAt.
+// TODO how to pass ctx to rat.ReadAt
 func (r *Reader) Lookup(name string) (*wire.Dirent, error) {
 	// TODO binary search
 	it := r.Iter()
