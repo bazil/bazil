@@ -15,7 +15,6 @@ import (
 	"bazil.org/bazil/fs/snap"
 	"bazil.org/bazil/fs/snap/wire"
 	"bazil.org/bazil/util/tempdir"
-	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"bazil.org/fuse/fs/fstestutil"
 )
@@ -26,7 +25,7 @@ type FS struct {
 
 var _ = fs.FS(&FS{})
 
-func (f *FS) Root() (fs.Node, fuse.Error) {
+func (f *FS) Root() (fs.Node, error) {
 	return f.root, nil
 }
 

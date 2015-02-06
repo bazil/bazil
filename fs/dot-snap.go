@@ -43,7 +43,7 @@ func (d *listSnaps) Attr() fuse.Attr {
 
 var _ = fs.NodeStringLookuper(&listSnaps{})
 
-func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, fuse.Error) {
+func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	var buf []byte
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
 		bucket := d.fs.bucket(tx).Bucket(bucketSnap)
@@ -87,7 +87,7 @@ var _ = fs.NodeMkdirer(&listSnaps{})
 
 // Mkdir takes a snapshot of this volume and records it under the
 // given name.
-func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, fuse.Error) {
+func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
 	var snapshot = wiresnap.Snapshot{
 		Name: req.Name,
 	}
@@ -144,7 +144,7 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 
 var _ = fs.HandleReadDirer(&listSnaps{})
 
-func (d *listSnaps) ReadDir(ctx context.Context) ([]fuse.Dirent, fuse.Error) {
+func (d *listSnaps) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
 	// NOT HOLDING LOCKS, accessing database snapshot ONLY
 
 	var entries []fuse.Dirent

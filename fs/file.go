@@ -82,13 +82,13 @@ func (f *file) Forget() {
 	f.parent.forgetChild(f.name, f)
 }
 
-func (f *file) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, fuse.Error) {
+func (f *file) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	// allow kernel to use buffer cache
 	resp.Flags &^= fuse.OpenDirectIO
 	return f, nil
 }
 
-func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) fuse.Error {
+func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -101,7 +101,7 @@ func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 	return nil
 }
 
-func (f *file) flush(ctx context.Context) fuse.Error {
+func (f *file) flush(ctx context.Context) error {
 	// TODO only if dirty
 	err := f.parent.fs.db.Update(func(tx *bolt.Tx) error {
 		return f.parent.save(tx, f.name, f)
@@ -109,13 +109,13 @@ func (f *file) flush(ctx context.Context) fuse.Error {
 	return err
 }
 
-func (f *file) Flush(ctx context.Context, req *fuse.FlushRequest) fuse.Error {
+func (f *file) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	return f.flush(ctx)
 }
 
 const maxInt64 = 9223372036854775807
 
-func (f *file) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) fuse.Error {
+func (f *file) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -137,7 +137,7 @@ func (f *file) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	return nil
 }
 
-func (f *file) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) fuse.Error {
+func (f *file) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -161,7 +161,7 @@ func (f *file) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse
 	return nil
 }
 
-func (f *file) Fsync(ctx context.Context, req *fuse.FsyncRequest) fuse.Error {
+func (f *file) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	// flush forces writes to backing stores; we don't current
 	// differentiate between the backing stores writing vs syncing.
 	return f.flush(ctx)

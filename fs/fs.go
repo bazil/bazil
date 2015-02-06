@@ -114,13 +114,13 @@ func Create(db *bolt.DB, volumeName string) error {
 	return nil
 }
 
-func (f *Volume) Init(ctx context.Context, req *fuse.InitRequest, resp *fuse.InitResponse) fuse.Error {
+func (f *Volume) Init(ctx context.Context, req *fuse.InitRequest, resp *fuse.InitResponse) error {
 	resp.MaxReadahead = 32 * 1024 * 1024
 	resp.Flags |= fuse.InitAsyncRead
 	return nil
 }
 
-func (v *Volume) Root() (fs.Node, fuse.Error) {
+func (v *Volume) Root() (fs.Node, error) {
 	d := &dir{
 		inode:  tokens.InodeRoot,
 		parent: nil,

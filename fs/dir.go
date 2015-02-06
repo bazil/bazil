@@ -69,7 +69,7 @@ func (d *dir) Attr() fuse.Attr {
 	}
 }
 
-func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, fuse.Error) {
+func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if d.inode == 1 && name == ".snap" {
 		return &listSnaps{
 			fs:      d.fs,
@@ -158,7 +158,7 @@ func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 	return nil, fmt.Errorf("dirent unknown type: %v", de.GetValue())
 }
 
-func (d *dir) ReadDir(ctx context.Context) ([]fuse.Dirent, fuse.Error) {
+func (d *dir) ReadDir(ctx context.Context) ([]fuse.Dirent, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -232,7 +232,7 @@ func (d *dir) save(tx *bolt.Tx, name string, n node) error {
 	return d.saveInternal(tx, name, n)
 }
 
-func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, fuse.Error) {
+func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -298,7 +298,7 @@ func (d *dir) Forget() {
 	d.parent.forgetChild(d.name, d)
 }
 
-func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, fuse.Error) {
+func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -334,7 +334,7 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, fuse.
 	return child, nil
 }
 
-func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) fuse.Error {
+func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -364,7 +364,7 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) fuse.Error {
 	return err
 }
 
-func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) fuse.Error {
+func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 

@@ -36,7 +36,7 @@ func (e fuseFile) Attr() fuse.Attr {
 	return a
 }
 
-func (e fuseFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, fuse.Error) {
+func (e fuseFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, error) {
 	if !req.Flags.IsReadOnly() {
 		return nil, fuse.Errno(syscall.EACCES)
 	}
@@ -44,7 +44,7 @@ func (e fuseFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.Op
 	return e, nil
 }
 
-func (e fuseFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) fuse.Error {
+func (e fuseFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 	// TODO ReadAt is more strict about not giving partial reads
 	// than we care about, but i like the lack of cursor
 	resp.Data = resp.Data[0:cap(resp.Data)]
