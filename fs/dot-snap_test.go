@@ -19,11 +19,11 @@ func TestSnapRecord(t *testing.T) {
 	defer app.Close()
 	bazfstestutil.CreateVolume(t, app, "default")
 
-	mnt := bazfstestutil.Mounted(t, app, "default")
-	defer mnt.Close()
+	func() {
+		mnt := bazfstestutil.Mounted(t, app, "default")
+		defer mnt.Close()
 
-	// write test data
-	{
+		// write test data
 		sub := path.Join(mnt.Dir, "greetings")
 		err := os.Mkdir(sub, 0755)
 		if err != nil {
@@ -43,15 +43,17 @@ func TestSnapRecord(t *testing.T) {
 		if err != nil {
 			t.Fatalf("closing hello failed: %v", err)
 		}
-	}
 
-	// make a snapshot
-	{
-		err := os.Mkdir(path.Join(mnt.Dir, ".snap", "mysnap"), 0755)
+		// make a snapshot
+		err = os.Mkdir(path.Join(mnt.Dir, ".snap", "mysnap"), 0755)
 		if err != nil {
 			t.Fatalf("snapshot failed: %v", err)
 		}
-	}
+	}()
+
+	// mount again, to make sure cached dentry from Mkdir is flushed
+	mnt := bazfstestutil.Mounted(t, app, "default")
+	defer mnt.Close()
 
 	// verify snapshot contents
 	{

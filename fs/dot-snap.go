@@ -41,7 +41,7 @@ func (d *listSnaps) Attr(a *fuse.Attr) {
 var _ = fs.NodeStringLookuper(&listSnaps{})
 
 func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
-	var buf []byte
+	var ref wire.SnapshotRef
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
 		bucket := d.fs.bucket(tx).Bucket(bucketSnap)
 		if bucket == nil {
@@ -51,15 +51,13 @@ func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		if buf == nil {
 			return fuse.ENOENT
 		}
+		if err := proto.Unmarshal(buf, &ref); err != nil {
+			return fmt.Errorf("corrupt snapshot reference: %q: %v", name, err)
+		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
-	}
-	var ref wire.SnapshotRef
-	err = proto.Unmarshal(buf, &ref)
-	if err != nil {
-		return nil, fmt.Errorf("corrupt snapshot reference: %q: %v", name, err)
 	}
 
 	chunk, err := d.fs.chunkStore.Get(ref.Key, "snap", 0)
