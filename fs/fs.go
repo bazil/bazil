@@ -14,6 +14,7 @@ import (
 	"bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
 	"github.com/gogo/protobuf/proto"
+	"golang.org/x/net/context"
 )
 
 type Volume struct {
@@ -113,7 +114,7 @@ func Create(db *bolt.DB, volumeName string) error {
 	return nil
 }
 
-func (f *Volume) Init(req *fuse.InitRequest, resp *fuse.InitResponse, intr fs.Intr) fuse.Error {
+func (f *Volume) Init(ctx context.Context, req *fuse.InitRequest, resp *fuse.InitResponse) fuse.Error {
 	resp.MaxReadahead = 32 * 1024 * 1024
 	resp.Flags |= fuse.InitAsyncRead
 	return nil

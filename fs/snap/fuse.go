@@ -12,6 +12,7 @@ import (
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
+	"golang.org/x/net/context"
 )
 
 // Serve this snapshot with FUSE, with this object store.
@@ -54,7 +55,7 @@ func (d fuseDir) Attr() fuse.Attr {
 
 const _MAX_INT64 = 9223372036854775807
 
-func (d fuseDir) Lookup(name string, intr fusefs.Intr) (fusefs.Node, fuse.Error) {
+func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, fuse.Error) {
 	de, err := d.reader.Lookup(name)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -88,7 +89,7 @@ func (d fuseDir) Lookup(name string, intr fusefs.Intr) (fusefs.Node, fuse.Error)
 	}
 }
 
-func (d fuseDir) ReadDir(intr fusefs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (d fuseDir) ReadDir(ctx context.Context) ([]fuse.Dirent, fuse.Error) {
 	var list []fuse.Dirent
 	it := d.reader.Iter()
 	var de *wire.Dirent
@@ -114,7 +115,7 @@ func (d fuseDir) ReadDir(intr fusefs.Intr) ([]fuse.Dirent, fuse.Error) {
 	return list, nil
 }
 
-func (d fuseDir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fusefs.Intr) (fusefs.Node, fusefs.Handle, fuse.Error) {
+func (d fuseDir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fusefs.Node, fusefs.Handle, fuse.Error) {
 	return nil, nil, fuse.Errno(syscall.EROFS)
 }
 

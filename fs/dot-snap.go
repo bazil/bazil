@@ -7,6 +7,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/gogo/protobuf/proto"
+	"golang.org/x/net/context"
 
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
@@ -42,7 +43,7 @@ func (d *listSnaps) Attr() fuse.Attr {
 
 var _ = fs.NodeStringLookuper(&listSnaps{})
 
-func (d *listSnaps) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, fuse.Error) {
 	var buf []byte
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
 		bucket := d.fs.bucket(tx).Bucket(bucketSnap)
@@ -86,12 +87,12 @@ var _ = fs.NodeMkdirer(&listSnaps{})
 
 // Mkdir takes a snapshot of this volume and records it under the
 // given name.
-func (d *listSnaps) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, fuse.Error) {
 	var snapshot = wiresnap.Snapshot{
 		Name: req.Name,
 	}
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
-		return d.rootDir.snapshot(tx, &snapshot.Contents, intr)
+		return d.rootDir.snapshot(ctx, tx, &snapshot.Contents)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("cannot record snapshot: %v", err)
@@ -143,7 +144,7 @@ func (d *listSnaps) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.E
 
 var _ = fs.HandleReadDirer(&listSnaps{})
 
-func (d *listSnaps) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (d *listSnaps) ReadDir(ctx context.Context) ([]fuse.Dirent, fuse.Error) {
 	// NOT HOLDING LOCKS, accessing database snapshot ONLY
 
 	var entries []fuse.Dirent

@@ -8,6 +8,7 @@ import (
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
+	"golang.org/x/net/context"
 )
 
 type fuseFile struct {
@@ -35,7 +36,7 @@ func (e fuseFile) Attr() fuse.Attr {
 	return a
 }
 
-func (e fuseFile) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fusefs.Intr) (fusefs.Handle, fuse.Error) {
+func (e fuseFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, fuse.Error) {
 	if !req.Flags.IsReadOnly() {
 		return nil, fuse.Errno(syscall.EACCES)
 	}
@@ -43,7 +44,7 @@ func (e fuseFile) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fuse
 	return e, nil
 }
 
-func (e fuseFile) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fusefs.Intr) fuse.Error {
+func (e fuseFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) fuse.Error {
 	// TODO ReadAt is more strict about not giving partial reads
 	// than we care about, but i like the lack of cursor
 	resp.Data = resp.Data[0:cap(resp.Data)]

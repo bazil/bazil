@@ -19,6 +19,7 @@ import (
 	"bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
 	"github.com/gogo/protobuf/proto"
+	"golang.org/x/net/context"
 )
 
 type dir struct {
@@ -68,7 +69,7 @@ func (d *dir) Attr() fuse.Attr {
 	}
 }
 
-func (d *dir) Lookup(name string, intr fs.Intr) (fs.Node, fuse.Error) {
+func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, fuse.Error) {
 	if d.inode == 1 && name == ".snap" {
 		return &listSnaps{
 			fs:      d.fs,
@@ -157,7 +158,7 @@ func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 	return nil, fmt.Errorf("dirent unknown type: %v", de.GetValue())
 }
 
-func (d *dir) ReadDir(intr fs.Intr) ([]fuse.Dirent, fuse.Error) {
+func (d *dir) ReadDir(ctx context.Context) ([]fuse.Dirent, fuse.Error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -231,7 +232,7 @@ func (d *dir) save(tx *bolt.Tx, name string, n node) error {
 	return d.saveInternal(tx, name, n)
 }
 
-func (d *dir) Create(req *fuse.CreateRequest, resp *fuse.CreateResponse, intr fs.Intr) (fs.Node, fs.Handle, fuse.Error) {
+func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, fuse.Error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -297,7 +298,7 @@ func (d *dir) Forget() {
 	d.parent.forgetChild(d.name, d)
 }
 
-func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) {
+func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, fuse.Error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -333,7 +334,7 @@ func (d *dir) Mkdir(req *fuse.MkdirRequest, intr fs.Intr) (fs.Node, fuse.Error) 
 	return child, nil
 }
 
-func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
+func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) fuse.Error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -363,7 +364,7 @@ func (d *dir) Remove(req *fuse.RemoveRequest, intr fs.Intr) fuse.Error {
 	return err
 }
 
-func (d *dir) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse.Error {
+func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) fuse.Error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -435,7 +436,7 @@ func (d *dir) Rename(req *fuse.RenameRequest, newDir fs.Node, intr fs.Intr) fuse
 }
 
 // snapshot records a snapshot of the directory and stores it in wde
-func (d *dir) snapshot(tx *bolt.Tx, out *wiresnap.Dir, intr fs.Intr) error {
+func (d *dir) snapshot(ctx context.Context, tx *bolt.Tx, out *wiresnap.Dir) error {
 	// NOT HOLDING THE LOCK, accessing database snapshot ONLY
 
 	// TODO move bucket lookup to caller?
@@ -480,7 +481,7 @@ func (d *dir) snapshot(tx *bolt.Tx, out *wiresnap.Dir, intr fs.Intr) error {
 				return err
 			}
 			sde.Type.Dir = &wiresnap.Dir{}
-			err = child.snapshot(tx, sde.Type.Dir, intr)
+			err = child.snapshot(ctx, tx, sde.Type.Dir)
 			if err != nil {
 				return err
 			}

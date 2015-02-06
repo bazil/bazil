@@ -12,6 +12,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
+	"golang.org/x/net/context"
 )
 
 type file struct {
@@ -81,13 +82,13 @@ func (f *file) Forget() {
 	f.parent.forgetChild(f.name, f)
 }
 
-func (f *file) Open(req *fuse.OpenRequest, resp *fuse.OpenResponse, intr fs.Intr) (fs.Handle, fuse.Error) {
+func (f *file) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, fuse.Error) {
 	// allow kernel to use buffer cache
 	resp.Flags &^= fuse.OpenDirectIO
 	return f, nil
 }
 
-func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.Intr) fuse.Error {
+func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) fuse.Error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -100,7 +101,7 @@ func (f *file) Write(req *fuse.WriteRequest, resp *fuse.WriteResponse, intr fs.I
 	return nil
 }
 
-func (f *file) flush(intr fs.Intr) fuse.Error {
+func (f *file) flush(ctx context.Context) fuse.Error {
 	// TODO only if dirty
 	err := f.parent.fs.db.Update(func(tx *bolt.Tx) error {
 		return f.parent.save(tx, f.name, f)
@@ -108,13 +109,13 @@ func (f *file) flush(intr fs.Intr) fuse.Error {
 	return err
 }
 
-func (f *file) Flush(req *fuse.FlushRequest, intr fs.Intr) fuse.Error {
-	return f.flush(intr)
+func (f *file) Flush(ctx context.Context, req *fuse.FlushRequest) fuse.Error {
+	return f.flush(ctx)
 }
 
 const maxInt64 = 9223372036854775807
 
-func (f *file) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr) fuse.Error {
+func (f *file) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) fuse.Error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -136,7 +137,7 @@ func (f *file) Read(req *fuse.ReadRequest, resp *fuse.ReadResponse, intr fs.Intr
 	return nil
 }
 
-func (f *file) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, intr fs.Intr) fuse.Error {
+func (f *file) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) fuse.Error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -160,8 +161,8 @@ func (f *file) Setattr(req *fuse.SetattrRequest, resp *fuse.SetattrResponse, int
 	return nil
 }
 
-func (f *file) Fsync(req *fuse.FsyncRequest, intr fs.Intr) fuse.Error {
+func (f *file) Fsync(ctx context.Context, req *fuse.FsyncRequest) fuse.Error {
 	// flush forces writes to backing stores; we don't current
 	// differentiate between the backing stores writing vs syncing.
-	return f.flush(intr)
+	return f.flush(ctx)
 }
