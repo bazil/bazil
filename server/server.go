@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
@@ -75,6 +76,21 @@ func New(dataDir string) (app *App, err error) {
 		}
 		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketVolName)); err != nil {
 			return err
+		}
+		bucket, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketSharing))
+		if err != nil {
+			return err
+		}
+		// Create the default sharing secret.
+		var defaultKey = []byte("default")
+		if bucket.Get(defaultKey) == nil {
+			var secret [32]byte
+			if _, err := rand.Read(secret[:]); err != nil {
+				return err
+			}
+			if err := bucket.Put(defaultKey, secret[:]); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
