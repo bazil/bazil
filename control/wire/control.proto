@@ -3,6 +3,7 @@ syntax = "proto3";
 package bazil.control;
 
 import "bazil.org/bazil/control/wire/volume.proto";
+import "bazil.org/bazil/control/wire/sharing.proto";
 
 option go_package = "wire";
 
@@ -10,6 +11,7 @@ service Control {
   rpc Ping(PingRequest) returns (PingResponse) {}
   rpc VolumeCreate(VolumeCreateRequest) returns (VolumeCreateResponse) {}
   rpc VolumeMount(VolumeMountRequest) returns (VolumeMountResponse) {}
+  rpc SharingKeyAdd(SharingKeyAddRequest) returns (SharingKeyAddResponse) {}
 }
 
 message PingRequest {

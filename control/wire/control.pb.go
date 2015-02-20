@@ -7,6 +7,7 @@ Package wire is a generated protocol buffer package.
 
 It is generated from these files:
 	bazil.org/bazil/control/wire/control.proto
+	bazil.org/bazil/control/wire/sharing.proto
 	bazil.org/bazil/control/wire/volume.proto
 
 It has these top-level messages:
@@ -52,6 +53,7 @@ type ControlClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	VolumeCreate(ctx context.Context, in *VolumeCreateRequest, opts ...grpc.CallOption) (*VolumeCreateResponse, error)
 	VolumeMount(ctx context.Context, in *VolumeMountRequest, opts ...grpc.CallOption) (*VolumeMountResponse, error)
+	SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error)
 }
 
 type controlClient struct {
@@ -89,12 +91,22 @@ func (c *controlClient) VolumeMount(ctx context.Context, in *VolumeMountRequest,
 	return out, nil
 }
 
+func (c *controlClient) SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error) {
+	out := new(SharingKeyAddResponse)
+	err := grpc.Invoke(ctx, "/bazil.control.Control/SharingKeyAdd", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Control service
 
 type ControlServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	VolumeCreate(context.Context, *VolumeCreateRequest) (*VolumeCreateResponse, error)
 	VolumeMount(context.Context, *VolumeMountRequest) (*VolumeMountResponse, error)
+	SharingKeyAdd(context.Context, *SharingKeyAddRequest) (*SharingKeyAddResponse, error)
 }
 
 func RegisterControlServer(s *grpc.Server, srv ControlServer) {
@@ -137,6 +149,18 @@ func _Control_VolumeMount_Handler(srv interface{}, ctx context.Context, buf []by
 	return out, nil
 }
 
+func _Control_SharingKeyAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+	in := new(SharingKeyAddRequest)
+	if err := proto.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(ControlServer).SharingKeyAdd(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Control_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "bazil.control.Control",
 	HandlerType: (*ControlServer)(nil),
@@ -152,6 +176,10 @@ var _Control_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VolumeMount",
 			Handler:    _Control_VolumeMount_Handler,
+		},
+		{
+			MethodName: "SharingKeyAdd",
+			Handler:    _Control_SharingKeyAdd_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},

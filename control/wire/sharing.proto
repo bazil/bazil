@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package bazil.control;
+
+option go_package = "wire";
+
+message SharingKeyAddRequest {
+  string name = 1;
+  // Must be exactly 32 bytes long.
+  bytes secret = 2;
+}
+
+message SharingKeyAddResponse {
+}
