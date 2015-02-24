@@ -7,7 +7,7 @@ import (
 	"bazil.org/bazil/cliutil/flagx"
 )
 
-func TestEmpty(t *testing.T) {
+func TestAbsPathEmpty(t *testing.T) {
 	var s flagx.AbsPath
 	err := s.Set("")
 	if err != flagx.ErrEmptyPath {
@@ -15,7 +15,7 @@ func TestEmpty(t *testing.T) {
 	}
 }
 
-func set(t testing.TB, value string) string {
+func setAbsPath(t testing.TB, value string) string {
 	var s flagx.AbsPath
 	err := s.Set(value)
 	if err != nil {
@@ -24,18 +24,18 @@ func set(t testing.TB, value string) string {
 	return s.String()
 }
 
-func TestAbsolute(t *testing.T) {
-	if g, e := set(t, "/fake-path-name"), "/fake-path-name"; g != e {
+func TestAbsPathAbsolute(t *testing.T) {
+	if g, e := setAbsPath(t, "/fake-path-name"), "/fake-path-name"; g != e {
 		t.Errorf("unexpected AbsPath: %q != %q", g, e)
 	}
 }
 
-func TestRelative(t *testing.T) {
+func TestAbsPathRelative(t *testing.T) {
 	want, err := filepath.Abs("fake-path-name")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if g, e := set(t, "fake-path-name"), want; g != e {
+	if g, e := setAbsPath(t, "fake-path-name"), want; g != e {
 		t.Errorf("unexpected AbsPath: %q != %q", g, e)
 	}
 }
