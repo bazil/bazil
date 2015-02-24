@@ -11,6 +11,7 @@ import (
 	_ "bazil.org/bazil/cli/create"
 	_ "bazil.org/bazil/cli/server/ping"
 	_ "bazil.org/bazil/cli/server/run"
+	_ "bazil.org/bazil/cli/sharing/add"
 	_ "bazil.org/bazil/cli/version"
 	_ "bazil.org/bazil/cli/volume/create"
 	_ "bazil.org/bazil/cli/volume/mount"
