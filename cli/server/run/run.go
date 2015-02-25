@@ -1,8 +1,6 @@
 package run
 
 import (
-	"flag"
-
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/control"
@@ -12,7 +10,6 @@ import (
 
 type runCommand struct {
 	subcommands.Description
-	flag.FlagSet
 }
 
 func (cmd *runCommand) Run() error {

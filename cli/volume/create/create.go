@@ -3,7 +3,6 @@ package create
 import (
 	"bytes"
 	"errors"
-	"flag"
 	"io/ioutil"
 	"net/http"
 
@@ -14,7 +13,6 @@ import (
 
 type createCommand struct {
 	subcommands.Description
-	flag.FlagSet
 	Arguments struct {
 		VolumeName string
 	}

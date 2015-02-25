@@ -2,7 +2,6 @@ package ping
 
 import (
 	"errors"
-	"flag"
 	"io/ioutil"
 	"net/http"
 
@@ -12,7 +11,6 @@ import (
 
 type pingCommand struct {
 	subcommands.Description
-	flag.FlagSet
 }
 
 func (cmd *pingCommand) Run() error {

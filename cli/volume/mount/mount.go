@@ -3,7 +3,6 @@ package mount
 import (
 	"bytes"
 	"errors"
-	"flag"
 	"io/ioutil"
 	"net/http"
 
@@ -15,7 +14,6 @@ import (
 
 type mountCommand struct {
 	subcommands.Description
-	flag.FlagSet
 	Arguments struct {
 		VolumeName string
 		Mountpoint flagx.AbsPath
