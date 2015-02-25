@@ -11,7 +11,7 @@ var _ = kv.KV(&InMemory{})
 func (m *InMemory) Get(key []byte) ([]byte, error) {
 	s, found := m.Data[string(key)]
 	if !found {
-		return nil, kv.NotFound{Key: key}
+		return nil, kv.NotFoundError{Key: key}
 	}
 	return []byte(s), nil
 }

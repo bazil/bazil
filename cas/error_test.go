@@ -6,10 +6,10 @@ import (
 	"bazil.org/bazil/cas"
 )
 
-func TestNotFoundDispay(t *testing.T) {
+func TestNotFoundErrorDispay(t *testing.T) {
 	k := make([]byte, cas.KeySize)
 	copy(k, "\x01evil\xFF")
-	e := cas.NotFound{
+	e := cas.NotFoundError{
 		Type:  "blob",
 		Level: 4,
 		Key:   cas.NewKey(k),

@@ -66,7 +66,7 @@ func TestPutOverwrite(t *testing.T) {
 	}
 }
 
-func TestGetNotFound(t *testing.T) {
+func TestGetNotFoundError(t *testing.T) {
 	temp := tempdir.New(t)
 	defer temp.Cleanup()
 
@@ -80,12 +80,12 @@ func TestGetNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatalf("c.Get should have failed")
 	}
-	nf, ok := err.(kv.NotFound)
+	nf, ok := err.(kv.NotFoundError)
 	if !ok {
 		t.Fatalf("c.Get error is of wrong type: %T: %v", err, err)
 	}
 
 	if g, w := string(nf.Key), KEY; g != w {
-		t.Errorf("NotFound Key is wrong: %x != %x", g, w)
+		t.Errorf("NotFoundError Key is wrong: %x != %x", g, w)
 	}
 }

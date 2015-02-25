@@ -24,14 +24,14 @@ func (m *Multi) Get(key []byte) ([]byte, error) {
 		if err == nil {
 			return v, nil
 		}
-		if _, isNotFound := err.(kv.NotFound); !isNotFound && firstErr == nil {
+		if _, isNotFoundError := err.(kv.NotFoundError); !isNotFoundError && firstErr == nil {
 			firstErr = err
 		}
 	}
 	if firstErr != nil {
 		return nil, firstErr
 	}
-	return nil, kv.NotFound{}
+	return nil, kv.NotFoundError{}
 }
 
 func (m *Multi) Put(key, value []byte) error {

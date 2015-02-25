@@ -63,7 +63,7 @@ func (s *Convergent) Get(key []byte) ([]byte, error) {
 	nonce := s.makeNonce(key)
 	plain, ok := secretbox.Open(nil, box, nonce, s.secret)
 	if !ok {
-		return nil, Corrupt{Key: key}
+		return nil, CorruptError{Key: key}
 	}
 	return plain, nil
 }
@@ -84,12 +84,12 @@ func New(store kv.KV, secret *[32]byte) *Convergent {
 	}
 }
 
-type Corrupt struct {
+type CorruptError struct {
 	Key []byte
 }
 
-func (c Corrupt) Error() string {
+func (c CorruptError) Error() string {
 	return fmt.Sprintf("corrupt encrypted chunk: %x", c.Key)
 }
 
-var _ = error(Corrupt{})
+var _ = error(CorruptError{})

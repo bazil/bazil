@@ -6,10 +6,10 @@ import (
 	"bazil.org/bazil/kv"
 )
 
-func TestNotFoundDispay(t *testing.T) {
+func TestNotFoundErrorDispay(t *testing.T) {
 	k := make([]byte, 64)
 	copy(k, "\x01evil\xFF")
-	e := kv.NotFound{
+	e := kv.NotFoundError{
 		Key: k,
 	}
 	got := e.Error()

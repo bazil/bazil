@@ -80,27 +80,27 @@ const MinChunkSize = 4096
 // (maybe -1, but that's irrelevant). With fanout>=2, that would
 // mean <=52 levels, so uint8 is sufficient for level.
 
-// SmallChunkSize is the error returned from Open if the configuration
-// has a ChunkSize less than MinChunkSize
-type SmallChunkSize struct {
+// SmallChunkSizeError is the error returned from Open if the
+// configuration has a ChunkSize less than MinChunkSize
+type SmallChunkSizeError struct {
 	Given uint32
 }
 
-var _ = error(SmallChunkSize{})
+var _ = error(SmallChunkSizeError{})
 
-func (s SmallChunkSize) Error() string {
+func (s SmallChunkSizeError) Error() string {
 	return fmt.Sprintf("ChunkSize is too small: %d < %d", s.Given, MinChunkSize)
 }
 
-// SmallFanout is the error returned from Open if the configuration
-// has a Fanout less than 2.
-type SmallFanout struct {
+// SmallFanoutError is the error returned from Open if the
+// configuration has a Fanout less than 2.
+type SmallFanoutError struct {
 	Given uint32
 }
 
-var _ = error(SmallFanout{})
+var _ = error(SmallFanoutError{})
 
-func (s SmallFanout) Error() string {
+func (s SmallFanoutError) Error() string {
 	return fmt.Sprintf("Fanout is too small: %d", s.Given)
 }
 
@@ -135,10 +135,10 @@ func Open(chunkStore chunks.Store, manifest *Manifest) (*Blob, error) {
 		return nil, MissingType
 	}
 	if m.ChunkSize < MinChunkSize {
-		return nil, SmallChunkSize{m.ChunkSize}
+		return nil, SmallChunkSizeError{m.ChunkSize}
 	}
 	if m.Fanout < 2 {
-		return nil, SmallFanout{m.Fanout}
+		return nil, SmallFanoutError{m.Fanout}
 	}
 	blob := &Blob{
 		stash: stash.New(chunkStore),

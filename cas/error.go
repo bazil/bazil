@@ -4,16 +4,16 @@ import (
 	"fmt"
 )
 
-// NotFound is the type of error returned by a CAS when it cannot find
-// the requested key.
-type NotFound struct {
+// NotFoundError is the type of error returned by a CAS when it cannot
+// find the requested key.
+type NotFoundError struct {
 	Type  string
 	Level uint8
 	Key   Key
 }
 
-var _ = error(NotFound{})
+var _ = error(NotFoundError{})
 
-func (n NotFound) Error() string {
+func (n NotFoundError) Error() string {
 	return fmt.Sprintf("Not found: %q@%d %s", n.Type, n.Level, n.Key)
 }

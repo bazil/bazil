@@ -4,14 +4,14 @@ import (
 	"fmt"
 )
 
-// NotFound is the type of error returned by a KV when it cannot find
-// the requested key.
-type NotFound struct {
+// NotFoundError is the type of error returned by a KV when it cannot
+// find the requested key.
+type NotFoundError struct {
 	Key []byte
 }
 
-var _ = error(NotFound{})
+var _ = error(NotFoundError{})
 
-func (n NotFound) Error() string {
+func (n NotFoundError) Error() string {
 	return fmt.Sprintf("Not found: %x", n.Key)
 }

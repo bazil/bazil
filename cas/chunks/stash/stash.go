@@ -34,7 +34,7 @@ func (s *Stash) Get(key cas.Key, typ string, level uint8) (*chunks.Chunk, error)
 	if ok {
 		chunk, ok := s.local[priv]
 		if !ok {
-			return nil, cas.NotFound{
+			return nil, cas.NotFoundError{
 				Type:  typ,
 				Level: level,
 				Key:   key,
@@ -75,7 +75,7 @@ func (s *Stash) Clone(key cas.Key, typ string, level uint8, size uint32) (cas.Ke
 	if ok {
 		chunk, ok := s.local[priv]
 		if !ok {
-			return key, nil, cas.NotFound{
+			return key, nil, cas.NotFoundError{
 				Type:  typ,
 				Level: level,
 				Key:   key,
@@ -111,7 +111,7 @@ func (s *Stash) Save(key cas.Key) (cas.Key, error) {
 
 	chunk, ok := s.local[priv]
 	if !ok {
-		return key, cas.NotFound{
+		return key, cas.NotFoundError{
 			Key: key,
 		}
 	}

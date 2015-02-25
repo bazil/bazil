@@ -96,7 +96,7 @@ func TestWrongType(t *testing.T) {
 		t.Fatalf("expected an error")
 	}
 	switch e := err.(type) {
-	case untrusted.Corrupt:
+	case untrusted.CorruptError:
 		break
 	default:
 		t.Errorf("error is wrong type %T: %#v", e, e)
@@ -166,7 +166,7 @@ func TestWrongSecret(t *testing.T) {
 			t.Errorf("expected no value")
 		}
 		switch e := err.(type) {
-		case untrusted.Corrupt:
+		case untrusted.CorruptError:
 			break
 		default:
 			t.Errorf("error is wrong type %T: %#v", e, e)

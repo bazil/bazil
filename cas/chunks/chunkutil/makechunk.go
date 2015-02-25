@@ -24,7 +24,7 @@ func HandleGet(fn Handler, key cas.Key, typ string, level uint8) (*chunks.Chunk,
 			chunk := MakeChunk(typ, level, nil)
 			return chunk, nil
 		}
-		return nil, cas.NotFound{
+		return nil, cas.NotFoundError{
 			Type:  typ,
 			Level: level,
 			Key:   key,
@@ -37,7 +37,7 @@ func HandleGet(fn Handler, key cas.Key, typ string, level uint8) (*chunks.Chunk,
 	}
 
 	if data == nil {
-		return nil, cas.NotFound{
+		return nil, cas.NotFoundError{
 			Type:  typ,
 			Level: level,
 			Key:   key,

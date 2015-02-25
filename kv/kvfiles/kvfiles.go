@@ -48,7 +48,7 @@ func (k *KVFiles) Get(key []byte) ([]byte, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, kv.NotFound{
+			return nil, kv.NotFoundError{
 				Key: key,
 			}
 		}
