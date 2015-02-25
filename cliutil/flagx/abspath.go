@@ -16,11 +16,11 @@ func (a AbsPath) String() string {
 	return string(a)
 }
 
-var EmptyPathError = errors.New("empty path not allowed")
+var ErrEmptyPath = errors.New("empty path not allowed")
 
 func (a *AbsPath) Set(value string) error {
 	if value == "" {
-		return EmptyPathError
+		return ErrEmptyPath
 	}
 	path, err := filepath.Abs(value)
 	if err != nil {

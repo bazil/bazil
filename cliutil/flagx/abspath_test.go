@@ -10,8 +10,8 @@ import (
 func TestEmpty(t *testing.T) {
 	var s flagx.AbsPath
 	err := s.Set("")
-	if err != flagx.EmptyPathError {
-		t.Fatalf("expected EmptyPathError, got %v", err)
+	if err != flagx.ErrEmptyPath {
+		t.Fatalf("expected ErrEmptyPath, got %v", err)
 	}
 }
 

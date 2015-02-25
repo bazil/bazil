@@ -35,12 +35,12 @@ func (outOfInodesError) Errno() fuse.Errno {
 	return fuse.Errno(syscall.ENOSPC)
 }
 
-var OutOfInodes = outOfInodesError{}
+var ErrOutOfInodes = outOfInodesError{}
 
 // Allocate returns the next available inode number, and marks it
 // used.
 //
-// Returns OutOfInodes if there are no free inodes.
+// Returns ErrOutOfInodes if there are no free inodes.
 func Allocate(bucket *bolt.Bucket) (uint64, error) {
 	c := bucket.Cursor()
 	var i uint64
@@ -57,7 +57,7 @@ func Allocate(bucket *bolt.Bucket) (uint64, error) {
 	i++
 
 	if i&tokens.InodeKindMask != tokens.InodeKindNormal {
-		return 0, OutOfInodes
+		return 0, ErrOutOfInodes
 	}
 
 	var buf [8]byte

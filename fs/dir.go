@@ -324,7 +324,7 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 		// TODO clean up active on error
 	})
 	if err != nil {
-		if err == inodes.OutOfInodes {
+		if err == inodes.ErrOutOfInodes {
 			return nil, fuse.Errno(syscall.ENOSPC)
 		}
 		return nil, err

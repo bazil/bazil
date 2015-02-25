@@ -243,7 +243,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 	return info, nil
 }
 
-var NotMountedError = errors.New("not currently mounted")
+var ErrNotMounted = errors.New("not currently mounted")
 
 func (app *App) WaitForUnmount(volumeID *fs.VolumeID) error {
 	app.mounts.Lock()
@@ -253,7 +253,7 @@ func (app *App) WaitForUnmount(volumeID *fs.VolumeID) error {
 	mnt, ok := app.mounts.open[*volumeID]
 	app.mounts.Unlock()
 	if !ok {
-		return NotMountedError
+		return ErrNotMounted
 	}
 	<-mnt.unmounted
 	return nil
