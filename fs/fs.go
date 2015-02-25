@@ -1,10 +1,9 @@
 package fs
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"errors"
-
-	"crypto/rand"
 
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/fs/inodes"

@@ -5,10 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/boltdb/bolt"
-	"github.com/gogo/protobuf/proto"
-	"golang.org/x/net/context"
-
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/fs/snap"
@@ -18,6 +14,9 @@ import (
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
+	"github.com/boltdb/bolt"
+	"github.com/gogo/protobuf/proto"
+	"golang.org/x/net/context"
 )
 
 type listSnaps struct {

@@ -1,12 +1,11 @@
 package create
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"io/ioutil"
 	"net/http"
-
-	"bytes"
 
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"

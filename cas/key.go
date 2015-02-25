@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"bazil.org/bazil/pb"
-
 	"github.com/gogo/protobuf/proto"
 )
 
