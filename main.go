@@ -15,6 +15,7 @@ import (
 	_ "bazil.org/bazil/cli/version"
 	_ "bazil.org/bazil/cli/volume/create"
 	_ "bazil.org/bazil/cli/volume/mount"
+	_ "bazil.org/bazil/cli/volume/storage/add"
 
 	// CLI debug tools
 	_ "bazil.org/bazil/cli/debug/cas"
