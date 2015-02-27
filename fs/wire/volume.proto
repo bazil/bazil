@@ -4,25 +4,15 @@ package bazil.db;
 
 option go_package = "wire";
 
-message KV {
-  message Local{
-    // Must be exactly 32 bytes long.
-    bytes secret = 1;
-  }
-  Local local = 1;
-
-  message External {
-    string path = 1;
-    // Must be exactly 32 bytes long.
-    bytes secret = 2;
-  }
-  repeated External external = 2;
-
+message VolumeStorage {
+  string name = 1;
+  string backend = 2;
+  string sharingKeyName = 3;
 }
 
 message VolumeConfig {
   // Must be exactly 64 bytes long.
   bytes volumeID = 1;
 
-  KV storage = 2;
+  repeated VolumeStorage storage = 2;
 }

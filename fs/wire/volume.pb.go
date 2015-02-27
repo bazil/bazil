@@ -9,59 +9,27 @@ import proto "github.com/golang/protobuf/proto"
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 
-type KV struct {
-	Local    *KV_Local      `protobuf:"bytes,1,opt,name=local" json:"local,omitempty"`
-	External []*KV_External `protobuf:"bytes,2,rep,name=external" json:"external,omitempty"`
+type VolumeStorage struct {
+	Name           string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Backend        string `protobuf:"bytes,2,opt,name=backend" json:"backend,omitempty"`
+	SharingKeyName string `protobuf:"bytes,3,opt,name=sharingKeyName" json:"sharingKeyName,omitempty"`
 }
 
-func (m *KV) Reset()         { *m = KV{} }
-func (m *KV) String() string { return proto.CompactTextString(m) }
-func (*KV) ProtoMessage()    {}
-
-func (m *KV) GetLocal() *KV_Local {
-	if m != nil {
-		return m.Local
-	}
-	return nil
-}
-
-func (m *KV) GetExternal() []*KV_External {
-	if m != nil {
-		return m.External
-	}
-	return nil
-}
-
-type KV_Local struct {
-	// Must be exactly 32 bytes long.
-	Secret []byte `protobuf:"bytes,1,opt,name=secret,proto3" json:"secret,omitempty"`
-}
-
-func (m *KV_Local) Reset()         { *m = KV_Local{} }
-func (m *KV_Local) String() string { return proto.CompactTextString(m) }
-func (*KV_Local) ProtoMessage()    {}
-
-type KV_External struct {
-	Path string `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
-	// Must be exactly 32 bytes long.
-	Secret []byte `protobuf:"bytes,2,opt,name=secret,proto3" json:"secret,omitempty"`
-}
-
-func (m *KV_External) Reset()         { *m = KV_External{} }
-func (m *KV_External) String() string { return proto.CompactTextString(m) }
-func (*KV_External) ProtoMessage()    {}
+func (m *VolumeStorage) Reset()         { *m = VolumeStorage{} }
+func (m *VolumeStorage) String() string { return proto.CompactTextString(m) }
+func (*VolumeStorage) ProtoMessage()    {}
 
 type VolumeConfig struct {
 	// Must be exactly 64 bytes long.
-	VolumeID []byte `protobuf:"bytes,1,opt,name=volumeID,proto3" json:"volumeID,omitempty"`
-	Storage  *KV    `protobuf:"bytes,2,opt,name=storage" json:"storage,omitempty"`
+	VolumeID []byte           `protobuf:"bytes,1,opt,name=volumeID,proto3" json:"volumeID,omitempty"`
+	Storage  []*VolumeStorage `protobuf:"bytes,2,rep,name=storage" json:"storage,omitempty"`
 }
 
 func (m *VolumeConfig) Reset()         { *m = VolumeConfig{} }
 func (m *VolumeConfig) String() string { return proto.CompactTextString(m) }
 func (*VolumeConfig) ProtoMessage()    {}
 
-func (m *VolumeConfig) GetStorage() *KV {
+func (m *VolumeConfig) GetStorage() []*VolumeStorage {
 	if m != nil {
 		return m.Storage
 	}

@@ -155,41 +155,46 @@ type MountInfo struct {
 	VolumeID fs.VolumeID
 }
 
-func (app *App) openKV(conf *wire.KV) (kv.KV, error) {
+func (app *App) openKV(tx *bolt.Tx, conf []*wire.VolumeStorage) (kv.KV, error) {
 	var kvstores []kv.KV
 
-	if conf.Local != nil {
-		kvpath := filepath.Join(app.DataDir, "chunks")
-		var s kv.KV
-		var err error
-		s, err = kvfiles.Open(kvpath)
+	for _, storage := range conf {
+		s, err := app.openStorage(storage.Backend)
 		if err != nil {
 			return nil, err
 		}
-		if conf.Local.Secret != nil {
-			var secret [32]byte
-			copy(secret[:], conf.Local.Secret)
-			s = untrusted.New(s, &secret)
+		bucket := tx.Bucket([]byte(tokens.BucketSharing))
+		buf := bucket.Get([]byte(storage.SharingKeyName))
+		if buf == nil {
+			return nil, fmt.Errorf("sharing key not found: %s", storage.SharingKeyName)
 		}
-		kvstores = append(kvstores, s)
-	}
-
-	for _, ext := range conf.External {
-		var s kv.KV
-		var err error
-		s, err = kvfiles.Open(ext.Path)
-		if err != nil {
-			return nil, err
-		}
-		if ext.Secret != nil {
-			var secret [32]byte
-			copy(secret[:], ext.Secret)
-			s = untrusted.New(s, &secret)
-		}
+		var secret [32]byte
+		copy(secret[:], buf)
+		s = untrusted.New(s, &secret)
 		kvstores = append(kvstores, s)
 	}
 
 	return kvmulti.New(kvstores...), nil
+}
+
+func (app *App) openStorage(backend string) (kv.KV, error) {
+	switch backend {
+	case "local":
+		kvpath := filepath.Join(app.DataDir, "chunks")
+		return kvfiles.Open(kvpath)
+	}
+	if backend != "" && backend[0] == '/' {
+		return kvfiles.Open(backend)
+	}
+	return nil, errors.New("unknown storage backend")
+}
+
+func (app *App) ValidateKV(backend string) error {
+	// TODO opening a KV just to validate the input string would be a
+	// bad idea if a backend was costly to open; then again, current
+	// API doesn't support a Close anyway.
+	_, err := app.openStorage(backend)
+	return err
 }
 
 // Mount makes the contents of the volume visible at the given
@@ -221,7 +226,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 			return errors.New("volume already mounted")
 		}
 
-		kvstore, err := app.openKV(volConf.Storage)
+		kvstore, err := app.openKV(tx, volConf.Storage)
 		if err != nil {
 			return err
 		}

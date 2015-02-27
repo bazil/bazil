@@ -1,7 +1,6 @@
 package fs
 
 import (
-	"crypto/rand"
 	"encoding/binary"
 	"errors"
 
@@ -31,6 +30,7 @@ var bucketVolName = []byte(tokens.BucketVolName)
 var bucketDir = []byte("dir")
 var bucketInode = []byte("inode")
 var bucketSnap = []byte("snap")
+var bucketStorage = []byte("storage")
 
 func (v *Volume) bucket(tx *bolt.Tx) *bolt.Bucket {
 	b := tx.Bucket(bucketVolume)
@@ -70,15 +70,13 @@ func Create(db *bolt.DB, volumeName string) error {
 			if exists != nil {
 				return errors.New("volume name exists already")
 			}
-			var secret [32]byte
-			if _, err := rand.Read(secret[:]); err != nil {
-				return err
-			}
 			volConf := wire.VolumeConfig{
 				VolumeID: id.Bytes(),
-				Storage: &wire.KV{
-					Local: &wire.KV_Local{
-						Secret: secret[:],
+				Storage: []*wire.VolumeStorage{
+					{
+						Name:           "local",
+						Backend:        "local",
+						SharingKeyName: "default",
 					},
 				},
 			}
@@ -103,6 +101,9 @@ func Create(db *bolt.DB, volumeName string) error {
 			return err
 		}
 		if _, err := bucket.CreateBucket(bucketSnap); err != nil {
+			return err
+		}
+		if _, err := bucket.CreateBucket(bucketStorage); err != nil {
 			return err
 		}
 		return nil
