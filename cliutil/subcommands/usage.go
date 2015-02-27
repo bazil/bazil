@@ -36,3 +36,14 @@ var _ = SynopsesGetter(Synopsis(""))
 func (s Synopsis) GetSynopses() []string {
 	return []string{string(s)}
 }
+
+// Overview contains one or more paragraphs of text giving an overview
+// of the command.
+type Overview string
+
+var _ Overviewer = Overview("")
+
+// GetOverview returns the overview text. See Overviewer.
+func (s Overview) GetOverview() string {
+	return string(s)
+}

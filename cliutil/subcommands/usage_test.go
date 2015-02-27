@@ -46,6 +46,8 @@ func TestUsageSub(t *testing.T) {
 	if g, e := string(buf.Bytes()), `Usage:
   calc sum [OPT..] A B
 
+Computes the sum of two integers, A and B.
+
 Options:
   -frobnicate=false: frobnicate the qubbitz
 `; g != e {

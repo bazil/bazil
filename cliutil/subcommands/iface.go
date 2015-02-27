@@ -63,3 +63,18 @@ type DescriptionGetter interface {
 type SynopsesGetter interface {
 	GetSynopses() []string
 }
+
+// Overviewer is used to give an overview explanation of the command.
+// This is displayed in the usage message after the synopsis, before
+// options.
+//
+// The typical way to implement this is to embed Overview in the
+// command struct, and give the overview when declaring the variable.
+// See Overview examples.
+//
+// Leading newlines are removed, to make writing multi-line raw
+// strings more convenient. A trailing newline is added if one is not
+// present, to make writing single-line strings more convenient.
+type Overviewer interface {
+	GetOverview() string
+}

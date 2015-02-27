@@ -8,6 +8,7 @@ import (
 
 type sum struct {
 	subcommands.Description
+	subcommands.Overview
 	flag.FlagSet
 	Arguments struct {
 		A int
@@ -25,6 +26,7 @@ func (a *sum) Run() int {
 // Calc is exported so the unit tests can inspect it.
 var Sum = sum{
 	Description: "sum two numbers",
+	Overview:    "Computes the sum of two integers, A and B.",
 }
 
 var _ = subcommands.FlagParser(&Sum)

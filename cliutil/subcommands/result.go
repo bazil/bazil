@@ -115,6 +115,12 @@ func (r *Result) UsageTo(w io.Writer) {
 		fmt.Fprintf(w, "  %s %s\n", r.name, s)
 	}
 
+	if o, ok := cmd.(Overviewer); ok {
+		s := o.GetOverview()
+		s = strings.Trim(s, "\n")
+		fmt.Fprintf(w, "\n%s\n", s)
+	}
+
 	if v, ok := cmd.(VisiterAll); ok {
 		var header bool
 		v.VisitAll(func(flag *flag.Flag) {
