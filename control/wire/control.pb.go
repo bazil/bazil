@@ -53,6 +53,7 @@ type ControlClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	VolumeCreate(ctx context.Context, in *VolumeCreateRequest, opts ...grpc.CallOption) (*VolumeCreateResponse, error)
 	VolumeMount(ctx context.Context, in *VolumeMountRequest, opts ...grpc.CallOption) (*VolumeMountResponse, error)
+	VolumeStorageAdd(ctx context.Context, in *VolumeStorageAddRequest, opts ...grpc.CallOption) (*VolumeStorageAddResponse, error)
 	SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error)
 }
 
@@ -91,6 +92,15 @@ func (c *controlClient) VolumeMount(ctx context.Context, in *VolumeMountRequest,
 	return out, nil
 }
 
+func (c *controlClient) VolumeStorageAdd(ctx context.Context, in *VolumeStorageAddRequest, opts ...grpc.CallOption) (*VolumeStorageAddResponse, error) {
+	out := new(VolumeStorageAddResponse)
+	err := grpc.Invoke(ctx, "/bazil.control.Control/VolumeStorageAdd", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *controlClient) SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error) {
 	out := new(SharingKeyAddResponse)
 	err := grpc.Invoke(ctx, "/bazil.control.Control/SharingKeyAdd", in, out, c.cc, opts...)
@@ -106,6 +116,7 @@ type ControlServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	VolumeCreate(context.Context, *VolumeCreateRequest) (*VolumeCreateResponse, error)
 	VolumeMount(context.Context, *VolumeMountRequest) (*VolumeMountResponse, error)
+	VolumeStorageAdd(context.Context, *VolumeStorageAddRequest) (*VolumeStorageAddResponse, error)
 	SharingKeyAdd(context.Context, *SharingKeyAddRequest) (*SharingKeyAddResponse, error)
 }
 
@@ -149,6 +160,18 @@ func _Control_VolumeMount_Handler(srv interface{}, ctx context.Context, buf []by
 	return out, nil
 }
 
+func _Control_VolumeStorageAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+	in := new(VolumeStorageAddRequest)
+	if err := proto.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(ControlServer).VolumeStorageAdd(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func _Control_SharingKeyAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
 	in := new(SharingKeyAddRequest)
 	if err := proto.Unmarshal(buf, in); err != nil {
@@ -176,6 +199,10 @@ var _Control_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VolumeMount",
 			Handler:    _Control_VolumeMount_Handler,
+		},
+		{
+			MethodName: "VolumeStorageAdd",
+			Handler:    _Control_VolumeStorageAdd_Handler,
 		},
 		{
 			MethodName: "SharingKeyAdd",

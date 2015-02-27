@@ -40,5 +40,23 @@ func (m *VolumeCreateResponse) Reset()         { *m = VolumeCreateResponse{} }
 func (m *VolumeCreateResponse) String() string { return proto.CompactTextString(m) }
 func (*VolumeCreateResponse) ProtoMessage()    {}
 
+type VolumeStorageAddRequest struct {
+	VolumeName     string `protobuf:"bytes,1,opt,name=volumeName" json:"volumeName,omitempty"`
+	Name           string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Backend        string `protobuf:"bytes,3,opt,name=backend" json:"backend,omitempty"`
+	SharingKeyName string `protobuf:"bytes,4,opt,name=sharingKeyName" json:"sharingKeyName,omitempty"`
+}
+
+func (m *VolumeStorageAddRequest) Reset()         { *m = VolumeStorageAddRequest{} }
+func (m *VolumeStorageAddRequest) String() string { return proto.CompactTextString(m) }
+func (*VolumeStorageAddRequest) ProtoMessage()    {}
+
+type VolumeStorageAddResponse struct {
+}
+
+func (m *VolumeStorageAddResponse) Reset()         { *m = VolumeStorageAddResponse{} }
+func (m *VolumeStorageAddResponse) String() string { return proto.CompactTextString(m) }
+func (*VolumeStorageAddResponse) ProtoMessage()    {}
+
 func init() {
 }

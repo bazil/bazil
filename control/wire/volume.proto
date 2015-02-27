@@ -18,3 +18,13 @@ message VolumeCreateRequest {
 
 message VolumeCreateResponse {
 }
+
+message VolumeStorageAddRequest {
+  string volumeName = 1;
+  string name = 2;
+  string backend = 3;
+  string sharingKeyName = 4;
+}
+
+message VolumeStorageAddResponse {
+}

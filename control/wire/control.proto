@@ -11,6 +11,7 @@ service Control {
   rpc Ping(PingRequest) returns (PingResponse) {}
   rpc VolumeCreate(VolumeCreateRequest) returns (VolumeCreateResponse) {}
   rpc VolumeMount(VolumeMountRequest) returns (VolumeMountResponse) {}
+  rpc VolumeStorageAdd(VolumeStorageAddRequest) returns (VolumeStorageAddResponse) {}
   rpc SharingKeyAdd(SharingKeyAddRequest) returns (SharingKeyAddResponse) {}
 }
 
