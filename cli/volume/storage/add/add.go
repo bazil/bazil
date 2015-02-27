@@ -12,6 +12,7 @@ import (
 
 type addCommand struct {
 	subcommands.Description
+	subcommands.Overview
 	flag.FlagSet
 	Config struct {
 		Sharing string
@@ -49,6 +50,15 @@ func (cmd *addCommand) Run() error {
 
 var add = addCommand{
 	Description: "add storage to a volume",
+	Overview: `
+
+If STORAGE is not given, it gets the same value as NAME.
+
+Support STORAGE values:
+  local
+  ABSOLUTE_PATH
+
+`,
 }
 
 func init() {
