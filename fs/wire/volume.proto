@@ -4,10 +4,6 @@ option go_package = "wire";
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-option (gogoproto.unmarshaler_all) = true;
-option (gogoproto.sizer_all) = true;
-option (gogoproto.marshaler_all) = true;
-
 message KV {
   message Local{
     // Must be exactly 32 bytes long.

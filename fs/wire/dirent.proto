@@ -5,10 +5,6 @@ option go_package = "wire";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "bazil.org/bazil/cas/wire/manifest.proto";
 
-option (gogoproto.unmarshaler_all) = true;
-option (gogoproto.sizer_all) = true;
-option (gogoproto.marshaler_all) = true;
-
 message Dirent {
   required uint64 inode = 1 [(gogoproto.nullable) = false];
 
