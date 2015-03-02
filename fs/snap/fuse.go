@@ -17,7 +17,10 @@ import (
 
 // Serve this snapshot with FUSE, with this object store.
 func Open(chunkStore chunks.Store, dir *wire.Dir) (fusefs.Node, error) {
-	manifest := dir.Manifest.ToBlob("dir")
+	manifest, err := dir.Manifest.ToBlob("dir")
+	if err != nil {
+		return nil, err
+	}
 	blob, err := blobs.Open(chunkStore, manifest)
 	if err != nil {
 		return nil, err
@@ -63,7 +66,10 @@ func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 
 	switch {
 	case de.Type.File != nil:
-		manifest := de.Type.File.Manifest.ToBlob("file")
+		manifest, err := de.Type.File.Manifest.ToBlob("file")
+		if err != nil {
+			return nil, err
+		}
 		blob, err := blobs.Open(d.chunkStore, manifest)
 		if err != nil {
 			return nil, fmt.Errorf("snap file blob open error: %v", err)

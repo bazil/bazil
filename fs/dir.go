@@ -139,7 +139,10 @@ func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 		return d.reviveDir(de, name)
 
 	case de.Type.File != nil:
-		manifest := de.Type.File.Manifest.ToBlob("file")
+		manifest, err := de.Type.File.Manifest.ToBlob("file")
+		if err != nil {
+			return nil, err
+		}
 		blob, err := blobs.Open(d.fs.chunkStore, manifest)
 		if err != nil {
 			return nil, err

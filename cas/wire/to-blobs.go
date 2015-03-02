@@ -1,22 +1,28 @@
 package wire
 
 import (
+	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/blobs"
 )
 
-func (m *Manifest) ToBlob(type_ string) *blobs.Manifest {
-	return &blobs.Manifest{
+func (m *Manifest) ToBlob(type_ string) (*blobs.Manifest, error) {
+	var k cas.Key
+	if err := k.UnmarshalBinary(m.Root); err != nil {
+		return nil, err
+	}
+	manifest := &blobs.Manifest{
 		Type:      type_,
-		Root:      m.Root,
+		Root:      k,
 		Size:      m.Size_,
 		ChunkSize: m.ChunkSize,
 		Fanout:    m.Fanout,
 	}
+	return manifest, nil
 }
 
 func FromBlob(m *blobs.Manifest) Manifest {
 	return Manifest{
-		Root:      m.Root,
+		Root:      m.Root.Bytes(),
 		Size_:     m.Size,
 		ChunkSize: m.ChunkSize,
 		Fanout:    m.Fanout,

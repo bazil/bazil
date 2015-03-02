@@ -18,8 +18,6 @@ import math "math"
 
 // discarding unused import gogoproto "github.com/gogo/protobuf/gogoproto/gogo.pb"
 
-import bazil_org_bazil_cas "bazil.org/bazil/cas"
-
 import io "io"
 import fmt "fmt"
 import github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
@@ -29,16 +27,23 @@ var _ = proto.Marshal
 var _ = math.Inf
 
 type Manifest struct {
-	Root             bazil_org_bazil_cas.Key `protobuf:"bytes,1,req,name=root,customtype=bazil.org/bazil/cas.Key" json:"root"`
-	Size_            uint64                  `protobuf:"varint,2,req,name=size" json:"size"`
-	ChunkSize        uint32                  `protobuf:"varint,3,req,name=chunkSize" json:"chunkSize"`
-	Fanout           uint32                  `protobuf:"varint,4,req,name=fanout" json:"fanout"`
-	XXX_unrecognized []byte                  `json:"-"`
+	Root             []byte `protobuf:"bytes,1,req,name=root" json:"root"`
+	Size_            uint64 `protobuf:"varint,2,req,name=size" json:"size"`
+	ChunkSize        uint32 `protobuf:"varint,3,req,name=chunkSize" json:"chunkSize"`
+	Fanout           uint32 `protobuf:"varint,4,req,name=fanout" json:"fanout"`
+	XXX_unrecognized []byte `json:"-"`
 }
 
 func (m *Manifest) Reset()         { *m = Manifest{} }
 func (m *Manifest) String() string { return proto.CompactTextString(m) }
 func (*Manifest) ProtoMessage()    {}
+
+func (m *Manifest) GetRoot() []byte {
+	if m != nil {
+		return m.Root
+	}
+	return nil
+}
 
 func (m *Manifest) GetSize_() uint64 {
 	if m != nil {
@@ -102,9 +107,7 @@ func (m *Manifest) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Root.Unmarshal(data[index:postIndex]); err != nil {
-				return err
-			}
+			m.Root = append(m.Root, data[index:postIndex]...)
 			index = postIndex
 		case 2:
 			if wireType != 0 {
@@ -177,7 +180,7 @@ func (m *Manifest) Unmarshal(data []byte) error {
 func (m *Manifest) Size() (n int) {
 	var l int
 	_ = l
-	l = m.Root.Size()
+	l = len(m.Root)
 	n += 1 + l + sovManifest(uint64(l))
 	n += 1 + sovManifest(uint64(m.Size_))
 	n += 1 + sovManifest(uint64(m.ChunkSize))
@@ -218,12 +221,8 @@ func (m *Manifest) MarshalTo(data []byte) (n int, err error) {
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintManifest(data, i, uint64(m.Root.Size()))
-	n1, err := m.Root.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
+	i = encodeVarintManifest(data, i, uint64(len(m.Root)))
+	i += copy(data[i:], m.Root)
 	data[i] = 0x10
 	i++
 	i = encodeVarintManifest(data, i, uint64(m.Size_))

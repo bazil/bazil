@@ -9,7 +9,7 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.marshaler_all) = true;
 
 message Manifest {
-  required bytes root = 1 [(gogoproto.customtype) = "bazil.org/bazil/cas.Key", (gogoproto.nullable) = false];
+  required bytes root = 1 [(gogoproto.nullable) = false];
   required uint64 size = 2 [(gogoproto.nullable) = false, (gogoproto.customname) = "Size_"];
   required uint32 chunkSize = 3 [(gogoproto.nullable) = false];
   required uint32 fanout = 4 [(gogoproto.nullable) = false];
