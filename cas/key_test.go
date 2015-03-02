@@ -138,7 +138,7 @@ func TestKeyPrivateNotPriv(t *testing.T) {
 	}
 }
 
-func TestKeyUnmarshal(t *testing.T) {
+func TestKeyUnmarshalBinary(t *testing.T) {
 	buf := bytes.Repeat([]byte("borketyBorkBORK!"), 4)
 	k := cas.NewKey(buf)
 	if g, e := k.Bytes(), buf; !bytes.Equal(g, e) {
@@ -146,12 +146,12 @@ func TestKeyUnmarshal(t *testing.T) {
 	}
 }
 
-func TestKeyUnmarshalBadShort(t *testing.T) {
+func TestKeyUnmarshalBinaryBadShort(t *testing.T) {
 	KEY := strings.Repeat("borketyBorkBORK!", 4)
 	KEY = KEY[:len(KEY)-1]
 	buf := []byte(KEY)
 	var k cas.Key
-	err := k.Unmarshal(buf)
+	err := k.UnmarshalBinary(buf)
 	if err == nil {
 		t.Fatalf("unmarshal should have failed: %v", k)
 	}
@@ -164,11 +164,11 @@ func TestKeyUnmarshalBadShort(t *testing.T) {
 	}
 }
 
-func TestKeyUnmarshalBadLong(t *testing.T) {
+func TestKeyUnmarshalBinaryBadLong(t *testing.T) {
 	KEY := strings.Repeat("borketyBorkBORK!", 4) + "x"
 	buf := []byte(KEY)
 	var k cas.Key
-	err := k.Unmarshal(buf)
+	err := k.UnmarshalBinary(buf)
 	if err == nil {
 		t.Fatalf("unmarshal should have failed: %v", k)
 	}
@@ -181,18 +181,14 @@ func TestKeyUnmarshalBadLong(t *testing.T) {
 	}
 }
 
-func TestKeyMarshalTo(t *testing.T) {
+func TestKeyMarshalBinary(t *testing.T) {
 	buf := bytes.Repeat([]byte("borketyBorkBORK!"), 4)
 	k := cas.NewKey(buf)
-	out := make([]byte, 100)
-	n, err := k.MarshalTo(out)
+	out, err := k.MarshalBinary()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if g, e := n, cas.KeySize; g != e {
-		t.Errorf("unexpected MarshalTo size: %q %x", g, e)
-	}
-	if g, e := string(out[:n]), string(buf); g != e {
-		t.Errorf("unexpected MarshalTo data: %q != %q", g, e)
+	if g, e := string(out), string(buf); g != e {
+		t.Errorf("unexpected marshaled data: %q != %q", g, e)
 	}
 }

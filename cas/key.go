@@ -2,6 +2,7 @@ package cas
 
 import (
 	"bytes"
+	"encoding"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -90,7 +91,9 @@ func (k *Key) IsReserved() bool {
 	return k.IsSpecial() && k.specialKind() != 0xFF && *k != Empty
 }
 
-func (k *Key) Unmarshal(b []byte) error {
+var _ encoding.BinaryUnmarshaler = (*Key)(nil)
+
+func (k *Key) UnmarshalBinary(b []byte) error {
 	if len(b) != KeySize {
 		return &BadKeySizeError{Key: b}
 	}
@@ -101,7 +104,19 @@ func (k *Key) Unmarshal(b []byte) error {
 	return nil
 }
 
+func (k *Key) Unmarshal(b []byte) error {
+	return k.UnmarshalBinary(b)
+}
+
 var _ = proto.Unmarshaler(&Key{})
+
+var _ encoding.BinaryMarshaler = (*Key)(nil)
+
+func (k *Key) MarshalBinary() (data []byte, err error) {
+	data = make([]byte, len(k.object))
+	copy(data, k.object[:])
+	return data, nil
+}
 
 func (k *Key) MarshalTo(data []byte) (n int, err error) {
 	n = copy(data, k.object[:])
