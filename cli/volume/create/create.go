@@ -9,6 +9,7 @@ import (
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/control/wire"
+	"github.com/gogo/protobuf/proto"
 )
 
 type createCommand struct {
@@ -22,7 +23,7 @@ func (cmd *createCommand) Run() error {
 	req := wire.VolumeCreateRequest{
 		VolumeName: cmd.Arguments.VolumeName,
 	}
-	buf, err := req.Marshal()
+	buf, err := proto.Marshal(&req)
 	if err != nil {
 		return err
 	}
