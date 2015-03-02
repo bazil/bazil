@@ -6,6 +6,7 @@ import (
 
 	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/fs"
+	"github.com/gogo/protobuf/proto"
 )
 
 func (c *Control) volumeCreate(w http.ResponseWriter, req *http.Request) {
@@ -22,8 +23,7 @@ func (c *Control) volumeCreate(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var msg wire.VolumeCreateRequest
-	err = msg.Unmarshal(buf)
-	if err != nil {
+	if err := proto.Unmarshal(buf, &msg); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
