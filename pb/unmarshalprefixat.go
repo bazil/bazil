@@ -11,7 +11,7 @@ import (
 
 // UnmarshalPrefixAt unmarshals a uvarint length prefixed protobuf
 // message.
-func UnmarshalPrefixAt(rat io.ReaderAt, off int64, msg proto.Unmarshaler) (n int, err error) {
+func UnmarshalPrefixAt(rat io.ReaderAt, off int64, msg proto.Message) (n int, err error) {
 	var length uint64
 	{
 		var buf [binary.MaxVarintLen64]byte
@@ -43,7 +43,7 @@ func UnmarshalPrefixAt(rat io.ReaderAt, off int64, msg proto.Unmarshaler) (n int
 	case err != nil:
 		return n, err
 	}
-	err = msg.Unmarshal(buf)
+	err = proto.Unmarshal(buf, msg)
 	if err != nil {
 		return n, fmt.Errorf("unmarshal problem: %v", err)
 	}
