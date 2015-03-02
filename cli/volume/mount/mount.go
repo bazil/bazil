@@ -10,6 +10,7 @@ import (
 	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/control/wire"
+	"github.com/gogo/protobuf/proto"
 )
 
 type mountCommand struct {
@@ -25,7 +26,7 @@ func (cmd *mountCommand) Run() error {
 		VolumeName: cmd.Arguments.VolumeName,
 		Mountpoint: cmd.Arguments.Mountpoint.String(),
 	}
-	buf, err := req.Marshal()
+	buf, err := proto.Marshal(&req)
 	if err != nil {
 		return err
 	}
