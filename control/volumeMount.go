@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"bazil.org/bazil/control/wire"
+	"github.com/gogo/protobuf/proto"
 )
 
 func (c *Control) volumeMount(w http.ResponseWriter, req *http.Request) {
@@ -21,8 +22,7 @@ func (c *Control) volumeMount(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var msg wire.VolumeMountRequest
-	err = msg.Unmarshal(buf)
-	if err != nil {
+	if err := proto.Unmarshal(buf, &msg); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
