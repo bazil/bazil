@@ -7,9 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
-	"bazil.org/bazil/pb"
-	"github.com/gogo/protobuf/proto"
 )
 
 // Size of the CAS keys in bytes.
@@ -104,12 +101,6 @@ func (k *Key) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-func (k *Key) Unmarshal(b []byte) error {
-	return k.UnmarshalBinary(b)
-}
-
-var _ = proto.Unmarshaler(&Key{})
-
 var _ encoding.BinaryMarshaler = (*Key)(nil)
 
 func (k *Key) MarshalBinary() (data []byte, err error) {
@@ -117,19 +108,6 @@ func (k *Key) MarshalBinary() (data []byte, err error) {
 	copy(data, k.object[:])
 	return data, nil
 }
-
-func (k *Key) MarshalTo(data []byte) (n int, err error) {
-	n = copy(data, k.object[:])
-	return n, nil
-}
-
-var _ = pb.Marshaler(&Key{})
-
-func (*Key) Size() int {
-	return KeySize
-}
-
-var _ = proto.Sizer(&Key{})
 
 func newKey(b []byte) Key {
 	k := Key{}
