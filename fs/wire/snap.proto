@@ -10,5 +10,5 @@ option (gogoproto.marshaler_all) = true;
 
 // Snapshot as it is stored into database.
 message SnapshotRef {
-  required bytes key = 1 [(gogoproto.customtype) = "bazil.org/bazil/cas.Key", (gogoproto.nullable) = false];
+  required bytes key = 1 [(gogoproto.nullable) = false];
 }

@@ -59,7 +59,12 @@ func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, err
 	}
 
-	chunk, err := d.fs.chunkStore.Get(ref.Key, "snap", 0)
+	var k cas.Key
+	if err := k.UnmarshalBinary(ref.Key); err != nil {
+		return nil, fmt.Errorf("corrupt snapshot reference: %q: %v", name, err)
+	}
+
+	chunk, err := d.fs.chunkStore.Get(k, "snap", 0)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch snapshot: %v", err)
 	}
@@ -114,7 +119,7 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 	}
 
 	var ref = wire.SnapshotRef{
-		Key: key,
+		Key: key.Bytes(),
 	}
 	buf, err := proto.Marshal(&ref)
 	if err != nil {

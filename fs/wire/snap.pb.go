@@ -9,8 +9,6 @@ import math "math"
 
 // discarding unused import gogoproto "github.com/gogo/protobuf/gogoproto/gogo.pb"
 
-import bazil_org_bazil_cas "bazil.org/bazil/cas"
-
 import io2 "io"
 import fmt2 "fmt"
 import github_com_gogo_protobuf_proto2 "github.com/gogo/protobuf/proto"
@@ -21,13 +19,20 @@ var _ = math.Inf
 
 // Snapshot as it is stored into database.
 type SnapshotRef struct {
-	Key              bazil_org_bazil_cas.Key `protobuf:"bytes,1,req,name=key,customtype=bazil.org/bazil/cas.Key" json:"key"`
-	XXX_unrecognized []byte                  `json:"-"`
+	Key              []byte `protobuf:"bytes,1,req,name=key" json:"key"`
+	XXX_unrecognized []byte `json:"-"`
 }
 
 func (m *SnapshotRef) Reset()         { *m = SnapshotRef{} }
 func (m *SnapshotRef) String() string { return proto.CompactTextString(m) }
 func (*SnapshotRef) ProtoMessage()    {}
+
+func (m *SnapshotRef) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
 
 func init() {
 }
@@ -70,9 +75,7 @@ func (m *SnapshotRef) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io2.ErrUnexpectedEOF
 			}
-			if err := m.Key.Unmarshal(data[index:postIndex]); err != nil {
-				return err
-			}
+			m.Key = append(m.Key, data[index:postIndex]...)
 			index = postIndex
 		default:
 			var sizeOfWire int
@@ -100,7 +103,7 @@ func (m *SnapshotRef) Unmarshal(data []byte) error {
 func (m *SnapshotRef) Size() (n int) {
 	var l int
 	_ = l
-	l = m.Key.Size()
+	l = len(m.Key)
 	n += 1 + l + sovSnap(uint64(l))
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -138,12 +141,8 @@ func (m *SnapshotRef) MarshalTo(data []byte) (n int, err error) {
 	_ = l
 	data[i] = 0xa
 	i++
-	i = encodeVarintSnap(data, i, uint64(m.Key.Size()))
-	n1, err := m.Key.MarshalTo(data[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
+	i = encodeVarintSnap(data, i, uint64(len(m.Key)))
+	i += copy(data[i:], m.Key)
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}
