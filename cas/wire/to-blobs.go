@@ -13,7 +13,7 @@ func (m *Manifest) ToBlob(type_ string) (*blobs.Manifest, error) {
 	manifest := &blobs.Manifest{
 		Type:      type_,
 		Root:      k,
-		Size:      m.Size_,
+		Size:      m.Size,
 		ChunkSize: m.ChunkSize,
 		Fanout:    m.Fanout,
 	}
@@ -23,7 +23,7 @@ func (m *Manifest) ToBlob(type_ string) (*blobs.Manifest, error) {
 func FromBlob(m *blobs.Manifest) Manifest {
 	return Manifest{
 		Root:      m.Root.Bytes(),
-		Size_:     m.Size,
+		Size:      m.Size,
 		ChunkSize: m.ChunkSize,
 		Fanout:    m.Fanout,
 	}

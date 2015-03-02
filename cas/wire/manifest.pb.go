@@ -24,7 +24,7 @@ var _ = math.Inf
 
 type Manifest struct {
 	Root             []byte `protobuf:"bytes,1,req,name=root" json:"root"`
-	Size_            uint64 `protobuf:"varint,2,req,name=size" json:"size"`
+	Size             uint64 `protobuf:"varint,2,req,name=size" json:"size"`
 	ChunkSize        uint32 `protobuf:"varint,3,req,name=chunkSize" json:"chunkSize"`
 	Fanout           uint32 `protobuf:"varint,4,req,name=fanout" json:"fanout"`
 	XXX_unrecognized []byte `json:"-"`
@@ -41,9 +41,9 @@ func (m *Manifest) GetRoot() []byte {
 	return nil
 }
 
-func (m *Manifest) GetSize_() uint64 {
+func (m *Manifest) GetSize() uint64 {
 	if m != nil {
-		return m.Size_
+		return m.Size
 	}
 	return 0
 }
