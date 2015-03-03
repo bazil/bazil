@@ -12,7 +12,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
 
@@ -76,7 +76,7 @@ func Create(db *bolt.DB, volumeName string) error {
 			}
 			volConf := wire.VolumeConfig{
 				VolumeID: id.Bytes(),
-				Storage: wire.KV{
+				Storage: &wire.KV{
 					Local: &wire.KV_Local{
 						Secret: secret[:],
 					},

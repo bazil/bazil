@@ -18,7 +18,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
 
@@ -120,8 +120,8 @@ func (d *dir) unmarshalDirent(buf []byte) (*wire.Dirent, error) {
 }
 
 func (d *dir) reviveDir(de *wire.Dirent, name string) (*dir, error) {
-	if de.Type.Dir == nil {
-		return nil, fmt.Errorf("tried to revive non-directory as directory: %v", de.GetValue())
+	if de.Dir == nil {
+		return nil, fmt.Errorf("tried to revive non-directory as directory: %v", de)
 	}
 	child := &dir{
 		inode:  de.Inode,
@@ -135,11 +135,11 @@ func (d *dir) reviveDir(de *wire.Dirent, name string) (*dir, error) {
 
 func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 	switch {
-	case de.Type.Dir != nil:
+	case de.Dir != nil:
 		return d.reviveDir(de, name)
 
-	case de.Type.File != nil:
-		manifest, err := de.Type.File.Manifest.ToBlob("file")
+	case de.File != nil:
+		manifest, err := de.File.Manifest.ToBlob("file")
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +156,7 @@ func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
 		return child, nil
 	}
 
-	return nil, fmt.Errorf("dirent unknown type: %v", de.GetValue())
+	return nil, fmt.Errorf("dirent unknown type: %v", de)
 }
 
 func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
@@ -223,7 +223,7 @@ func (d *dir) marshal() (*wire.Dirent, error) {
 	de := &wire.Dirent{
 		Inode: d.inode,
 	}
-	de.Type.Dir = &wire.Dir{}
+	de.Dir = &wire.Dir{}
 	return de, nil
 }
 
@@ -437,19 +437,19 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 }
 
 // snapshot records a snapshot of the directory and stores it in wde
-func (d *dir) snapshot(ctx context.Context, tx *bolt.Tx, out *wiresnap.Dir) error {
+func (d *dir) snapshot(ctx context.Context, tx *bolt.Tx) (*wiresnap.Dir, error) {
 	// NOT HOLDING THE LOCK, accessing database snapshot ONLY
 
 	// TODO move bucket lookup to caller?
 	bucket := d.fs.bucket(tx).Bucket(bucketDir)
 	if bucket == nil {
-		return errors.New("dir bucket missing")
+		return nil, errors.New("dir bucket missing")
 	}
 
 	manifest := blobs.EmptyManifest("dir")
 	blob, err := blobs.Open(d.fs.chunkStore, manifest)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	w := snap.NewWriter(blob)
 
@@ -464,42 +464,43 @@ func (d *dir) snapshot(ctx context.Context, tx *bolt.Tx, out *wiresnap.Dir) erro
 		name := string(k[len(prefix):])
 		de, err := d.unmarshalDirent(v)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		sde := wiresnap.Dirent{
 			Name: name,
 		}
 		switch {
-		case de.Type.File != nil:
+		case de.File != nil:
 			// TODO d.reviveNode would do blobs.Open and that's a bit
 			// too much work; rework the apis
-			sde.Type.File = &wiresnap.File{
-				Manifest: de.Type.File.Manifest,
+			sde.File = &wiresnap.File{
+				Manifest: de.File.Manifest,
 			}
-		case de.Type.Dir != nil:
+		case de.Dir != nil:
 			child, err := d.reviveDir(de, name)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			sde.Type.Dir = &wiresnap.Dir{}
-			err = child.snapshot(ctx, tx, sde.Type.Dir)
+			sde.Dir, err = child.snapshot(ctx, tx)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		default:
-			return errors.New("TODO")
+			return nil, errors.New("TODO")
 		}
 		err = w.Add(&sde)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	manifest, err = blob.Save()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	out.Manifest = wirecas.FromBlob(manifest)
-	out.Align = w.Align()
-	return nil
+	msg := wiresnap.Dir{
+		Manifest: wirecas.FromBlob(manifest),
+		Align:    w.Align(),
+	}
+	return &msg, nil
 }

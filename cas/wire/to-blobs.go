@@ -20,8 +20,8 @@ func (m *Manifest) ToBlob(type_ string) (*blobs.Manifest, error) {
 	return manifest, nil
 }
 
-func FromBlob(m *blobs.Manifest) Manifest {
-	return Manifest{
+func FromBlob(m *blobs.Manifest) *Manifest {
+	return &Manifest{
 		Root:      m.Root.Bytes(),
 		Size:      m.Size,
 		ChunkSize: m.ChunkSize,

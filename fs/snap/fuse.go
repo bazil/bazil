@@ -65,8 +65,8 @@ func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 	}
 
 	switch {
-	case de.Type.File != nil:
-		manifest, err := de.Type.File.Manifest.ToBlob("file")
+	case de.File != nil:
+		manifest, err := de.File.Manifest.ToBlob("file")
 		if err != nil {
 			return nil, err
 		}
@@ -80,15 +80,15 @@ func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 		}
 		return child, nil
 
-	case de.Type.Dir != nil:
-		child, err := Open(d.chunkStore, de.Type.Dir)
+	case de.Dir != nil:
+		child, err := Open(d.chunkStore, de.Dir)
 		if err != nil {
 			return nil, fmt.Errorf("snap dir FUSE serving error: %v", err)
 		}
 		return child, nil
 
 	default:
-		return nil, fmt.Errorf("unknown entry in tree, %v", de.Type.GetValue())
+		return nil, fmt.Errorf("unknown entry in tree, %v", de)
 	}
 }
 
@@ -108,9 +108,9 @@ func (d fuseDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		fde := fuse.Dirent{
 			Name: de.Name,
 		}
-		if de.Type.File != nil {
+		if de.File != nil {
 			fde.Type = fuse.DT_File
-		} else if de.Type.Dir != nil {
+		} else if de.Dir != nil {
 			fde.Type = fuse.DT_Dir
 		}
 		list = append(list, fde)

@@ -1,13 +1,14 @@
+syntax = "proto3";
+
 package bazil.control;
 
 option go_package = "wire";
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message VolumeMountRequest {
-  required string volumeName = 1 [(gogoproto.nullable) = false];
-  required string mountpoint = 2 [(gogoproto.nullable) = false];
+  string volumeName = 1;
+  string mountpoint = 2;
 }
 
 message VolumeCreateRequest {
-  required string volumeName = 1 [(gogoproto.nullable) = false];
+  string volumeName = 1;
 }

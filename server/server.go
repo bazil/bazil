@@ -18,7 +18,7 @@ import (
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type mountState struct {
@@ -173,10 +173,6 @@ func (app *App) openKV(conf *wire.KV) (kv.KV, error) {
 		kvstores = append(kvstores, s)
 	}
 
-	if len(conf.XXX_unrecognized) > 0 {
-		return nil, fmt.Errorf("unknown storage: %v", conf)
-	}
-
 	return kvmulti.New(kvstores...), nil
 }
 
@@ -209,7 +205,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 			return errors.New("volume already mounted")
 		}
 
-		kvstore, err := app.openKV(&volConf.Storage)
+		kvstore, err := app.openKV(volConf.Storage)
 		if err != nil {
 			return err
 		}

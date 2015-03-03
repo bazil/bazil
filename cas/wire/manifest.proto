@@ -1,12 +1,12 @@
+syntax = "proto3";
+
 package bazil.cas;
 
 option go_package = "wire";
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-
 message Manifest {
-  required bytes root = 1 [(gogoproto.nullable) = false];
-  required uint64 size = 2 [(gogoproto.nullable) = false];
-  required uint32 chunkSize = 3 [(gogoproto.nullable) = false];
-  required uint32 fanout = 4 [(gogoproto.nullable) = false];
+  bytes root = 1;
+  uint64 size = 2;
+  uint32 chunkSize = 3;
+  uint32 fanout = 4;
 }

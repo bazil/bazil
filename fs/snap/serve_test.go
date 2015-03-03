@@ -80,7 +80,7 @@ func setup_dir(t testing.TB, chunkStore chunks.Store, dirents []*wire.Dirent) *w
 		t.Fatalf("unexpected save error: %v", err)
 	}
 	var de wire.Dirent
-	de.Type.Dir = &wire.Dir{
+	de.Dir = &wire.Dir{
 		Manifest: wirecas.FromBlob(manifest),
 	}
 	return &de
@@ -93,17 +93,15 @@ func setup_fs(t *testing.T) fs.FS {
 	dir := setup_dir(t, chunkStore, []*wire.Dirent{
 		&wire.Dirent{
 			Name: "hello",
-			Type: wire.Type{
-				File: &wire.File{
-					Manifest: wirecas.FromBlob(greeting),
-				},
+			File: &wire.File{
+				Manifest: wirecas.FromBlob(greeting),
 			},
 			// Space:   uint64(len(GREETING)),
 			// Written: TIME_1,
 		},
 	})
 
-	filesys, err := newFS(chunkStore, dir.Type.Dir)
+	filesys, err := newFS(chunkStore, dir.Dir)
 	if err != nil {
 		t.Fatalf("cannot serve snapshot as FUSE: %v", err)
 	}
@@ -232,10 +230,8 @@ func TestTwoLevels(t *testing.T) {
 		dir1 := setup_dir(t, chunkStore, []*wire.Dirent{
 			&wire.Dirent{
 				Name: "hello",
-				Type: wire.Type{
-					File: &wire.File{
-						Manifest: wirecas.FromBlob(greeting),
-					},
+				File: &wire.File{
+					Manifest: wirecas.FromBlob(greeting),
 				},
 				// Space:   uint64(len(GREETING)),
 				// Written: TIME_1,
@@ -244,7 +240,7 @@ func TestTwoLevels(t *testing.T) {
 		dir1.Name = "second"
 		dir2 := setup_dir(t, chunkStore, []*wire.Dirent{dir1})
 
-		filesys, err := newFS(chunkStore, dir2.Type.Dir)
+		filesys, err := newFS(chunkStore, dir2.Dir)
 		if err != nil {
 			t.Fatalf("cannot serve snapshot as FUSE: %v", err)
 		}
@@ -287,7 +283,7 @@ func TestJunkType(t *testing.T) {
 				Name: "junk",
 			},
 		})
-		filesys, err := newFS(chunkStore, dir.Type.Dir)
+		filesys, err := newFS(chunkStore, dir.Dir)
 		if err != nil {
 			t.Fatalf("cannot serve snapshot as FUSE: %v", err)
 		}

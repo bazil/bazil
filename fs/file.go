@@ -58,7 +58,7 @@ func (f *file) marshal() (*wire.Dirent, error) {
 	if err != nil {
 		return nil, err
 	}
-	de.Type.File = &wire.File{
+	de.File = &wire.File{
 		Manifest: wirecas.FromBlob(manifest),
 	}
 	return de, nil

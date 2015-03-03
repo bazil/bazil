@@ -25,11 +25,11 @@ func (e fuseFile) Attr(a *fuse.Attr) {
 	a.Mode = 0444
 	a.Uid = env.MyUID
 	a.Gid = env.MyGID
-	a.Size = e.de.Type.File.Manifest.Size
+	a.Size = e.de.File.Manifest.Size
 	// a.Mtime = e.Meta.Written.UTC()
 	// a.Ctime = e.Meta.Written.UTC()
 	// a.Crtime = e.Meta.Written.UTC()
-	a.Blocks = stat_blocks(e.de.Type.File.Manifest.Size) // TODO .Space?
+	a.Blocks = stat_blocks(e.de.File.Manifest.Size) // TODO .Space?
 }
 
 func (e fuseFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, error) {

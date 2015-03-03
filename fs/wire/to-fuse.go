@@ -11,10 +11,10 @@ func (d *Dirent) GetFUSEDirent(name string) fuse.Dirent {
 		Name:  name,
 	}
 	switch {
-	case d.Type.File != nil:
+	case d.File != nil:
 		fde.Type = fuse.DT_File
 
-	case d.Type.Dir != nil:
+	case d.Dir != nil:
 		fde.Type = fuse.DT_Dir
 	}
 	return fde

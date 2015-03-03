@@ -6,7 +6,7 @@ import (
 
 	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/fs"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 func (c *Control) volumeCreate(w http.ResponseWriter, req *http.Request) {

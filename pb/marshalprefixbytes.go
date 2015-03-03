@@ -3,7 +3,7 @@ package pb
 import (
 	"encoding/binary"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 // MarshalPrefixBytes marshals a uvarint length prefixed protobuf message.

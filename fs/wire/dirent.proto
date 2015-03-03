@@ -1,28 +1,25 @@
-package bazil.dirent;
+syntax = "proto3";
+
+package bazil.db;
 
 option go_package = "wire";
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "bazil.org/bazil/cas/wire/manifest.proto";
 
 message Dirent {
-  required uint64 inode = 1 [(gogoproto.nullable) = false];
-
-  required Type type = 2 [(gogoproto.nullable) = false, (gogoproto.embed) = true];
+  uint64 inode = 1;
+  oneof type {
+    File file = 2;
+    Dir dir = 3;
+  }
 
   // TODO executable, xattr, acl
   // TODO mtime
   // TODO vector clocks
 }
 
-message Type {
-  option (gogoproto.onlyone) = true;
-  optional File file = 1;
-  optional Dir dir = 2;
-};
-
 message File {
-  required bazil.cas.Manifest manifest = 1 [(gogoproto.nullable) = false];
+  bazil.cas.Manifest manifest = 1;
 }
 
 // Dir is a directory stored fully in the database, not persisted

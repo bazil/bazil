@@ -9,7 +9,7 @@ import (
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/control/wire"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type createCommand struct {

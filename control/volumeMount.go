@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"bazil.org/bazil/control/wire"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 func (c *Control) volumeMount(w http.ResponseWriter, req *http.Request) {

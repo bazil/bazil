@@ -1,20 +1,20 @@
+syntax = "proto3";
+
 package bazil.db;
 
 option go_package = "wire";
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-
 message KV {
   message Local{
     // Must be exactly 32 bytes long.
-    optional bytes secret = 1 [(gogoproto.nullable) = false];
+    bytes secret = 1;
   }
-  optional Local local = 1;
+  Local local = 1;
 
   message External {
-    required string path = 1 [(gogoproto.nullable) = false];
+    string path = 1;
     // Must be exactly 32 bytes long.
-    optional bytes secret = 2 [(gogoproto.nullable) = false];
+    bytes secret = 2;
   }
   repeated External external = 2;
 
@@ -22,7 +22,7 @@ message KV {
 
 message VolumeConfig {
   // Must be exactly 64 bytes long.
-  required bytes volumeID = 1 [(gogoproto.nullable) = false];
+  bytes volumeID = 1;
 
-  required KV storage = 2 [(gogoproto.nullable) = false];
+  KV storage = 2;
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 // UnmarshalPrefixAt unmarshals a uvarint length prefixed protobuf

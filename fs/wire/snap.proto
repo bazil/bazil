@@ -1,10 +1,10 @@
+syntax = "proto3";
+
 package bazil.db;
 
 option go_package = "wire";
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-
 // Snapshot as it is stored into database.
 message SnapshotRef {
-  required bytes key = 1 [(gogoproto.nullable) = false];
+  bytes key = 1;
 }

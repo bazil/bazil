@@ -15,7 +15,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
 
@@ -75,7 +75,7 @@ func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fmt.Errorf("corrupt snapshot: %v: %v", ref.Key, err)
 	}
 
-	n, err := snap.Open(d.fs.chunkStore, &snapshot.Contents)
+	n, err := snap.Open(d.fs.chunkStore, snapshot.Contents)
 	if err != nil {
 		return nil, fmt.Errorf("cannot serve snapshot: %v", err)
 	}
@@ -91,7 +91,12 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 		Name: req.Name,
 	}
 	err := d.fs.db.View(func(tx *bolt.Tx) error {
-		return d.rootDir.snapshot(ctx, tx, &snapshot.Contents)
+		dir, err := d.rootDir.snapshot(ctx, tx)
+		if err != nil {
+			return err
+		}
+		snapshot.Contents = dir
+		return nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("cannot record snapshot: %v", err)
@@ -134,7 +139,7 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 		return b.Put([]byte(req.Name), buf)
 	})
 
-	n, err := snap.Open(d.fs.chunkStore, &snapshot.Contents)
+	n, err := snap.Open(d.fs.chunkStore, snapshot.Contents)
 	if err != nil {
 		return nil, fmt.Errorf("cannot serve snapshot: %v", err)
 	}

@@ -19,7 +19,6 @@ func includeArgs(gopath []string) []string {
 	l := make([]string, 0, 2*len(gopath))
 	for _, p := range gopath {
 		l = append(l, "-I"+filepath.Join(p, "src"))
-		l = append(l, "-I"+filepath.Join(p, "src", "github.com/gogo/protobuf/protobuf"))
 	}
 	return l
 }
@@ -92,16 +91,9 @@ func main() {
 			}
 
 			if fi.Mode().IsRegular() && filepath.Ext(fi.Name()) == ".proto" {
-				// make a filename that looks like go import paths,
-				// not absolute path, to keep protoc happy; it doesn't
-				// understand multiple paths for same file
-
-				// this should lead us to $P/src of the GOPATH entry that contains us
-				goPathEntry := filepath.Join(src, "..", "..")
-				p, err := filepath.Rel(goPathEntry, filepath.Join(path, fi.Name()))
-				if err != nil {
-					log.Fatalf("cannot make pretty path: %v", err)
-				}
+				// keep paths absolute to make protoc happy; it
+				// doesn't understand multiple paths for same file
+				p := filepath.Join(path, fi.Name())
 				protos = append(protos, p)
 			}
 		}
@@ -110,11 +102,10 @@ func main() {
 			return nil
 		}
 
-		// protoc -I. -I$GOPATH/src --gogo_out=. foo.proto bar.proto
+		// protoc -I$GOPATH/src --go_out=. $GOPATH/src/bazil.org/bazil/quux/foo.proto $GOPATH/src/bazil.org/bazil/quux/bar.proto
 		var args []string
-		args = append(args, "-I.")
 		args = append(args, includeArgs(gopath())...)
-		args = append(args, "--gogo_out=.")
+		args = append(args, "--go_out=.")
 		args = append(args, protos...)
 		cmd := exec.Command("protoc", args...)
 		// this should lead us to $P/src of the GOPATH entry that contains us
