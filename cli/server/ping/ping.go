@@ -1,12 +1,10 @@
 package ping
 
 import (
-	"errors"
-	"io/ioutil"
-	"net/http"
-
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
+	"bazil.org/bazil/control/wire"
+	"golang.org/x/net/context"
 )
 
 type pingCommand struct {
@@ -14,17 +12,13 @@ type pingCommand struct {
 }
 
 func (cmd *pingCommand) Run() error {
-	resp, err := clibazil.Bazil.Control.Head("http+unix://bazil/control")
+	ctx := context.Background()
+	client, err := clibazil.Bazil.Control()
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		buf, _ := ioutil.ReadAll(resp.Body)
-		if len(buf) == 0 {
-			buf = []byte(resp.Status)
-		}
-		return errors.New(string(buf))
+	if _, err := client.Ping(ctx, &wire.PingRequest{}); err != nil {
+		return err
 	}
 	return nil
 }

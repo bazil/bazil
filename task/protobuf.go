@@ -102,10 +102,10 @@ func main() {
 			return nil
 		}
 
-		// protoc -I$GOPATH/src --go_out=. $GOPATH/src/bazil.org/bazil/quux/foo.proto $GOPATH/src/bazil.org/bazil/quux/bar.proto
+		// protoc -I$GOPATH/src --go_out=plugins=grpc:. $GOPATH/src/bazil.org/bazil/quux/foo.proto $GOPATH/src/bazil.org/bazil/quux/bar.proto
 		var args []string
 		args = append(args, includeArgs(gopath())...)
-		args = append(args, "--go_out=.")
+		args = append(args, "--go_out=plugins=grpc:.")
 		args = append(args, protos...)
 		cmd := exec.Command("protoc", args...)
 		// this should lead us to $P/src of the GOPATH entry that contains us

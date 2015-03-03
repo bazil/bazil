@@ -2,31 +2,24 @@ package control
 
 import (
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
+	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/server"
+	"google.golang.org/grpc"
 )
 
 type Control struct {
 	app *server.App
-	mux *http.ServeMux
 }
 
-func empty(w http.ResponseWriter, req *http.Request) {}
+var _ wire.ControlServer = (*Control)(nil)
 
 func New(app *server.App) *Control {
 	c := &Control{
 		app: app,
-		mux: http.NewServeMux(),
 	}
-
-	// for ping
-	c.mux.HandleFunc("/control/", empty)
-	c.mux.HandleFunc("/control/volumeCreate", c.volumeCreate)
-	c.mux.HandleFunc("/control/volumeMount", c.volumeMount)
 	return c
 }
 
@@ -43,10 +36,7 @@ func (c *Control) ListenAndServe() error {
 	}
 	defer l.Close()
 
-	srv := http.Server{
-		ReadTimeout:  1 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		Handler:      c.mux,
-	}
+	srv := grpc.NewServer()
+	wire.RegisterControlServer(srv, c)
 	return srv.Serve(l)
 }

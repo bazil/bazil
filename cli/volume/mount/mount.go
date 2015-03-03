@@ -1,16 +1,11 @@
 package mount
 
 import (
-	"bytes"
-	"errors"
-	"io/ioutil"
-	"net/http"
-
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/control/wire"
-	"github.com/golang/protobuf/proto"
+	"golang.org/x/net/context"
 )
 
 type mountCommand struct {
@@ -22,29 +17,18 @@ type mountCommand struct {
 }
 
 func (cmd *mountCommand) Run() error {
-	req := wire.VolumeMountRequest{
+	req := &wire.VolumeMountRequest{
 		VolumeName: cmd.Arguments.VolumeName,
 		Mountpoint: cmd.Arguments.Mountpoint.String(),
 	}
-	buf, err := proto.Marshal(&req)
+	ctx := context.Background()
+	client, err := clibazil.Bazil.Control()
 	if err != nil {
 		return err
 	}
-	resp, err := clibazil.Bazil.Control.Post(
-		"http+unix://bazil/control/volumeMount",
-		"binary/x.bazil.control.volumeMountRequest",
-		bytes.NewReader(buf),
-	)
-	if err != nil {
+	if _, err := client.VolumeMount(ctx, req); err != nil {
+		// TODO unwrap error
 		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		buf, _ := ioutil.ReadAll(resp.Body)
-		if len(buf) == 0 {
-			buf = []byte(resp.Status)
-		}
-		return errors.New(string(buf))
 	}
 	return nil
 }

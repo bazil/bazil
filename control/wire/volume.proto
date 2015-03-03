@@ -9,6 +9,12 @@ message VolumeMountRequest {
   string mountpoint = 2;
 }
 
+message VolumeMountResponse {
+}
+
 message VolumeCreateRequest {
   string volumeName = 1;
+}
+
+message VolumeCreateResponse {
 }

@@ -2,16 +2,6 @@
 // source: bazil.org/bazil/control/wire/volume.proto
 // DO NOT EDIT!
 
-/*
-Package wire is a generated protocol buffer package.
-
-It is generated from these files:
-	bazil.org/bazil/control/wire/volume.proto
-
-It has these top-level messages:
-	VolumeMountRequest
-	VolumeCreateRequest
-*/
 package wire
 
 import proto "github.com/golang/protobuf/proto"
@@ -28,6 +18,13 @@ func (m *VolumeMountRequest) Reset()         { *m = VolumeMountRequest{} }
 func (m *VolumeMountRequest) String() string { return proto.CompactTextString(m) }
 func (*VolumeMountRequest) ProtoMessage()    {}
 
+type VolumeMountResponse struct {
+}
+
+func (m *VolumeMountResponse) Reset()         { *m = VolumeMountResponse{} }
+func (m *VolumeMountResponse) String() string { return proto.CompactTextString(m) }
+func (*VolumeMountResponse) ProtoMessage()    {}
+
 type VolumeCreateRequest struct {
 	VolumeName string `protobuf:"bytes,1,opt,name=volumeName" json:"volumeName,omitempty"`
 }
@@ -35,6 +32,13 @@ type VolumeCreateRequest struct {
 func (m *VolumeCreateRequest) Reset()         { *m = VolumeCreateRequest{} }
 func (m *VolumeCreateRequest) String() string { return proto.CompactTextString(m) }
 func (*VolumeCreateRequest) ProtoMessage()    {}
+
+type VolumeCreateResponse struct {
+}
+
+func (m *VolumeCreateResponse) Reset()         { *m = VolumeCreateResponse{} }
+func (m *VolumeCreateResponse) String() string { return proto.CompactTextString(m) }
+func (*VolumeCreateResponse) ProtoMessage()    {}
 
 func init() {
 }

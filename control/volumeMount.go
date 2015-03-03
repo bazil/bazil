@@ -1,34 +1,13 @@
 package control
 
 import (
-	"io/ioutil"
-	"net/http"
-
 	"bazil.org/bazil/control/wire"
-	"github.com/golang/protobuf/proto"
+	"golang.org/x/net/context"
 )
 
-func (c *Control) volumeMount(w http.ResponseWriter, req *http.Request) {
-	const reqMaxSize = 4096
-	buf, err := ioutil.ReadAll(http.MaxBytesReader(w, req.Body, reqMaxSize))
-	if err != nil {
-		// they really should export that error
-		if err.Error() == "http: request body too large" {
-			http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func (c *Control) VolumeMount(ctx context.Context, req *wire.VolumeMountRequest) (*wire.VolumeMountResponse, error) {
+	if _, err := c.app.Mount(req.VolumeName, req.Mountpoint); err != nil {
+		return nil, err
 	}
-
-	var msg wire.VolumeMountRequest
-	if err := proto.Unmarshal(buf, &msg); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	_, err = c.app.Mount(msg.VolumeName, msg.Mountpoint)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	return &wire.VolumeMountResponse{}, nil
 }

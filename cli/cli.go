@@ -4,18 +4,20 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"sync"
 	"time"
 
 	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
+	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/defaults"
-	"bazil.org/bazil/util/httpunix"
+	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/fuse"
 	"github.com/tv42/jog"
+	"google.golang.org/grpc"
 )
 
 type bazil struct {
@@ -26,7 +28,13 @@ type bazil struct {
 		DataDir    flagx.AbsPath
 		CPUProfile string
 	}
-	Control http.Client
+
+	control struct {
+		setup  sync.Once
+		err    error
+		conn   *grpc.ClientConn
+		client wire.ControlClient
+	}
 }
 
 var _ = Service(&bazil{})
@@ -49,17 +57,6 @@ func (b *bazil) Setup() (ok bool) {
 			return false
 		}
 	}
-
-	u := &httpunix.HTTPUnixTransport{
-		DialTimeout:           100 * time.Millisecond,
-		RequestTimeout:        1 * time.Second,
-		ResponseHeaderTimeout: 1 * time.Second,
-	}
-	u.RegisterLocation("bazil", filepath.Join(b.Config.DataDir.String(), "control"))
-	b.Control = http.Client{
-		Transport: u,
-	}
-
 	return true
 }
 
@@ -67,7 +64,28 @@ func (b *bazil) Teardown() (ok bool) {
 	if b.Config.CPUProfile != "" {
 		pprof.StopCPUProfile()
 	}
+	if b.control.conn != nil {
+		b.control.conn.Close()
+	}
 	return true
+}
+
+// Control returns a gRPC client that can make control requests to the
+// server. This allows dialing only when needed, because not every cli
+// tool is a control client.
+//
+// TODO behavior if server is not there; grpc causes infinite retries
+func (b *bazil) Control() (wire.ControlClient, error) {
+	b.control.setup.Do(b.controlDial)
+	return b.control.client, b.control.err
+}
+
+func (b *bazil) controlDial() {
+	b.control.conn, b.control.err = grpcunix.Dial(
+		filepath.Join(b.Config.DataDir.String(), "control"),
+		grpc.WithTimeout(500*time.Millisecond),
+	)
+	b.control.client = wire.NewControlClient(b.control.conn)
 }
 
 // Bazil allows command-line callables access to global flags, such as

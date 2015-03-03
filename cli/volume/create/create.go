@@ -1,15 +1,10 @@
 package create
 
 import (
-	"bytes"
-	"errors"
-	"io/ioutil"
-	"net/http"
-
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/control/wire"
-	"github.com/golang/protobuf/proto"
+	"golang.org/x/net/context"
 )
 
 type createCommand struct {
@@ -20,28 +15,17 @@ type createCommand struct {
 }
 
 func (cmd *createCommand) Run() error {
-	req := wire.VolumeCreateRequest{
+	req := &wire.VolumeCreateRequest{
 		VolumeName: cmd.Arguments.VolumeName,
 	}
-	buf, err := proto.Marshal(&req)
+	ctx := context.Background()
+	client, err := clibazil.Bazil.Control()
 	if err != nil {
 		return err
 	}
-	resp, err := clibazil.Bazil.Control.Post(
-		"http+unix://bazil/control/volumeCreate",
-		"binary/x.bazil.control.volumeCreateRequest",
-		bytes.NewReader(buf),
-	)
-	if err != nil {
+	if _, err := client.VolumeCreate(ctx, req); err != nil {
+		// TODO unwrap error
 		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		buf, _ := ioutil.ReadAll(resp.Body)
-		if len(buf) == 0 {
-			buf = []byte(resp.Status)
-		}
-		return errors.New(string(buf))
 	}
 	return nil
 }
