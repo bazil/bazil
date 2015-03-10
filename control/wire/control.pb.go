@@ -124,7 +124,7 @@ func RegisterControlServer(s *grpc.Server, srv ControlServer) {
 	s.RegisterService(&_Control_serviceDesc, srv)
 }
 
-func _Control_Ping_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Control_Ping_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
 	in := new(PingRequest)
 	if err := proto.Unmarshal(buf, in); err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func _Control_Ping_Handler(srv interface{}, ctx context.Context, buf []byte) (pr
 	return out, nil
 }
 
-func _Control_VolumeCreate_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Control_VolumeCreate_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
 	in := new(VolumeCreateRequest)
 	if err := proto.Unmarshal(buf, in); err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func _Control_VolumeCreate_Handler(srv interface{}, ctx context.Context, buf []b
 	return out, nil
 }
 
-func _Control_VolumeMount_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Control_VolumeMount_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
 	in := new(VolumeMountRequest)
 	if err := proto.Unmarshal(buf, in); err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func _Control_VolumeMount_Handler(srv interface{}, ctx context.Context, buf []by
 	return out, nil
 }
 
-func _Control_VolumeStorageAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Control_VolumeStorageAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
 	in := new(VolumeStorageAddRequest)
 	if err := proto.Unmarshal(buf, in); err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func _Control_VolumeStorageAdd_Handler(srv interface{}, ctx context.Context, buf
 	return out, nil
 }
 
-func _Control_SharingKeyAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Control_SharingKeyAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
 	in := new(SharingKeyAddRequest)
 	if err := proto.Unmarshal(buf, in); err != nil {
 		return nil, err

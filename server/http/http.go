@@ -1,11 +1,10 @@
 package http
 
 import (
-	"crypto/tls"
-	"errors"
 	"net"
 
 	"bazil.org/bazil/server"
+	"bazil.org/bazil/server/peer"
 )
 
 type Web struct {
@@ -33,12 +32,8 @@ func (w *Web) Close() {
 }
 
 func (w *Web) Serve() error {
-	conf, err := w.app.GetTLSConfig()
-	if err != nil {
-		return err
-	}
-	l := tls.NewListener(w.listener, conf)
-
-	_ = l
-	return errors.New("TODO actually handle the connections")
+	// TODO serve HTTPS for non-gRPC clients
+	// https://github.com/grpc/grpc-go/issues/75
+	srv := peer.New(w.app)
+	return srv.Serve(w.listener)
 }

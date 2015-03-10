@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package bazil.peer;
+
+option go_package = "wire";
+
+service Peer {
+  rpc Ping(PingRequest) returns (PingResponse) {}
+}
+
+message PingRequest {
+}
+
+message PingResponse {
+}
