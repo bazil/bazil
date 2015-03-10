@@ -5,7 +5,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (c *Control) VolumeMount(ctx context.Context, req *wire.VolumeMountRequest) (*wire.VolumeMountResponse, error) {
+func (c controlRPC) VolumeMount(ctx context.Context, req *wire.VolumeMountRequest) (*wire.VolumeMountResponse, error) {
 	if _, err := c.app.Mount(req.VolumeName, req.Mountpoint); err != nil {
 		return nil, err
 	}

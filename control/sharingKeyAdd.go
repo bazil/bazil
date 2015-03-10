@@ -13,7 +13,7 @@ import (
 
 const sharingKeySize = 32
 
-func (c *Control) SharingKeyAdd(ctx context.Context, req *wire.SharingKeyAddRequest) (*wire.SharingKeyAddResponse, error) {
+func (c controlRPC) SharingKeyAdd(ctx context.Context, req *wire.SharingKeyAddRequest) (*wire.SharingKeyAddResponse, error) {
 	if len(req.Secret) != sharingKeySize {
 		return nil, grpc.Errorf(codes.InvalidArgument, "sharing key must be exactly 32 bytes")
 	}

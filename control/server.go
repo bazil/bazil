@@ -14,8 +14,6 @@ type Control struct {
 	app *server.App
 }
 
-var _ wire.ControlServer = (*Control)(nil)
-
 func New(app *server.App) *Control {
 	c := &Control{
 		app: app,
@@ -37,6 +35,12 @@ func (c *Control) ListenAndServe() error {
 	defer l.Close()
 
 	srv := grpc.NewServer()
-	wire.RegisterControlServer(srv, c)
+	wire.RegisterControlServer(srv, controlRPC{c})
 	return srv.Serve(l)
 }
+
+type controlRPC struct {
+	*Control
+}
+
+var _ wire.ControlServer = controlRPC{}

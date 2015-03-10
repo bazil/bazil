@@ -72,7 +72,7 @@ func addStorage(db *bolt.DB, volumeName string, name string, backend string, sha
 	return nil
 }
 
-func (c *Control) VolumeStorageAdd(ctx context.Context, req *wire.VolumeStorageAddRequest) (*wire.VolumeStorageAddResponse, error) {
+func (c controlRPC) VolumeStorageAdd(ctx context.Context, req *wire.VolumeStorageAddRequest) (*wire.VolumeStorageAddResponse, error) {
 	if err := c.app.ValidateKV(req.Backend); err != nil {
 		return nil, grpc.Errorf(codes.InvalidArgument, err.Error())
 	}

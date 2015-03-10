@@ -28,7 +28,7 @@ func controlListenAndServe(t testing.TB, app *server.App) (stop func()) {
 	}
 
 	srv := grpc.NewServer()
-	wire.RegisterControlServer(srv, c)
+	wire.RegisterControlServer(srv, controlRPC{c})
 	serveErr := make(chan error, 1)
 	go func() {
 		serveErr <- srv.Serve(l)
