@@ -19,8 +19,12 @@ func (cmd *runCommand) Run() error {
 		return err
 	}
 	defer app.Close()
-	c := control.New(app)
-	return c.ListenAndServe()
+	c, err := control.New(app)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	return c.Serve()
 }
 
 var run = runCommand{

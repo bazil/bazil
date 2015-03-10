@@ -11,32 +11,40 @@ import (
 )
 
 type Control struct {
-	app *server.App
+	app      *server.App
+	listener net.Listener
 }
 
-func New(app *server.App) *Control {
-	c := &Control{
-		app: app,
-	}
-	return c
-}
-
-func (c *Control) ListenAndServe() error {
-	socketPath := filepath.Join(c.app.DataDir, "control")
+// New creates a control socket to listen for administrative commands.
+// Caller is expected to call Control.Serve to actually process
+// incoming requests and Control.Close to clean up.
+func New(app *server.App) (*Control, error) {
+	socketPath := filepath.Join(app.DataDir, "control")
 	// because app holds lock, this is safe
 	err := os.Remove(socketPath)
 	if err != nil && !os.IsNotExist(err) {
-		return err
+		return nil, err
 	}
 	l, err := net.Listen("unix", socketPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer l.Close()
 
+	c := &Control{
+		app:      app,
+		listener: l,
+	}
+	return c, nil
+}
+
+func (c *Control) Close() {
+	_ = c.listener.Close()
+}
+
+func (c *Control) Serve() error {
 	srv := grpc.NewServer()
 	wire.RegisterControlServer(srv, controlRPC{c})
-	return srv.Serve(l)
+	return srv.Serve(c.listener)
 }
 
 type controlRPC struct {

@@ -3,7 +3,6 @@ package control
 import (
 	"bytes"
 	"fmt"
-	"net"
 	"path/filepath"
 	"testing"
 
@@ -19,29 +18,20 @@ import (
 )
 
 func controlListenAndServe(t testing.TB, app *server.App) (stop func()) {
-	// TODO this is too messy, expose a better API from Control
-	c := New(app)
-	socketPath := filepath.Join(c.app.DataDir, "control")
-	l, err := net.Listen("unix", socketPath)
+	c, err := New(app)
 	if err != nil {
 		t.Fatalf("control socket cannot listen: %v", err)
 	}
-
-	srv := grpc.NewServer()
-	wire.RegisterControlServer(srv, controlRPC{c})
 	serveErr := make(chan error, 1)
 	go func() {
-		serveErr <- srv.Serve(l)
+		serveErr <- c.Serve()
 	}()
 
 	quit := make(chan struct{})
 	go func() {
 		select {
 		case <-quit:
-			if err := l.Close(); err != nil {
-				t.Errorf("closing control socket: %v", err)
-			}
-			// discard the error, it's uninteresting now
+			c.Close()
 			_ = <-serveErr
 
 		case err := <-serveErr:
