@@ -32,6 +32,10 @@ func (unixDialer) NewListener(lis net.Listener) net.Listener {
 	return lis
 }
 
+func (unixDialer) NewServerConn(ctx context.Context, conn net.Conn) context.Context {
+	return ctx
+}
+
 func (unixDialer) GetRequestMetadata(ctx context.Context) (map[string]string, error) {
 	return nil, nil
 }
