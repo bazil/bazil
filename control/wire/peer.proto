@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package bazil.control;
+
+option go_package = "wire";
+
+message PeerAddRequest {
+  // Must be exactly 32 bytes long.
+  bytes pub = 2;
+}
+
+message PeerAddResponse {
+}

@@ -7,6 +7,7 @@ Package wire is a generated protocol buffer package.
 
 It is generated from these files:
 	bazil.org/bazil/control/wire/control.proto
+	bazil.org/bazil/control/wire/peer.proto
 	bazil.org/bazil/control/wire/sharing.proto
 	bazil.org/bazil/control/wire/volume.proto
 
@@ -55,6 +56,7 @@ type ControlClient interface {
 	VolumeMount(ctx context.Context, in *VolumeMountRequest, opts ...grpc.CallOption) (*VolumeMountResponse, error)
 	VolumeStorageAdd(ctx context.Context, in *VolumeStorageAddRequest, opts ...grpc.CallOption) (*VolumeStorageAddResponse, error)
 	SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error)
+	PeerAdd(ctx context.Context, in *PeerAddRequest, opts ...grpc.CallOption) (*PeerAddResponse, error)
 }
 
 type controlClient struct {
@@ -110,6 +112,15 @@ func (c *controlClient) SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequ
 	return out, nil
 }
 
+func (c *controlClient) PeerAdd(ctx context.Context, in *PeerAddRequest, opts ...grpc.CallOption) (*PeerAddResponse, error) {
+	out := new(PeerAddResponse)
+	err := grpc.Invoke(ctx, "/bazil.control.Control/PeerAdd", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Control service
 
 type ControlServer interface {
@@ -118,6 +129,7 @@ type ControlServer interface {
 	VolumeMount(context.Context, *VolumeMountRequest) (*VolumeMountResponse, error)
 	VolumeStorageAdd(context.Context, *VolumeStorageAddRequest) (*VolumeStorageAddResponse, error)
 	SharingKeyAdd(context.Context, *SharingKeyAddRequest) (*SharingKeyAddResponse, error)
+	PeerAdd(context.Context, *PeerAddRequest) (*PeerAddResponse, error)
 }
 
 func RegisterControlServer(s *grpc.Server, srv ControlServer) {
@@ -184,6 +196,18 @@ func _Control_SharingKeyAdd_Handler(srv interface{}, ctx context.Context, buf []
 	return out, nil
 }
 
+func _Control_PeerAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+	in := new(PeerAddRequest)
+	if err := proto.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(ControlServer).PeerAdd(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Control_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "bazil.control.Control",
 	HandlerType: (*ControlServer)(nil),
@@ -207,6 +231,10 @@ var _Control_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SharingKeyAdd",
 			Handler:    _Control_SharingKeyAdd_Handler,
+		},
+		{
+			MethodName: "PeerAdd",
+			Handler:    _Control_PeerAdd_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},

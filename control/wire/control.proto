@@ -4,6 +4,7 @@ package bazil.control;
 
 import "bazil.org/bazil/control/wire/volume.proto";
 import "bazil.org/bazil/control/wire/sharing.proto";
+import "bazil.org/bazil/control/wire/peer.proto";
 
 option go_package = "wire";
 
@@ -13,6 +14,7 @@ service Control {
   rpc VolumeMount(VolumeMountRequest) returns (VolumeMountResponse) {}
   rpc VolumeStorageAdd(VolumeStorageAddRequest) returns (VolumeStorageAddResponse) {}
   rpc SharingKeyAdd(SharingKeyAddRequest) returns (SharingKeyAddResponse) {}
+  rpc PeerAdd(PeerAddRequest) returns (PeerAddResponse) {}
 }
 
 message PingRequest {
