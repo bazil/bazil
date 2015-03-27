@@ -58,6 +58,7 @@ type ControlClient interface {
 	SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error)
 	PeerAdd(ctx context.Context, in *PeerAddRequest, opts ...grpc.CallOption) (*PeerAddResponse, error)
 	PeerLocationSet(ctx context.Context, in *PeerLocationSetRequest, opts ...grpc.CallOption) (*PeerLocationSetResponse, error)
+	PeerStorageAllow(ctx context.Context, in *PeerStorageAllowRequest, opts ...grpc.CallOption) (*PeerStorageAllowResponse, error)
 }
 
 type controlClient struct {
@@ -131,6 +132,15 @@ func (c *controlClient) PeerLocationSet(ctx context.Context, in *PeerLocationSet
 	return out, nil
 }
 
+func (c *controlClient) PeerStorageAllow(ctx context.Context, in *PeerStorageAllowRequest, opts ...grpc.CallOption) (*PeerStorageAllowResponse, error) {
+	out := new(PeerStorageAllowResponse)
+	err := grpc.Invoke(ctx, "/bazil.control.Control/PeerStorageAllow", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Control service
 
 type ControlServer interface {
@@ -141,6 +151,7 @@ type ControlServer interface {
 	SharingKeyAdd(context.Context, *SharingKeyAddRequest) (*SharingKeyAddResponse, error)
 	PeerAdd(context.Context, *PeerAddRequest) (*PeerAddResponse, error)
 	PeerLocationSet(context.Context, *PeerLocationSetRequest) (*PeerLocationSetResponse, error)
+	PeerStorageAllow(context.Context, *PeerStorageAllowRequest) (*PeerStorageAllowResponse, error)
 }
 
 func RegisterControlServer(s *grpc.Server, srv ControlServer) {
@@ -231,6 +242,18 @@ func _Control_PeerLocationSet_Handler(srv interface{}, ctx context.Context, buf 
 	return out, nil
 }
 
+func _Control_PeerStorageAllow_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+	in := new(PeerStorageAllowRequest)
+	if err := proto.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(ControlServer).PeerStorageAllow(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Control_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "bazil.control.Control",
 	HandlerType: (*ControlServer)(nil),
@@ -262,6 +285,10 @@ var _Control_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PeerLocationSet",
 			Handler:    _Control_PeerLocationSet_Handler,
+		},
+		{
+			MethodName: "PeerStorageAllow",
+			Handler:    _Control_PeerStorageAllow_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},

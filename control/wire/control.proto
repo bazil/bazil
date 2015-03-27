@@ -16,6 +16,7 @@ service Control {
   rpc SharingKeyAdd(SharingKeyAddRequest) returns (SharingKeyAddResponse) {}
   rpc PeerAdd(PeerAddRequest) returns (PeerAddResponse) {}
   rpc PeerLocationSet(PeerLocationSetRequest) returns (PeerLocationSetResponse) {}
+  rpc PeerStorageAllow(PeerStorageAllowRequest) returns (PeerStorageAllowResponse) {}
 }
 
 message PingRequest {

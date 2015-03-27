@@ -5,6 +5,7 @@
 package wire
 
 import proto "github.com/golang/protobuf/proto"
+import bazil_peer "bazil.org/bazil/server/wire"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -41,6 +42,30 @@ type PeerLocationSetResponse struct {
 func (m *PeerLocationSetResponse) Reset()         { *m = PeerLocationSetResponse{} }
 func (m *PeerLocationSetResponse) String() string { return proto.CompactTextString(m) }
 func (*PeerLocationSetResponse) ProtoMessage()    {}
+
+type PeerStorageAllowRequest struct {
+	// Must be exactly 32 bytes long.
+	Pub      []byte                  `protobuf:"bytes,1,opt,name=pub,proto3" json:"pub,omitempty"`
+	Backends *bazil_peer.PeerStorage `protobuf:"bytes,2,opt,name=backends" json:"backends,omitempty"`
+}
+
+func (m *PeerStorageAllowRequest) Reset()         { *m = PeerStorageAllowRequest{} }
+func (m *PeerStorageAllowRequest) String() string { return proto.CompactTextString(m) }
+func (*PeerStorageAllowRequest) ProtoMessage()    {}
+
+func (m *PeerStorageAllowRequest) GetBackends() *bazil_peer.PeerStorage {
+	if m != nil {
+		return m.Backends
+	}
+	return nil
+}
+
+type PeerStorageAllowResponse struct {
+}
+
+func (m *PeerStorageAllowResponse) Reset()         { *m = PeerStorageAllowResponse{} }
+func (m *PeerStorageAllowResponse) String() string { return proto.CompactTextString(m) }
+func (*PeerStorageAllowResponse) ProtoMessage()    {}
 
 func init() {
 }
