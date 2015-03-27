@@ -10,6 +10,7 @@ import (
 	// CLI subcommands
 	_ "bazil.org/bazil/cli/create"
 	_ "bazil.org/bazil/cli/peer/add"
+	_ "bazil.org/bazil/cli/peer/location/set"
 	_ "bazil.org/bazil/cli/server/ping"
 	_ "bazil.org/bazil/cli/server/run"
 	_ "bazil.org/bazil/cli/sharing/add"
