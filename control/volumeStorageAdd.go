@@ -22,7 +22,7 @@ type storageExistsError struct {
 var _ error = (*storageExistsError)(nil)
 
 func (e *storageExistsError) Error() string {
-	return fmt.Sprintf("storage backend exists already: %x", e.Name)
+	return fmt.Sprintf("storage backend exists already: %v", e.Name)
 }
 
 // addStorage adds the given storage backend to this volume in the
