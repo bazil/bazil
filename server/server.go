@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -15,7 +16,9 @@ import (
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/kv/kvfiles"
 	"bazil.org/bazil/kv/kvmulti"
+	"bazil.org/bazil/kv/kvpeer"
 	"bazil.org/bazil/kv/untrusted"
+	"bazil.org/bazil/peer"
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
@@ -209,6 +212,23 @@ func (app *App) openStorage(backend string) (kv.KV, error) {
 	}
 	if backend != "" && backend[0] == '/' {
 		return kvfiles.Open(backend)
+	}
+	idx := strings.IndexByte(backend, ':')
+	if idx != -1 {
+		scheme, rest := backend[:idx], backend[idx+1:]
+		switch scheme {
+		case "peerkey":
+			var key peer.PublicKey
+			if err := key.Set(rest); err != nil {
+				return nil, err
+			}
+			p, err := app.DialPeer(&key)
+			if err != nil {
+				return nil, err
+			}
+			// TODO Close
+			return kvpeer.Open(p)
+		}
 	}
 	return nil, errors.New("unknown storage backend")
 }
