@@ -6,10 +6,29 @@ option go_package = "wire";
 
 service Peer {
   rpc Ping(PingRequest) returns (PingResponse) {}
+  rpc ObjectPut(stream ObjectPutRequest) returns (ObjectPutResponse) {}
+  rpc ObjectGet(ObjectGetRequest) returns (stream ObjectGetResponse) {}
 }
 
 message PingRequest {
 }
 
 message PingResponse {
+}
+
+message ObjectPutRequest {
+  // Only set in the first streamed message.
+  bytes key = 1;
+  bytes data = 2;
+}
+
+message ObjectPutResponse {
+}
+
+message ObjectGetRequest {
+  bytes key = 1;
+}
+
+message ObjectGetResponse {
+  bytes data = 1;
 }
