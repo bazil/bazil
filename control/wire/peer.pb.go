@@ -25,5 +25,22 @@ func (m *PeerAddResponse) Reset()         { *m = PeerAddResponse{} }
 func (m *PeerAddResponse) String() string { return proto.CompactTextString(m) }
 func (*PeerAddResponse) ProtoMessage()    {}
 
+type PeerLocationSetRequest struct {
+	// Must be exactly 32 bytes long.
+	Pub    []byte `protobuf:"bytes,1,opt,name=pub,proto3" json:"pub,omitempty"`
+	Netloc string `protobuf:"bytes,2,opt,name=netloc" json:"netloc,omitempty"`
+}
+
+func (m *PeerLocationSetRequest) Reset()         { *m = PeerLocationSetRequest{} }
+func (m *PeerLocationSetRequest) String() string { return proto.CompactTextString(m) }
+func (*PeerLocationSetRequest) ProtoMessage()    {}
+
+type PeerLocationSetResponse struct {
+}
+
+func (m *PeerLocationSetResponse) Reset()         { *m = PeerLocationSetResponse{} }
+func (m *PeerLocationSetResponse) String() string { return proto.CompactTextString(m) }
+func (*PeerLocationSetResponse) ProtoMessage()    {}
+
 func init() {
 }

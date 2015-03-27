@@ -15,6 +15,7 @@ service Control {
   rpc VolumeStorageAdd(VolumeStorageAddRequest) returns (VolumeStorageAddResponse) {}
   rpc SharingKeyAdd(SharingKeyAddRequest) returns (SharingKeyAddResponse) {}
   rpc PeerAdd(PeerAddRequest) returns (PeerAddResponse) {}
+  rpc PeerLocationSet(PeerLocationSetRequest) returns (PeerLocationSetResponse) {}
 }
 
 message PingRequest {

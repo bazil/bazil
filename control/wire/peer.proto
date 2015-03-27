@@ -11,3 +11,12 @@ message PeerAddRequest {
 
 message PeerAddResponse {
 }
+
+message PeerLocationSetRequest {
+  // Must be exactly 32 bytes long.
+  bytes pub = 1;
+  string netloc = 2;
+}
+
+message PeerLocationSetResponse {
+}
