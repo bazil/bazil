@@ -41,3 +41,7 @@ func (w *Web) Serve() error {
 	srv := peer.New(w.app)
 	return srv.Serve(w.listener)
 }
+
+func (w *Web) Addr() net.Addr {
+	return w.listener.Addr()
+}

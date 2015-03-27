@@ -1,6 +1,7 @@
 package run
 
 import (
+	"log"
 	"sync"
 
 	clibazil "bazil.org/bazil/cli"
@@ -47,6 +48,8 @@ func (cmd *runCommand) Run() error {
 		defer c.Close()
 		errCh <- c.Serve()
 	}()
+
+	log.Printf("Listening on %s", w.Addr())
 
 	wg.Wait()
 	// We only care about the first error; the rest are likely to be
