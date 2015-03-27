@@ -3,15 +3,20 @@ package server
 import (
 	"encoding/binary"
 	"errors"
+	"io"
+	"time"
 
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/kv/kvmulti"
 	"bazil.org/bazil/peer"
+	wirepeer "bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server/wire"
 	"bazil.org/bazil/tokens"
+	"bazil.org/bazil/util/grpcedtls"
 	"github.com/agl/ed25519"
 	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc"
 )
 
 var bucketPeer = []byte(tokens.BucketPeer)
@@ -142,4 +147,59 @@ func (app *App) OpenKVForPeer(pub *[ed25519.PublicKeySize]byte) (kv.KV, error) {
 	}
 
 	return kvmulti.New(kvstores...), nil
+}
+
+type PeerClient interface {
+	wirepeer.PeerClient
+	io.Closer
+}
+
+type peerClient struct {
+	wirepeer.PeerClient
+	conn *grpc.ClientConn
+}
+
+var _ PeerClient = (*peerClient)(nil)
+
+func (p *peerClient) Close() error {
+	return p.conn.Close()
+}
+
+func (app *App) DialPeer(pub *peer.PublicKey) (PeerClient, error) {
+	lookup := func(network string, addr string) (string, string, *[ed25519.PublicKeySize]byte, error) {
+		find := func(tx *bolt.Tx) error {
+			bucket := tx.Bucket(bucketPeerAddr)
+			val := bucket.Get(pub[:])
+			if val == nil {
+				return errors.New("no address known for peer")
+			}
+			addr = string(val)
+			return nil
+		}
+		if err := app.DB.View(find); err != nil {
+			return "", "", nil, err
+		}
+		return network, addr, (*[ed25519.PublicKeySize]byte)(pub), nil
+	}
+
+	auth := &grpcedtls.Authenticator{
+		Config: app.GetTLSConfig,
+		Lookup: lookup,
+	}
+
+	// TODO never delay here.
+	// https://github.com/grpc/grpc-go/blob/8ce50750fe22e967aa8b1d308b21511844674b57/clientconn.go#L85
+	conn, err := grpc.Dial("placeholder.bazil.org.invalid.:443",
+		grpc.WithTransportCredentials(auth),
+		grpc.WithTimeout(30*time.Second),
+	)
+	if err != nil {
+		return nil, err
+	}
+	client := wirepeer.NewPeerClient(conn)
+	p := &peerClient{
+		PeerClient: client,
+		conn:       conn,
+	}
+	return p, nil
 }
