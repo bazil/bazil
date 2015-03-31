@@ -21,19 +21,15 @@ var _ = fusefs.NodeOpener(fuseFile{})
 var _ = fusefs.Handle(fuseFile{})
 var _ = fusefs.HandleReader(fuseFile{})
 
-func (e fuseFile) Attr() fuse.Attr {
-	a := fuse.Attr{
-		Nlink: 1,
-		Mode:  0444,
-		Uid:   env.MyUID,
-		Gid:   env.MyGID,
-		Size:  e.de.Type.File.Manifest.Size_,
-		// Mtime:  e.Meta.Written.UTC(),
-		// Ctime:  e.Meta.Written.UTC(),
-		// Crtime: e.Meta.Written.UTC(),
-		Blocks: stat_blocks(e.de.Type.File.Manifest.Size_), // TODO .Space?
-	}
-	return a
+func (e fuseFile) Attr(a *fuse.Attr) {
+	a.Mode = 0444
+	a.Uid = env.MyUID
+	a.Gid = env.MyGID
+	a.Size = e.de.Type.File.Manifest.Size_
+	// a.Mtime = e.Meta.Written.UTC()
+	// a.Ctime = e.Meta.Written.UTC()
+	// a.Crtime = e.Meta.Written.UTC()
+	a.Blocks = stat_blocks(e.de.Type.File.Manifest.Size_) // TODO .Space?
 }
 
 func (e fuseFile) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, error) {

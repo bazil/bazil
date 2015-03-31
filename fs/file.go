@@ -64,18 +64,15 @@ func (f *file) marshal() (*wire.Dirent, error) {
 	return de, nil
 }
 
-func (f *file) Attr() fuse.Attr {
+func (f *file) Attr(a *fuse.Attr) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	return fuse.Attr{
-		Inode: f.inode,
-		Mode:  0644,
-		Nlink: 1,
-		Uid:   env.MyUID,
-		Gid:   env.MyGID,
-		Size:  f.blob.Size(),
-	}
+	a.Inode = f.inode
+	a.Mode = 0644
+	a.Uid = env.MyUID
+	a.Gid = env.MyGID
+	a.Size = f.blob.Size()
 }
 
 func (f *file) Forget() {

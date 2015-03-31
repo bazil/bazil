@@ -44,13 +44,10 @@ var _ = fusefs.NodeCreater(fuseDir{})
 var _ = fusefs.Handle(fuseDir{})
 var _ = fusefs.HandleReadDirAller(fuseDir{})
 
-func (d fuseDir) Attr() fuse.Attr {
-	return fuse.Attr{
-		Mode:  os.ModeDir | 0555,
-		Nlink: 1,
-		Uid:   env.MyUID,
-		Gid:   env.MyGID,
-	}
+func (d fuseDir) Attr(a *fuse.Attr) {
+	a.Mode = os.ModeDir | 0555
+	a.Uid = env.MyUID
+	a.Gid = env.MyGID
 }
 
 const _MAX_INT64 = 9223372036854775807

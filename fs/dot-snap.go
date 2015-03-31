@@ -31,14 +31,11 @@ var _ = fs.NodeStringLookuper(&listSnaps{})
 var _ = fs.Handle(&listSnaps{})
 var _ = fs.HandleReadDirAller(&listSnaps{})
 
-func (d *listSnaps) Attr() fuse.Attr {
-	return fuse.Attr{
-		Inode: tokens.InodeSnap,
-		Mode:  os.ModeDir | 0755,
-		Nlink: 1,
-		Uid:   env.MyUID,
-		Gid:   env.MyGID,
-	}
+func (d *listSnaps) Attr(a *fuse.Attr) {
+	a.Inode = tokens.InodeSnap
+	a.Mode = os.ModeDir | 0755
+	a.Uid = env.MyUID
+	a.Gid = env.MyGID
 }
 
 var _ = fs.NodeStringLookuper(&listSnaps{})

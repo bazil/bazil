@@ -59,14 +59,11 @@ func (d *dir) setName(name string) {
 	d.name = name
 }
 
-func (d *dir) Attr() fuse.Attr {
-	return fuse.Attr{
-		Inode: d.inode,
-		Mode:  os.ModeDir | 0755,
-		Nlink: 1,
-		Uid:   env.MyUID,
-		Gid:   env.MyGID,
-	}
+func (d *dir) Attr(a *fuse.Attr) {
+	a.Inode = d.inode
+	a.Mode = os.ModeDir | 0755
+	a.Uid = env.MyUID
+	a.Gid = env.MyGID
 }
 
 func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
