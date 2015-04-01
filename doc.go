@@ -1,3 +1,3 @@
 // Package bazil is a distributed, weakly connected, asynchronous
 // filesystem.
-package main
+package main // import "bazil.org/bazil"
