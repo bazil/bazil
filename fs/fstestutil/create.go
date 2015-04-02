@@ -21,7 +21,7 @@ func NewApp(t testing.TB, dataDir string) *server.App {
 }
 
 func CreateVolume(t testing.TB, app *server.App, volumeName string) {
-	err := fs.Create(app.DB, volumeName)
+	err := fs.Create(app.DB.DB, volumeName)
 	if err != nil {
 		t.Fatal(err)
 	}

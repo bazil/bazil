@@ -26,7 +26,7 @@ func checkHasNoPeers(app *server.App) error {
 		}
 		return nil
 	}
-	if err := app.DB.View(check); err != nil {
+	if err := app.DB.DB.View(check); err != nil {
 		return err
 	}
 	return nil

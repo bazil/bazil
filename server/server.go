@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"bazil.org/bazil/cas/chunks/kvchunks"
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/fs"
 	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/kv"
@@ -34,7 +35,7 @@ type mountState struct {
 type App struct {
 	DataDir  string
 	lockFile *os.File
-	DB       *bolt.DB
+	DB       *db.DB
 	mounts   struct {
 		sync.Mutex
 		open map[fs.VolumeID]*mountState
@@ -71,12 +72,12 @@ func New(dataDir string) (app *App, err error) {
 	}
 
 	dbpath := filepath.Join(dataDir, "bazil.bolt")
-	db, err := bolt.Open(dbpath, 0600, nil)
+	database, err := db.Open(dbpath, 0600, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.Update(func(tx *bolt.Tx) error {
+	err = database.DB.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketBazil)); err != nil {
 			return err
 		}
@@ -116,11 +117,11 @@ func New(dataDir string) (app *App, err error) {
 		return nil
 	})
 	if err != nil {
-		db.Close()
+		database.Close()
 		return nil, err
 	}
 
-	keys, err := loadOrGenerateKeys(db)
+	keys, err := loadOrGenerateKeys(database.DB)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +129,7 @@ func New(dataDir string) (app *App, err error) {
 	app = &App{
 		DataDir:  dataDir,
 		lockFile: lockFile,
-		DB:       db,
+		DB:       database,
 		Keys:     keys,
 	}
 	app.mounts.open = make(map[fs.VolumeID]*mountState)
@@ -251,7 +252,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 	var volumeID *fs.VolumeID
 	var ready = make(chan error, 1)
 	app.mounts.Lock()
-	err := app.DB.View(func(tx *bolt.Tx) error {
+	err := app.DB.DB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(tokens.BucketVolName))
 		val := bucket.Get([]byte(volumeName))
 		if val == nil {
@@ -276,7 +277,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 		}
 
 		chunkStore := kvchunks.New(kvstore)
-		vol, err = fs.Open(app.DB, chunkStore, volumeID)
+		vol, err = fs.Open(app.DB.DB, chunkStore, volumeID)
 		if err != nil {
 			return err
 		}

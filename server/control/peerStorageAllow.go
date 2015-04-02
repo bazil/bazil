@@ -50,7 +50,7 @@ func (c controlRPC) PeerStorageAllow(ctx context.Context, req *wire.PeerStorageA
 		}
 		return nil
 	}
-	if err := c.app.DB.Update(update); err != nil {
+	if err := c.app.DB.DB.Update(update); err != nil {
 		log.Printf("db error: setting peer addr: %v", err)
 		return nil, grpc.Errorf(codes.Internal, "database error")
 	}

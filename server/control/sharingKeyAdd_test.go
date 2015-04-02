@@ -49,7 +49,7 @@ func TestSharingAdd(t *testing.T) {
 		}
 		return nil
 	}
-	if err := app.DB.View(check); err != nil {
+	if err := app.DB.DB.View(check); err != nil {
 		t.Error(err)
 	}
 }
@@ -93,7 +93,7 @@ func TestSharingAddBadNameEmpty(t *testing.T) {
 		}
 		return nil
 	}
-	if err := app.DB.View(check); err != nil {
+	if err := app.DB.DB.View(check); err != nil {
 		t.Error(err)
 	}
 }
@@ -137,7 +137,7 @@ func TestSharingAddBadSecretLong(t *testing.T) {
 		}
 		return nil
 	}
-	if err := app.DB.View(check); err != nil {
+	if err := app.DB.DB.View(check); err != nil {
 		t.Error(err)
 	}
 }
@@ -181,7 +181,7 @@ func TestSharingAddBadSecretShort(t *testing.T) {
 		}
 		return nil
 	}
-	if err := app.DB.View(check); err != nil {
+	if err := app.DB.DB.View(check); err != nil {
 		t.Error(err)
 	}
 }

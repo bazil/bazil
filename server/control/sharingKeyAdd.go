@@ -32,7 +32,7 @@ func (c controlRPC) SharingKeyAdd(ctx context.Context, req *wire.SharingKeyAddRe
 		}
 		return nil
 	}
-	if err := c.app.DB.Update(update); err != nil {
+	if err := c.app.DB.DB.Update(update); err != nil {
 		if grpc.Code(err) != codes.Unknown {
 			return nil, err
 		}

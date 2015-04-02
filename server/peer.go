@@ -56,7 +56,7 @@ func (app *App) GetPeer(pub *[ed25519.PublicKeySize]byte) (*peer.Peer, error) {
 		p, err = app.findPeer(tx, pub)
 		return err
 	}
-	if err := app.DB.View(get); err != nil {
+	if err := app.DB.DB.View(get); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -114,7 +114,7 @@ func (app *App) MakePeer(pub *[ed25519.PublicKeySize]byte) (*peer.Peer, error) {
 		}
 		return nil
 	}
-	if err := app.DB.Update(getOrMake); err != nil {
+	if err := app.DB.DB.Update(getOrMake); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -133,7 +133,7 @@ func (app *App) OpenKVForPeer(pub *[ed25519.PublicKeySize]byte) (kv.KV, error) {
 		}
 		return nil
 	}
-	if err := app.DB.View(find); err != nil {
+	if err := app.DB.DB.View(find); err != nil {
 		return nil, err
 	}
 
@@ -176,7 +176,7 @@ func (app *App) DialPeer(pub *peer.PublicKey) (PeerClient, error) {
 			addr = string(val)
 			return nil
 		}
-		if err := app.DB.View(find); err != nil {
+		if err := app.DB.DB.View(find); err != nil {
 			return "", "", nil, err
 		}
 		return network, addr, (*[ed25519.PublicKeySize]byte)(pub), nil

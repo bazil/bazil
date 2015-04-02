@@ -80,7 +80,7 @@ func (c controlRPC) VolumeStorageAdd(ctx context.Context, req *wire.VolumeStorag
 		return nil, grpc.Errorf(codes.InvalidArgument, "invalid sharing key name")
 	}
 
-	if err := addStorage(c.app.DB, req.VolumeName, req.Name, req.Backend, req.SharingKeyName); err != nil {
+	if err := addStorage(c.app.DB.DB, req.VolumeName, req.Name, req.Backend, req.SharingKeyName); err != nil {
 		switch err.(type) {
 		case *storageExistsError:
 			return nil, grpc.Errorf(codes.AlreadyExists, err.Error())
