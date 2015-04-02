@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/agl/ed25519"
@@ -11,17 +12,18 @@ import (
 	"bazil.org/bazil/util/tempdir"
 )
 
-func checkMakePeer(t testing.TB, app *server.App, pub *[ed25519.PublicKeySize]byte, id peer.ID) {
+func checkMakePeer(app *server.App, pub *[ed25519.PublicKeySize]byte, id peer.ID) error {
 	peer, err := app.MakePeer(pub)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 	if g, e := *peer.Pub, *pub; g != e {
-		t.Errorf("peer pubkey came back wrong: %v != %v", g, e)
+		return fmt.Errorf("peer pubkey came back wrong: %v != %v", g, e)
 	}
 	if g, e := peer.ID, id; g != e {
-		t.Errorf("wrong peer ID: %v != %v", g, e)
+		return fmt.Errorf("wrong peer ID: %v != %v", g, e)
 	}
+	return nil
 }
 
 func TestGetPeerNotFound(t *testing.T) {
@@ -49,8 +51,16 @@ func TestMakePeer(t *testing.T) {
 	pub1 := &[ed25519.PublicKeySize]byte{0x42, 0x42, 0x42}
 	pub2 := &[ed25519.PublicKeySize]byte{0xC0, 0xFF, 0xEE}
 
-	checkMakePeer(t, app, pub1, 1)
-	checkMakePeer(t, app, pub1, 1)
-	checkMakePeer(t, app, pub2, 2)
-	checkMakePeer(t, app, pub1, 1)
+	if err := checkMakePeer(app, pub1, 1); err != nil {
+		t.Error(err)
+	}
+	if err := checkMakePeer(app, pub1, 1); err != nil {
+		t.Error(err)
+	}
+	if err := checkMakePeer(app, pub2, 2); err != nil {
+		t.Error(err)
+	}
+	if err := checkMakePeer(app, pub1, 1); err != nil {
+		t.Error(err)
+	}
 }
