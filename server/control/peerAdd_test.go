@@ -1,6 +1,7 @@
 package control
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -14,6 +15,22 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 )
+
+func checkHasNoPeers(app *server.App) error {
+	check := func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(tokens.BucketPeer))
+		c := b.Cursor()
+		k, _ := c.First()
+		if k != nil {
+			return fmt.Errorf("did not expect stored public key: %x", k)
+		}
+		return nil
+	}
+	if err := app.DB.View(check); err != nil {
+		return err
+	}
+	return nil
+}
 
 func TestPeerAdd(t *testing.T) {
 	tmp := tempdir.New(t)
@@ -79,16 +96,7 @@ func TestPeerAddBadPubLong(t *testing.T) {
 	if err := checkRPCError(err, codes.InvalidArgument, "peer public key must be exactly 32 bytes"); err != nil {
 		t.Error(err)
 	}
-
-	check := func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(tokens.BucketPeer))
-		val := bucket.Get([]byte("foo"))
-		if g := val; g != nil {
-			t.Errorf("public key stored even on error: %x", g)
-		}
-		return nil
-	}
-	if err := app.DB.View(check); err != nil {
+	if err := checkHasNoPeers(app); err != nil {
 		t.Error(err)
 	}
 }
@@ -122,16 +130,7 @@ func TestPeerAddBadPubShort(t *testing.T) {
 	if err := checkRPCError(err, codes.InvalidArgument, "peer public key must be exactly 32 bytes"); err != nil {
 		t.Error(err)
 	}
-
-	check := func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(tokens.BucketPeer))
-		val := bucket.Get([]byte("foo"))
-		if g := val; g != nil {
-			t.Errorf("public key stored even on error: %x", g)
-		}
-		return nil
-	}
-	if err := app.DB.View(check); err != nil {
+	if err := checkHasNoPeers(app); err != nil {
 		t.Error(err)
 	}
 }
