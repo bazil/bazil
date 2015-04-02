@@ -1,6 +1,7 @@
 package control
 
 import (
+	"bytes"
 	"log"
 
 	"bazil.org/bazil/server/control/wire"
@@ -13,6 +14,9 @@ import (
 func (c controlRPC) PeerAdd(ctx context.Context, req *wire.PeerAddRequest) (*wire.PeerAddResponse, error) {
 	if len(req.Pub) != ed25519.PublicKeySize {
 		return nil, grpc.Errorf(codes.InvalidArgument, "peer public key must be exactly %d bytes", ed25519.PublicKeySize)
+	}
+	if bytes.Equal(req.Pub, c.app.Keys.Sign.Pub[:]) {
+		return nil, grpc.Errorf(codes.InvalidArgument, "cannot add self as peer")
 	}
 
 	var pub [ed25519.PublicKeySize]byte

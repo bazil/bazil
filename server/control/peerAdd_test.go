@@ -134,3 +134,36 @@ func TestPeerAddBadPubShort(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestPeerAddBadPubSelf(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app, err := server.New(tmp.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer controlListenAndServe(t, app)()
+
+	addReq := &wire.PeerAddRequest{
+		Pub: app.Keys.Sign.Pub[:],
+	}
+
+	rpcConn, err := grpcunix.Dial(filepath.Join(app.DataDir, "control"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rpcConn.Close()
+	rpcClient := wire.NewControlClient(rpcConn)
+
+	ctx := context.Background()
+	_, err = rpcClient.PeerAdd(ctx, addReq)
+	if err == nil {
+		t.Fatalf("expected error from PeerAdd with its own public key")
+	}
+	if err := checkRPCError(err, codes.InvalidArgument, "cannot add self as peer"); err != nil {
+		t.Error(err)
+	}
+	if err := checkHasNoPeers(app); err != nil {
+		t.Error(err)
+	}
+}
