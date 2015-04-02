@@ -81,7 +81,9 @@ func TestSharingAddBadNameEmpty(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error from SharingKeyAdd with empty name")
 	}
-	checkRPCError(t, err, codes.InvalidArgument, "invalid sharing key name")
+	if err := checkRPCError(err, codes.InvalidArgument, "invalid sharing key name"); err != nil {
+		t.Error(err)
+	}
 
 	check := func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(tokens.BucketSharing))
@@ -123,7 +125,9 @@ func TestSharingAddBadSecretLong(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error from SharingKeyAdd with too long secret")
 	}
-	checkRPCError(t, err, codes.InvalidArgument, "sharing key must be exactly 32 bytes")
+	if err := checkRPCError(err, codes.InvalidArgument, "sharing key must be exactly 32 bytes"); err != nil {
+		t.Error(err)
+	}
 
 	check := func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(tokens.BucketSharing))
@@ -165,7 +169,9 @@ func TestSharingAddBadSecretShort(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error from SharingKeyAdd with too short secret")
 	}
-	checkRPCError(t, err, codes.InvalidArgument, "sharing key must be exactly 32 bytes")
+	if err := checkRPCError(err, codes.InvalidArgument, "sharing key must be exactly 32 bytes"); err != nil {
+		t.Error(err)
+	}
 
 	check := func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(tokens.BucketSharing))

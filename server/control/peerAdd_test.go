@@ -76,7 +76,9 @@ func TestPeerAddBadPubLong(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error from PeerAdd with too long public key")
 	}
-	checkRPCError(t, err, codes.InvalidArgument, "peer public key must be exactly 32 bytes")
+	if err := checkRPCError(err, codes.InvalidArgument, "peer public key must be exactly 32 bytes"); err != nil {
+		t.Error(err)
+	}
 
 	check := func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(tokens.BucketPeer))
@@ -117,7 +119,9 @@ func TestPeerAddBadPubShort(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error from PeerAdd with too short public key")
 	}
-	checkRPCError(t, err, codes.InvalidArgument, "peer public key must be exactly 32 bytes")
+	if err := checkRPCError(err, codes.InvalidArgument, "peer public key must be exactly 32 bytes"); err != nil {
+		t.Error(err)
+	}
 
 	check := func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(tokens.BucketPeer))
