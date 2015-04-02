@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"bazil.org/bazil/control/wire"
 	wirefs "bazil.org/bazil/fs/wire"
+	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/tokens"
 	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"

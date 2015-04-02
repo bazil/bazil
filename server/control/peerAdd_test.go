@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/server"
+	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/tokens"
 	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/bazil/util/tempdir"

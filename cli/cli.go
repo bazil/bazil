@@ -12,8 +12,8 @@ import (
 
 	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
-	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/defaults"
+	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/fuse"
 	"github.com/tv42/jog"

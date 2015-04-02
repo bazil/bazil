@@ -3,7 +3,7 @@ package control
 import (
 	"log"
 
-	"bazil.org/bazil/control/wire"
+	"bazil.org/bazil/server/control/wire"
 	"github.com/agl/ed25519"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

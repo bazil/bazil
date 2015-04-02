@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/server"
+	"bazil.org/bazil/server/control/wire"
 	"google.golang.org/grpc"
 )
 

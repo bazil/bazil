@@ -6,8 +6,8 @@ import (
 
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
-	"bazil.org/bazil/control"
 	"bazil.org/bazil/server"
+	"bazil.org/bazil/server/control"
 	"bazil.org/bazil/server/http"
 	"github.com/cespare/gomaxprocs"
 )

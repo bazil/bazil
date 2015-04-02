@@ -1,7 +1,7 @@
 package control
 
 import (
-	"bazil.org/bazil/control/wire"
+	"bazil.org/bazil/server/control/wire"
 	"golang.org/x/net/context"
 )
 

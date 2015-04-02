@@ -3,7 +3,7 @@ package control
 import (
 	"log"
 
-	"bazil.org/bazil/control/wire"
+	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/tokens"
 	"github.com/boltdb/bolt"
 	"golang.org/x/net/context"

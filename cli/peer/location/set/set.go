@@ -3,8 +3,8 @@ package set
 import (
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
-	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/peer"
+	"bazil.org/bazil/server/control/wire"
 	"golang.org/x/net/context"
 )
 

@@ -3,8 +3,8 @@ package control
 import (
 	"log"
 
-	"bazil.org/bazil/control/wire"
 	"bazil.org/bazil/server"
+	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/tokens"
 	"github.com/agl/ed25519"
 	"github.com/boltdb/bolt"
