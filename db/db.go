@@ -18,7 +18,21 @@ func Open(path string, mode os.FileMode, options *bolt.Options) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DB{d}, nil
+	db := &DB{d}
+	if err := db.Update(db.init); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return db, nil
+}
+
+// init sets up the initial database contents. It is guaranteed to be
+// idempotent and safe to run on pre-existing databases.
+func (db *DB) init(tx *Tx) error {
+	if err := tx.initSharingKeys(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *DB) View(fn func(*Tx) error) error {

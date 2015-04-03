@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
@@ -87,21 +86,6 @@ func New(dataDir string) (app *App, err error) {
 		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketVolName)); err != nil {
 			return err
 		}
-		bucket, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketSharing))
-		if err != nil {
-			return err
-		}
-		// Create the default sharing secret.
-		var defaultKey = []byte("default")
-		if bucket.Get(defaultKey) == nil {
-			var secret [32]byte
-			if _, err := rand.Read(secret[:]); err != nil {
-				return err
-			}
-			if err := bucket.Put(defaultKey, secret[:]); err != nil {
-				return err
-			}
-		}
 		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketPeer)); err != nil {
 			return err
 		}
@@ -183,7 +167,7 @@ type MountInfo struct {
 	VolumeID fs.VolumeID
 }
 
-func (app *App) openKV(tx *bolt.Tx, conf []*wire.VolumeStorage) (kv.KV, error) {
+func (app *App) openKV(tx *db.Tx, conf []*wire.VolumeStorage) (kv.KV, error) {
 	var kvstores []kv.KV
 
 	for _, storage := range conf {
@@ -191,14 +175,12 @@ func (app *App) openKV(tx *bolt.Tx, conf []*wire.VolumeStorage) (kv.KV, error) {
 		if err != nil {
 			return nil, err
 		}
-		bucket := tx.Bucket([]byte(tokens.BucketSharing))
-		buf := bucket.Get([]byte(storage.SharingKeyName))
-		if buf == nil {
-			return nil, fmt.Errorf("sharing key not found: %s", storage.SharingKeyName)
+
+		secret, err := tx.SharingKeys().Get(storage.SharingKeyName)
+		if err != nil {
+			return nil, fmt.Errorf("getting sharing key %q: %v", storage.SharingKeyName, err)
 		}
-		var secret [32]byte
-		copy(secret[:], buf)
-		s = untrusted.New(s, &secret)
+		s = untrusted.New(s, secret)
 		kvstores = append(kvstores, s)
 	}
 
@@ -252,7 +234,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 	var volumeID *fs.VolumeID
 	var ready = make(chan error, 1)
 	app.mounts.Lock()
-	err := app.DB.DB.View(func(tx *bolt.Tx) error {
+	err := app.DB.View(func(tx *db.Tx) error {
 		bucket := tx.Bucket([]byte(tokens.BucketVolName))
 		val := bucket.Get([]byte(volumeName))
 		if val == nil {

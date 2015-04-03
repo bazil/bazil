@@ -3,9 +3,8 @@ package control
 import (
 	"log"
 
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/server/control/wire"
-	"bazil.org/bazil/tokens"
-	"github.com/boltdb/bolt"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -21,18 +20,16 @@ func (c controlRPC) SharingKeyAdd(ctx context.Context, req *wire.SharingKeyAddRe
 		return nil, grpc.Errorf(codes.InvalidArgument, "invalid sharing key name")
 	}
 
-	update := func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(tokens.BucketSharing))
-		key := []byte(req.Name)
-		if bucket.Get(key) != nil {
-			return grpc.Errorf(codes.AlreadyExists, "sharing key exists already: %x", req.Name)
-		}
-		if err := bucket.Put(key, req.Secret); err != nil {
-			return err
-		}
-		return nil
+	var secret [32]byte
+	copy(secret[:], req.Secret)
+
+	update := func(tx *db.Tx) error {
+		return tx.SharingKeys().Add(req.Name, &secret)
 	}
-	if err := c.app.DB.DB.Update(update); err != nil {
+	if err := c.app.DB.Update(update); err != nil {
+		if err == db.ErrSharingKeyExist {
+			return nil, grpc.Errorf(codes.AlreadyExists, "sharing key exists already: %x", req.Name)
+		}
 		if grpc.Code(err) != codes.Unknown {
 			return nil, err
 		}

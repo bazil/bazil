@@ -2,18 +2,34 @@ package control
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"testing"
 
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/server"
 	"bazil.org/bazil/server/control/wire"
-	"bazil.org/bazil/tokens"
 	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/bazil/util/tempdir"
-	"github.com/boltdb/bolt"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 )
+
+func checkNoSharingKey(name string) func(tx *db.Tx) error {
+	check := func(tx *db.Tx) error {
+		key, err := tx.SharingKeys().Get("foo")
+		switch err {
+		case db.ErrSharingKeyNotFound:
+			// nothing
+		case nil:
+			return fmt.Errorf("secret stored even on error: %x", key)
+		default:
+			return fmt.Errorf("error checking sharing key: %v", err)
+		}
+		return nil
+	}
+	return check
+}
 
 func TestSharingAdd(t *testing.T) {
 	tmp := tempdir.New(t)
@@ -41,15 +57,17 @@ func TestSharingAdd(t *testing.T) {
 	if _, err := rpcClient.SharingKeyAdd(ctx, addReq); err != nil {
 		t.Fatalf("adding sharing key failed: %v", err)
 	}
-	check := func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(tokens.BucketSharing))
-		val := bucket.Get([]byte("foo"))
-		if g, e := val, secret; !bytes.Equal(g[:], e[:]) {
+	check := func(tx *db.Tx) error {
+		key, err := tx.SharingKeys().Get("foo")
+		if err != nil {
+			t.Fatalf("error checking sharing key: %v", err)
+		}
+		if g, e := key, secret; !bytes.Equal(g[:], e[:]) {
 			t.Errorf("wrong secret stored: %x != %x", g, e)
 		}
 		return nil
 	}
-	if err := app.DB.DB.View(check); err != nil {
+	if err := app.DB.View(check); err != nil {
 		t.Error(err)
 	}
 }
@@ -85,15 +103,7 @@ func TestSharingAddBadNameEmpty(t *testing.T) {
 		t.Error(err)
 	}
 
-	check := func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(tokens.BucketSharing))
-		val := bucket.Get([]byte("foo"))
-		if g := val; g != nil {
-			t.Errorf("secret stored even on error: %x", g)
-		}
-		return nil
-	}
-	if err := app.DB.DB.View(check); err != nil {
+	if err := app.DB.View(checkNoSharingKey("foo")); err != nil {
 		t.Error(err)
 	}
 }
@@ -129,15 +139,7 @@ func TestSharingAddBadSecretLong(t *testing.T) {
 		t.Error(err)
 	}
 
-	check := func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(tokens.BucketSharing))
-		val := bucket.Get([]byte("foo"))
-		if g := val; g != nil {
-			t.Errorf("secret stored even on error: %x", g)
-		}
-		return nil
-	}
-	if err := app.DB.DB.View(check); err != nil {
+	if err := app.DB.View(checkNoSharingKey("foo")); err != nil {
 		t.Error(err)
 	}
 }
@@ -173,15 +175,7 @@ func TestSharingAddBadSecretShort(t *testing.T) {
 		t.Error(err)
 	}
 
-	check := func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(tokens.BucketSharing))
-		val := bucket.Get([]byte("foo"))
-		if g := val; g != nil {
-			t.Errorf("secret stored even on error: %x", g)
-		}
-		return nil
-	}
-	if err := app.DB.DB.View(check); err != nil {
+	if err := app.DB.View(checkNoSharingKey("foo")); err != nil {
 		t.Error(err)
 	}
 }
