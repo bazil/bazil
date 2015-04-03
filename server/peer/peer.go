@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server"
@@ -10,19 +11,23 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (p *peers) auth(ctx context.Context) (*peer.Peer, error) {
-	pub, ok := grpcedtls.FromContext(ctx)
+func (p *peers) auth(ctx context.Context) (*peer.PublicKey, error) {
+	pubEd, ok := grpcedtls.FromContext(ctx)
 	if !ok {
 		return nil, grpc.Errorf(codes.Unauthenticated, "unauthenticated")
 	}
-	peer, err := p.app.GetPeer(pub)
-	if err == server.ErrPeerNotFound {
-		return nil, grpc.Errorf(codes.PermissionDenied, "permission denied")
+	pub := (*peer.PublicKey)(pubEd)
+	getPeer := func(tx *db.Tx) error {
+		_, err := tx.Peers().Get(pub)
+		return err
 	}
-	if err != nil {
+	if err := p.app.DB.View(getPeer); err != nil {
+		if err == db.ErrPeerNotFound {
+			return nil, grpc.Errorf(codes.PermissionDenied, "permission denied")
+		}
 		return nil, err
 	}
-	return peer, nil
+	return pub, nil
 }
 
 type peers struct {

@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package bazil.control;
 
-import "bazil.org/bazil/server/wire/peer.proto";
-
 option go_package = "wire";
 
 message PeerAddRequest {
@@ -26,7 +24,8 @@ message PeerLocationSetResponse {
 message PeerStorageAllowRequest {
   // Must be exactly 32 bytes long.
   bytes pub = 1;
-  bazil.peer.PeerStorage backends = 2;
+  string backend = 2;
+  // later this may include quota style restrictions
 }
 
 message PeerStorageAllowResponse {

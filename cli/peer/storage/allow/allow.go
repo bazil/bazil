@@ -5,7 +5,6 @@ import (
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/server/control/wire"
-	wireserver "bazil.org/bazil/server/wire"
 	"golang.org/x/net/context"
 )
 
@@ -19,12 +18,9 @@ type allowCommand struct {
 
 func (cmd *allowCommand) Run() error {
 	req := &wire.PeerStorageAllowRequest{
-		Pub: cmd.Arguments.PubKey[:],
-		Backends: &wireserver.PeerStorage{
-			Backends: map[string]*wireserver.PeerStorageConfig{},
-		},
+		Pub:     cmd.Arguments.PubKey[:],
+		Backend: cmd.Arguments.Storage,
 	}
-	req.Backends.Backends[cmd.Arguments.Storage] = &wireserver.PeerStorageConfig{}
 	ctx := context.Background()
 	client, err := clibazil.Bazil.Control()
 	if err != nil {

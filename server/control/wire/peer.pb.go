@@ -5,7 +5,6 @@
 package wire
 
 import proto "github.com/golang/protobuf/proto"
-import bazil_peer "bazil.org/bazil/server/wire"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -45,20 +44,13 @@ func (*PeerLocationSetResponse) ProtoMessage()    {}
 
 type PeerStorageAllowRequest struct {
 	// Must be exactly 32 bytes long.
-	Pub      []byte                  `protobuf:"bytes,1,opt,name=pub,proto3" json:"pub,omitempty"`
-	Backends *bazil_peer.PeerStorage `protobuf:"bytes,2,opt,name=backends" json:"backends,omitempty"`
+	Pub     []byte `protobuf:"bytes,1,opt,name=pub,proto3" json:"pub,omitempty"`
+	Backend string `protobuf:"bytes,2,opt,name=backend" json:"backend,omitempty"`
 }
 
 func (m *PeerStorageAllowRequest) Reset()         { *m = PeerStorageAllowRequest{} }
 func (m *PeerStorageAllowRequest) String() string { return proto.CompactTextString(m) }
 func (*PeerStorageAllowRequest) ProtoMessage()    {}
-
-func (m *PeerStorageAllowRequest) GetBackends() *bazil_peer.PeerStorage {
-	if m != nil {
-		return m.Backends
-	}
-	return nil
-}
 
 type PeerStorageAllowResponse struct {
 }

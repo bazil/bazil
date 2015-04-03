@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"bazil.org/bazil/db"
+	"bazil.org/bazil/peer"
 	"bazil.org/bazil/server"
 	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/tokens"
 	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/bazil/util/tempdir"
-	"github.com/agl/ed25519"
 	"github.com/boltdb/bolt"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -41,7 +42,7 @@ func TestPeerAdd(t *testing.T) {
 	}
 	defer controlListenAndServe(t, app)()
 
-	pub := [ed25519.PublicKeySize]byte{1, 2, 3, 4, 5}
+	pub := peer.PublicKey{1, 2, 3, 4, 5}
 	addReq := &wire.PeerAddRequest{
 		Pub: pub[:],
 	}
@@ -58,12 +59,18 @@ func TestPeerAdd(t *testing.T) {
 		t.Fatalf("adding peer failed: %v", err)
 	}
 
-	p, err := app.GetPeer(&pub)
-	if err != nil {
-		t.Fatalf("checking stored peer: %v", err)
+	getPeer := func(tx *db.Tx) error {
+		p, err := tx.Peers().Get(&pub)
+		if err != nil {
+			t.Fatalf("checking stored peer: %v", err)
+		}
+		if g, e := *p.Pub(), pub; g != e {
+			t.Errorf("wrong public key stored: %x != %x", g, e)
+		}
+		return nil
 	}
-	if g, e := *p.Pub, pub; g != e {
-		t.Errorf("wrong public key stored: %x != %x", g, e)
+	if err := app.DB.View(getPeer); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -93,7 +100,7 @@ func TestPeerAddBadPubLong(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error from PeerAdd with too long public key")
 	}
-	if err := checkRPCError(err, codes.InvalidArgument, "peer public key must be exactly 32 bytes"); err != nil {
+	if err := checkRPCError(err, codes.InvalidArgument, "bad peer public key: peer public key must be exactly 32 bytes"); err != nil {
 		t.Error(err)
 	}
 	if err := checkHasNoPeers(app); err != nil {
@@ -127,7 +134,7 @@ func TestPeerAddBadPubShort(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error from PeerAdd with too short public key")
 	}
-	if err := checkRPCError(err, codes.InvalidArgument, "peer public key must be exactly 32 bytes"); err != nil {
+	if err := checkRPCError(err, codes.InvalidArgument, "bad peer public key: peer public key must be exactly 32 bytes"); err != nil {
 		t.Error(err)
 	}
 	if err := checkHasNoPeers(app); err != nil {

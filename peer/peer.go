@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"encoding"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -10,12 +11,23 @@ import (
 
 type ID uint32
 
-type Peer struct {
-	ID  ID
-	Pub *[ed25519.PublicKeySize]byte
+type PublicKey [ed25519.PublicKeySize]byte
+
+var _ encoding.BinaryMarshaler = (*PublicKey)(nil)
+
+func (p *PublicKey) MarshalBinary() (data []byte, err error) {
+	return p[:], nil
 }
 
-type PublicKey [ed25519.PublicKeySize]byte
+var _ encoding.BinaryUnmarshaler = (*PublicKey)(nil)
+
+func (p *PublicKey) UnmarshalBinary(data []byte) error {
+	if len(data) != len(p) {
+		return fmt.Errorf("peer public key must be exactly %d bytes", ed25519.PublicKeySize)
+	}
+	copy(p[:], data)
+	return nil
+}
 
 var _ flag.Value = (*PublicKey)(nil)
 
