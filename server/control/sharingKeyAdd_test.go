@@ -1,7 +1,6 @@
 package control
 
 import (
-	"bytes"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -58,11 +57,13 @@ func TestSharingAdd(t *testing.T) {
 		t.Fatalf("adding sharing key failed: %v", err)
 	}
 	check := func(tx *db.Tx) error {
-		key, err := tx.SharingKeys().Get("foo")
+		sharingKey, err := tx.SharingKeys().Get("foo")
 		if err != nil {
 			t.Fatalf("error checking sharing key: %v", err)
 		}
-		if g, e := key, secret; !bytes.Equal(g[:], e[:]) {
+		var key [32]byte
+		sharingKey.Secret(&key)
+		if g, e := key, secret; g != e {
 			t.Errorf("wrong secret stored: %x != %x", g, e)
 		}
 		return nil

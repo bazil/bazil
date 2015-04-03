@@ -36,7 +36,7 @@ func (tx *Tx) initSharingKeys() error {
 	if _, err := rand.Read(secret[:]); err != nil {
 		return err
 	}
-	if err := b.Add(defaultKey, &secret); err != nil {
+	if _, err := b.Add(defaultKey, &secret); err != nil {
 		return err
 	}
 
@@ -56,16 +56,18 @@ type SharingKeys struct {
 //
 // If the sharing key name is not found, returns
 // ErrSharingKeyNotFound.
-//
-// Returned key is valid after the transaction.
-func (b *SharingKeys) Get(name string) (key *[32]byte, err error) {
-	v := b.b.Get([]byte(name))
+func (b *SharingKeys) Get(name string) (*SharingKey, error) {
+	n := []byte(name)
+	v := b.b.Get(n)
 	if v == nil {
 		return nil, ErrSharingKeyNotFound
 	}
-	var secret [32]byte
-	copy(secret[:], v)
-	return &secret, nil
+	s := &SharingKey{
+		b:      b,
+		name:   n,
+		secret: v,
+	}
+	return s, nil
 }
 
 // Add a sharing key.
@@ -74,12 +76,41 @@ func (b *SharingKeys) Get(name string) (key *[32]byte, err error) {
 //
 // If a sharing key by that name already exists, returns
 // ErrSharingKeyExist.
-func (b *SharingKeys) Add(name string, key *[32]byte) error {
+func (b *SharingKeys) Add(name string, key *[32]byte) (*SharingKey, error) {
 	if name == "" {
-		return ErrSharingKeyNameInvalid
+		return nil, ErrSharingKeyNameInvalid
 	}
-	if v := b.b.Get([]byte(name)); v != nil {
-		return ErrSharingKeyExist
+	n := []byte(name)
+	if v := b.b.Get(n); v != nil {
+		return nil, ErrSharingKeyExist
 	}
-	return b.b.Put([]byte(name), key[:])
+	if err := b.b.Put([]byte(name), key[:]); err != nil {
+		return nil, err
+	}
+	s := &SharingKey{
+		b:      b,
+		name:   n,
+		secret: key[:],
+	}
+	return s, nil
+}
+
+type SharingKey struct {
+	b      *SharingKeys
+	name   []byte
+	secret []byte
+}
+
+// Name returns the name of the sharing key.
+//
+// Returned value is valid after the transaction.
+func (s *SharingKey) Name() string {
+	return string(s.name)
+}
+
+// Secret copies the secret key to out.
+//
+// out is valid after the transaction.
+func (s *SharingKey) Secret(out *[32]byte) {
+	copy(out[:], s.secret)
 }

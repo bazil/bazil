@@ -164,11 +164,13 @@ func (app *App) openKV(tx *db.Tx, conf []*wire.VolumeStorage) (kv.KV, error) {
 			return nil, err
 		}
 
-		secret, err := tx.SharingKeys().Get(storage.SharingKeyName)
+		sharingKey, err := tx.SharingKeys().Get(storage.SharingKeyName)
 		if err != nil {
 			return nil, fmt.Errorf("getting sharing key %q: %v", storage.SharingKeyName, err)
 		}
-		s = untrusted.New(s, secret)
+		var secret [32]byte
+		sharingKey.Secret(&secret)
+		s = untrusted.New(s, &secret)
 		kvstores = append(kvstores, s)
 	}
 

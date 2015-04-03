@@ -21,7 +21,10 @@ func (c controlRPC) SharingKeyAdd(ctx context.Context, req *wire.SharingKeyAddRe
 	copy(secret[:], req.Secret)
 
 	update := func(tx *db.Tx) error {
-		return tx.SharingKeys().Add(req.Name, &secret)
+		if _, err := tx.SharingKeys().Add(req.Name, &secret); err != nil {
+			return err
+		}
+		return nil
 	}
 	if err := c.app.DB.Update(update); err != nil {
 		switch err {
