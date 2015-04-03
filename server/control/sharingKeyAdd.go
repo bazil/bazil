@@ -16,9 +16,6 @@ func (c controlRPC) SharingKeyAdd(ctx context.Context, req *wire.SharingKeyAddRe
 	if len(req.Secret) != sharingKeySize {
 		return nil, grpc.Errorf(codes.InvalidArgument, "sharing key must be exactly 32 bytes")
 	}
-	if req.Name == "" {
-		return nil, grpc.Errorf(codes.InvalidArgument, "invalid sharing key name")
-	}
 
 	var secret [32]byte
 	copy(secret[:], req.Secret)
@@ -27,8 +24,11 @@ func (c controlRPC) SharingKeyAdd(ctx context.Context, req *wire.SharingKeyAddRe
 		return tx.SharingKeys().Add(req.Name, &secret)
 	}
 	if err := c.app.DB.Update(update); err != nil {
-		if err == db.ErrSharingKeyExist {
+		switch err {
+		case db.ErrSharingKeyExist:
 			return nil, grpc.Errorf(codes.AlreadyExists, "sharing key exists already: %x", req.Name)
+		case db.ErrSharingKeyNameInvalid:
+			return nil, grpc.Errorf(codes.InvalidArgument, "%v", err)
 		}
 		if grpc.Code(err) != codes.Unknown {
 			return nil, err

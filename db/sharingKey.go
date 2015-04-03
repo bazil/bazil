@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	ErrSharingKeyNotFound = errors.New("sharing key not found")
-	ErrSharingKeyExist    = errors.New("sharing key exists already")
+	ErrSharingKeyNameInvalid = errors.New("invalid sharing key name")
+	ErrSharingKeyNotFound    = errors.New("sharing key not found")
+	ErrSharingKeyExist       = errors.New("sharing key exists already")
 )
 
 var (
@@ -69,9 +70,14 @@ func (b *SharingKeys) Get(name string) (key *[32]byte, err error) {
 
 // Add a sharing key.
 //
+// If name is invalid, returns ErrSharingKeyNameInvalid.
+//
 // If a sharing key by that name already exists, returns
 // ErrSharingKeyExist.
 func (b *SharingKeys) Add(name string, key *[32]byte) error {
+	if name == "" {
+		return ErrSharingKeyNameInvalid
+	}
 	if v := b.b.Get([]byte(name)); v != nil {
 		return ErrSharingKeyExist
 	}
