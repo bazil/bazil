@@ -12,7 +12,6 @@ import (
 	"bazil.org/bazil/cas/chunks/kvchunks"
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/fs"
-	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/kv/kvfiles"
 	"bazil.org/bazil/kv/kvmulti"
@@ -23,7 +22,6 @@ import (
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
 	"github.com/boltdb/bolt"
-	"github.com/golang/protobuf/proto"
 )
 
 type mountState struct {
@@ -37,7 +35,7 @@ type App struct {
 	DB       *db.DB
 	mounts   struct {
 		sync.Mutex
-		open map[fs.VolumeID]*mountState
+		open map[db.VolumeID]*mountState
 	}
 	Keys *CryptoKeys
 	tls  struct {
@@ -80,12 +78,6 @@ func New(dataDir string) (app *App, err error) {
 		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketBazil)); err != nil {
 			return err
 		}
-		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketVolume)); err != nil {
-			return err
-		}
-		if _, err := tx.CreateBucketIfNotExists([]byte(tokens.BucketVolName)); err != nil {
-			return err
-		}
 		return nil
 	})
 	if err != nil {
@@ -104,7 +96,7 @@ func New(dataDir string) (app *App, err error) {
 		DB:       database,
 		Keys:     keys,
 	}
-	app.mounts.open = make(map[fs.VolumeID]*mountState)
+	app.mounts.open = make(map[db.VolumeID]*mountState)
 	return app, nil
 }
 
@@ -114,7 +106,7 @@ func (app *App) Close() {
 }
 
 // TODO this function smells
-func (app *App) serveMount(vol *fs.Volume, id *fs.VolumeID, mountpoint string) error {
+func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string) error {
 	conn, err := fuse.Mount(mountpoint)
 	if err != nil {
 		// remove map entry if the mount never took place
@@ -152,25 +144,35 @@ func (app *App) serveMount(vol *fs.Volume, id *fs.VolumeID, mountpoint string) e
 }
 
 type MountInfo struct {
-	VolumeID fs.VolumeID
+	VolumeID db.VolumeID
 }
 
-func (app *App) openKV(tx *db.Tx, conf []*wire.VolumeStorage) (kv.KV, error) {
+func (app *App) openKV(tx *db.Tx, storage *db.VolumeStorage) (kv.KV, error) {
 	var kvstores []kv.KV
 
-	for _, storage := range conf {
-		s, err := app.openStorage(storage.Backend)
+	c := storage.Cursor()
+	for item := c.First(); item != nil; item = c.Next() {
+		backend, err := item.Backend()
+		if err != nil {
+			return nil, err
+		}
+		s, err := app.openStorage(backend)
 		if err != nil {
 			return nil, err
 		}
 
-		sharingKey, err := tx.SharingKeys().Get(storage.SharingKeyName)
+		sharingKeyName, err := item.SharingKeyName()
 		if err != nil {
-			return nil, fmt.Errorf("getting sharing key %q: %v", storage.SharingKeyName, err)
+			return nil, err
+		}
+		sharingKey, err := tx.SharingKeys().Get(sharingKeyName)
+		if err != nil {
+			return nil, fmt.Errorf("getting sharing key %q: %v", sharingKeyName, err)
 		}
 		var secret [32]byte
 		sharingKey.Secret(&secret)
 		s = untrusted.New(s, &secret)
+
 		kvstores = append(kvstores, s)
 	}
 
@@ -221,35 +223,27 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 	// TODO obey `bazil -debug server run`
 
 	var vol *fs.Volume
-	var volumeID *fs.VolumeID
+	info := &MountInfo{}
 	var ready = make(chan error, 1)
 	app.mounts.Lock()
 	err := app.DB.View(func(tx *db.Tx) error {
-		bucket := tx.Bucket([]byte(tokens.BucketVolName))
-		val := bucket.Get([]byte(volumeName))
-		if val == nil {
-			return errors.New("volume not found")
-		}
-		var volConf wire.VolumeConfig
-		if err := proto.Unmarshal(val, &volConf); err != nil {
-			return err
-		}
-		var err error
-		volumeID, err = fs.NewVolumeID(volConf.VolumeID)
+		v, err := tx.Volumes().GetByName(volumeName)
 		if err != nil {
 			return err
 		}
-		if _, ok := app.mounts.open[*volumeID]; ok {
+		v.VolumeID(&info.VolumeID)
+
+		if _, ok := app.mounts.open[info.VolumeID]; ok {
 			return errors.New("volume already mounted")
 		}
 
-		kvstore, err := app.openKV(tx, volConf.Storage)
+		kvstore, err := app.openKV(tx, v.Storage())
 		if err != nil {
 			return err
 		}
 
 		chunkStore := kvchunks.New(kvstore)
-		vol, err = fs.Open(app.DB.DB, chunkStore, volumeID)
+		vol, err = fs.Open(app.DB, chunkStore, &info.VolumeID)
 		if err != nil {
 			return err
 		}
@@ -258,9 +252,9 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 		}
 		go func() {
 			defer close(mnt.unmounted)
-			ready <- app.serveMount(vol, volumeID, mountpoint)
+			ready <- app.serveMount(vol, &info.VolumeID, mountpoint)
 		}()
-		app.mounts.open[*volumeID] = mnt
+		app.mounts.open[info.VolumeID] = mnt
 		return nil
 	})
 	app.mounts.Unlock()
@@ -271,15 +265,12 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 	if err != nil {
 		return nil, err
 	}
-	info := &MountInfo{
-		VolumeID: *volumeID,
-	}
 	return info, nil
 }
 
 var ErrNotMounted = errors.New("not currently mounted")
 
-func (app *App) WaitForUnmount(volumeID *fs.VolumeID) error {
+func (app *App) WaitForUnmount(volumeID *db.VolumeID) error {
 	app.mounts.Lock()
 	// we hold onto mnt after releasing the lock, but it's safe in
 	// this case; gc keeps it pinned, and we don't look at mutable

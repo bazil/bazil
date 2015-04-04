@@ -7,11 +7,11 @@ import (
 
 	"bazil.org/bazil/cas/blobs"
 	wirecas "bazil.org/bazil/cas/wire"
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"github.com/boltdb/bolt"
 	"golang.org/x/net/context"
 )
 
@@ -100,7 +100,7 @@ func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 
 func (f *file) flush(ctx context.Context) error {
 	// TODO only if dirty
-	err := f.parent.fs.db.Update(func(tx *bolt.Tx) error {
+	err := f.parent.fs.db.Update(func(tx *db.Tx) error {
 		return f.parent.save(tx, f.name, f)
 	})
 	return err

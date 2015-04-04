@@ -7,6 +7,7 @@ import (
 
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/fs/snap"
 	wiresnap "bazil.org/bazil/fs/snap/wire"
 	"bazil.org/bazil/fs/wire"
@@ -14,7 +15,6 @@ import (
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
@@ -41,8 +41,8 @@ var _ = fs.NodeStringLookuper(&listSnaps{})
 
 func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	var ref wire.SnapshotRef
-	err := d.fs.db.View(func(tx *bolt.Tx) error {
-		bucket := d.fs.bucket(tx).Bucket(bucketSnap)
+	lookup := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx).SnapBucket()
 		if bucket == nil {
 			return errors.New("snapshot bucket missing")
 		}
@@ -54,8 +54,8 @@ func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 			return fmt.Errorf("corrupt snapshot reference: %q: %v", name, err)
 		}
 		return nil
-	})
-	if err != nil {
+	}
+	if err := d.fs.db.View(lookup); err != nil {
 		return nil, err
 	}
 
@@ -90,15 +90,15 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 	var snapshot = wiresnap.Snapshot{
 		Name: req.Name,
 	}
-	err := d.fs.db.View(func(tx *bolt.Tx) error {
+	record := func(tx *db.Tx) error {
 		dir, err := d.rootDir.snapshot(ctx, tx)
 		if err != nil {
 			return err
 		}
 		snapshot.Contents = dir
 		return nil
-	})
-	if err != nil {
+	}
+	if err := d.fs.db.View(record); err != nil {
 		return nil, fmt.Errorf("cannot record snapshot: %v", err)
 	}
 
@@ -131,13 +131,16 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 		return nil, fmt.Errorf("cannot marshal snapshot pointer: %v", err)
 	}
 
-	err = d.fs.db.Update(func(tx *bolt.Tx) error {
-		b := d.fs.bucket(tx).Bucket(bucketSnap)
+	add := func(tx *db.Tx) error {
+		b := d.fs.bucket(tx).SnapBucket()
 		if b == nil {
 			return errors.New("snapshot bucket missing")
 		}
 		return b.Put([]byte(req.Name), buf)
-	})
+	}
+	if err := d.fs.db.Update(add); err != nil {
+		return nil, fmt.Errorf("cannot save snapshot pointer: %v", err)
+	}
 
 	n, err := snap.Open(d.fs.chunkStore, snapshot.Contents)
 	if err != nil {
@@ -152,9 +155,8 @@ func (d *listSnaps) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	// NOT HOLDING LOCKS, accessing database snapshot ONLY
 
 	var entries []fuse.Dirent
-
-	err := d.fs.db.View(func(tx *bolt.Tx) error {
-		bucket := d.fs.bucket(tx).Bucket(bucketSnap)
+	readDirAll := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx).SnapBucket()
 		if bucket == nil {
 			return errors.New("snapshot bucket missing")
 		}
@@ -167,8 +169,8 @@ func (d *listSnaps) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			entries = append(entries, fde)
 		}
 		return nil
-	})
-	if err != nil {
+	}
+	if err := d.fs.db.View(readDirAll); err != nil {
 		return nil, err
 	}
 	return entries, nil

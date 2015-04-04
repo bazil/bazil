@@ -29,6 +29,9 @@ func Open(path string, mode os.FileMode, options *bolt.Options) (*DB, error) {
 // init sets up the initial database contents. It is guaranteed to be
 // idempotent and safe to run on pre-existing databases.
 func (db *DB) init(tx *Tx) error {
+	if err := tx.initVolumes(); err != nil {
+		return err
+	}
 	if err := tx.initPeers(); err != nil {
 		return err
 	}

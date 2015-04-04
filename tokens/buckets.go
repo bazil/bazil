@@ -10,8 +10,8 @@ const (
 	BucketVolume = "volume"
 
 	// The DB bucket that contains a key per volume, named by the
-	// human-readable volume name.
-	BucketVolName = "volname"
+	// human-readable volume name. Value is volume ID.
+	BucketVolName = "volName"
 
 	// The DB bucket that contains sharing groups, for convergent
 	// encryption. Key is user-friendly name, value is the 32-byte

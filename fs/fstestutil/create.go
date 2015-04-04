@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"bazil.org/bazil/fs"
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/server"
 	"bazil.org/fuse"
 )
@@ -21,8 +21,17 @@ func NewApp(t testing.TB, dataDir string) *server.App {
 }
 
 func CreateVolume(t testing.TB, app *server.App, volumeName string) {
-	err := fs.Create(app.DB.DB, volumeName)
-	if err != nil {
+	createVolume := func(tx *db.Tx) error {
+		sharingKey, err := tx.SharingKeys().Get("default")
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Volumes().Create(volumeName, "local", sharingKey); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := app.DB.Update(createVolume); err != nil {
 		t.Fatal(err)
 	}
 }

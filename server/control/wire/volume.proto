@@ -14,6 +14,8 @@ message VolumeMountResponse {
 
 message VolumeCreateRequest {
   string volumeName = 1;
+  string backend = 2;
+  string sharingKeyName = 3;
 }
 
 message VolumeCreateResponse {

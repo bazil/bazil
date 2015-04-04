@@ -10,6 +10,7 @@ import (
 
 	"bazil.org/bazil/cas/blobs"
 	wirecas "bazil.org/bazil/cas/wire"
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/fs/inodes"
 	"bazil.org/bazil/fs/snap"
 	wiresnap "bazil.org/bazil/fs/snap/wire"
@@ -17,7 +18,6 @@ import (
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
@@ -83,8 +83,8 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 	var de *wire.Dirent
 	key := pathToKey(d.inode, name)
-	err := d.fs.db.View(func(tx *bolt.Tx) error {
-		bucket := d.fs.bucket(tx).Bucket(bucketDir)
+	lookup := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx).DirBucket()
 		if bucket == nil {
 			return errors.New("dir bucket missing")
 		}
@@ -98,8 +98,8 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 			return fmt.Errorf("dirent unmarshal problem: %v", err)
 		}
 		return nil
-	})
-	if err != nil {
+	}
+	if err := d.fs.db.View(lookup); err != nil {
 		return nil, err
 	}
 	child, err := d.reviveNode(de, name)
@@ -164,8 +164,8 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	defer d.mu.Unlock()
 
 	var entries []fuse.Dirent
-	err := d.fs.db.View(func(tx *bolt.Tx) error {
-		bucket := d.fs.bucket(tx).Bucket(bucketDir)
+	readDirAll := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx).DirBucket()
 		if bucket == nil {
 			return errors.New("dir bucket missing")
 		}
@@ -186,12 +186,13 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			entries = append(entries, fde)
 		}
 		return nil
-	})
+	}
+	err := d.fs.db.View(readDirAll)
 	return entries, err
 }
 
 // caller does locking
-func (d *dir) saveInternal(tx *bolt.Tx, name string, n node) error {
+func (d *dir) saveInternal(tx *db.Tx, name string, n node) error {
 	if have, ok := d.active[name]; !ok || have != n {
 		// unlinked
 		return nil
@@ -208,7 +209,7 @@ func (d *dir) saveInternal(tx *bolt.Tx, name string, n node) error {
 	}
 
 	key := pathToKey(d.inode, name)
-	bucket := d.fs.bucket(tx).Bucket(bucketDir)
+	bucket := d.fs.bucket(tx).DirBucket()
 	if bucket == nil {
 		return errors.New("dir bucket missing")
 	}
@@ -227,7 +228,7 @@ func (d *dir) marshal() (*wire.Dirent, error) {
 	return de, nil
 }
 
-func (d *dir) save(tx *bolt.Tx, name string, n node) error {
+func (d *dir) save(tx *db.Tx, name string, n node) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.saveInternal(tx, name, n)
@@ -242,8 +243,8 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 	switch req.Mode & os.ModeType {
 	case 0:
 		var child node
-		err := d.fs.db.Update(func(tx *bolt.Tx) error {
-			bucket := d.fs.bucket(tx).Bucket(bucketInode)
+		createFile := func(tx *db.Tx) error {
+			bucket := d.fs.bucket(tx).InodeBucket()
 			if bucket == nil {
 				return errors.New("inode bucket is missing")
 			}
@@ -267,8 +268,8 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 
 			return d.saveInternal(tx, req.Name, child)
 			// TODO clean up active on error
-		})
-		if err != nil {
+		}
+		if err := d.fs.db.Update(createFile); err != nil {
 			return nil, nil, err
 		}
 		return child, child, nil
@@ -306,8 +307,8 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 	// TODO handle req.Mode
 
 	var child node
-	err := d.fs.db.Update(func(tx *bolt.Tx) error {
-		bucket := d.fs.bucket(tx).Bucket(bucketInode)
+	mkdir := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx).InodeBucket()
 		if bucket == nil {
 			return errors.New("inode bucket is missing")
 		}
@@ -325,8 +326,8 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 		d.active[req.Name] = child
 		return d.saveInternal(tx, req.Name, child)
 		// TODO clean up active on error
-	})
-	if err != nil {
+	}
+	if err := d.fs.db.Update(mkdir); err != nil {
 		if err == inodes.ErrOutOfInodes {
 			return nil, fuse.Errno(syscall.ENOSPC)
 		}
@@ -340,8 +341,8 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	defer d.mu.Unlock()
 
 	key := pathToKey(d.inode, req.Name)
-	err := d.fs.db.Update(func(tx *bolt.Tx) error {
-		bucket := d.fs.bucket(tx).Bucket(bucketDir)
+	remove := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx).DirBucket()
 		if bucket == nil {
 			return errors.New("dir bucket missing")
 		}
@@ -361,8 +362,11 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 
 		// TODO free inode
 		return nil
-	})
-	return err
+	}
+	if err := d.fs.db.Update(remove); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
@@ -383,8 +387,8 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 	// the file getting overwritten
 	var loserInode uint64
 
-	err := d.fs.db.Update(func(tx *bolt.Tx) error {
-		bucket := d.fs.bucket(tx).Bucket(bucketDir)
+	rename := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx).DirBucket()
 		if bucket == nil {
 			return errors.New("dir bucket missing")
 		}
@@ -417,8 +421,8 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 			return err
 		}
 		return nil
-	})
-	if err != nil {
+	}
+	if err := d.fs.db.Update(rename); err != nil {
 		return err
 	}
 
@@ -437,11 +441,11 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 }
 
 // snapshot records a snapshot of the directory and stores it in wde
-func (d *dir) snapshot(ctx context.Context, tx *bolt.Tx) (*wiresnap.Dir, error) {
+func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
 	// NOT HOLDING THE LOCK, accessing database snapshot ONLY
 
 	// TODO move bucket lookup to caller?
-	bucket := d.fs.bucket(tx).Bucket(bucketDir)
+	bucket := d.fs.bucket(tx).DirBucket()
 	if bucket == nil {
 		return nil, errors.New("dir bucket missing")
 	}

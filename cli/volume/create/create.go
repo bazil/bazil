@@ -1,6 +1,8 @@
 package create
 
 import (
+	"flag"
+
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/server/control/wire"
@@ -9,6 +11,11 @@ import (
 
 type createCommand struct {
 	subcommands.Description
+	flag.FlagSet
+	Config struct {
+		Backend string
+		Sharing string
+	}
 	Arguments struct {
 		VolumeName string
 	}
@@ -16,7 +23,9 @@ type createCommand struct {
 
 func (cmd *createCommand) Run() error {
 	req := &wire.VolumeCreateRequest{
-		VolumeName: cmd.Arguments.VolumeName,
+		VolumeName:     cmd.Arguments.VolumeName,
+		Backend:        cmd.Config.Backend,
+		SharingKeyName: cmd.Config.Sharing,
 	}
 	ctx := context.Background()
 	client, err := clibazil.Bazil.Control()
@@ -35,5 +44,7 @@ var create = createCommand{
 }
 
 func init() {
+	create.StringVar(&create.Config.Backend, "backend", "local", "storage backend to use")
+	create.StringVar(&create.Config.Sharing, "sharing", "default", "sharing group to encrypt content for")
 	subcommands.Register(&create)
 }

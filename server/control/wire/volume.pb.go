@@ -26,7 +26,9 @@ func (m *VolumeMountResponse) String() string { return proto.CompactTextString(m
 func (*VolumeMountResponse) ProtoMessage()    {}
 
 type VolumeCreateRequest struct {
-	VolumeName string `protobuf:"bytes,1,opt,name=volumeName" json:"volumeName,omitempty"`
+	VolumeName     string `protobuf:"bytes,1,opt,name=volumeName" json:"volumeName,omitempty"`
+	Backend        string `protobuf:"bytes,2,opt,name=backend" json:"backend,omitempty"`
+	SharingKeyName string `protobuf:"bytes,3,opt,name=sharingKeyName" json:"sharingKeyName,omitempty"`
 }
 
 func (m *VolumeCreateRequest) Reset()         { *m = VolumeCreateRequest{} }

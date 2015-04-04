@@ -2,22 +2,21 @@ package fs
 
 import (
 	"encoding/binary"
-	"errors"
+	"log"
 
 	"bazil.org/bazil/cas/chunks"
+	"bazil.org/bazil/db"
 	"bazil.org/bazil/fs/inodes"
 	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"github.com/boltdb/bolt"
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 )
 
 type Volume struct {
-	db         *bolt.DB
-	volID      VolumeID
+	db         *db.DB
+	volID      db.VolumeID
 	chunkStore chunks.Store
 }
 
@@ -32,10 +31,12 @@ var bucketInode = []byte("inode")
 var bucketSnap = []byte("snap")
 var bucketStorage = []byte("storage")
 
-func (v *Volume) bucket(tx *bolt.Tx) *bolt.Bucket {
-	b := tx.Bucket(bucketVolume)
-	b = b.Bucket(v.volID.Bytes())
-	return b
+func (v *Volume) bucket(tx *db.Tx) *db.Volume {
+	vv, err := tx.Volumes().GetByVolumeID(&v.volID)
+	if err != nil {
+		log.Printf("volume has disappeared: %v: %v", &v.volID, err)
+	}
+	return vv
 }
 
 // Open returns a FUSE filesystem instance serving content from the
@@ -44,74 +45,12 @@ func (v *Volume) bucket(tx *bolt.Tx) *bolt.Bucket {
 //
 // Caller guarantees volume ID exists at least as long as requests are
 // served for this file system.
-func Open(db *bolt.DB, chunkStore chunks.Store, volumeID *VolumeID) (*Volume, error) {
+func Open(db *db.DB, chunkStore chunks.Store, volumeID *db.VolumeID) (*Volume, error) {
 	fs := &Volume{}
 	fs.db = db
 	fs.volID = *volumeID
 	fs.chunkStore = chunkStore
 	return fs, nil
-}
-
-// Create a new volume.
-func Create(db *bolt.DB, volumeName string) error {
-	// uniqueness of id is guaranteed by tx.CreateBucket refusing to
-	// create the per-volume buckets on collision. this leads to an
-	// ugly error, but it's boil-the-oceans rare
-	id, err := RandomVolumeID()
-	if err != nil {
-		return err
-	}
-	err = db.Update(func(tx *bolt.Tx) error {
-
-		{
-			bucket := tx.Bucket(bucketVolName)
-			key := []byte(volumeName)
-			exists := bucket.Get(key)
-			if exists != nil {
-				return errors.New("volume name exists already")
-			}
-			volConf := wire.VolumeConfig{
-				VolumeID: id.Bytes(),
-				Storage: []*wire.VolumeStorage{
-					{
-						Name:           "local",
-						Backend:        "local",
-						SharingKeyName: "default",
-					},
-				},
-			}
-			buf, err := proto.Marshal(&volConf)
-			if err != nil {
-				return err
-			}
-			err = bucket.Put(key, buf)
-			if err != nil {
-				return err
-			}
-		}
-
-		bucket := tx.Bucket(bucketVolume)
-		if bucket, err = bucket.CreateBucket(id.Bytes()); err != nil {
-			return err
-		}
-		if _, err := bucket.CreateBucket(bucketDir); err != nil {
-			return err
-		}
-		if _, err := bucket.CreateBucket(bucketInode); err != nil {
-			return err
-		}
-		if _, err := bucket.CreateBucket(bucketSnap); err != nil {
-			return err
-		}
-		if _, err := bucket.CreateBucket(bucketStorage); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (f *Volume) Init(ctx context.Context, req *fuse.InitRequest, resp *fuse.InitResponse) error {
