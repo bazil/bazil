@@ -54,7 +54,7 @@ var add = addCommand{
 
 If STORAGE is not given, it gets the same value as NAME.
 
-Support STORAGE values:
+Supported STORAGE values:
   local
   ABSOLUTE_PATH
 
