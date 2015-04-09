@@ -77,7 +77,11 @@ func (f *file) Attr(ctx context.Context, a *fuse.Attr) error {
 }
 
 func (f *file) Forget() {
-	f.parent.forgetChild(f.name, f)
+	f.mu.Lock()
+	name := f.name
+	f.mu.Unlock()
+
+	f.parent.forgetChild(name, f)
 }
 
 func (f *file) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {

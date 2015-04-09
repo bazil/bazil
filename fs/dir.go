@@ -297,7 +297,12 @@ func (d *dir) Forget() {
 		// root dir, don't keep track
 		return
 	}
-	d.parent.forgetChild(d.name, d)
+
+	d.mu.Lock()
+	name := d.name
+	d.mu.Unlock()
+
+	d.parent.forgetChild(name, d)
 }
 
 func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
