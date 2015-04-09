@@ -25,6 +25,7 @@ var (
 	volumeStateSnap    = []byte(tokens.VolumeStateSnap)
 	volumeStateStorage = []byte(tokens.VolumeStateStorage)
 	volumeStateEpoch   = []byte(tokens.VolumeStateEpoch)
+	volumeStateClock   = []byte(tokens.VolumeStateClock)
 )
 
 func (tx *Tx) initVolumes() error {
@@ -115,6 +116,9 @@ random:
 	if _, err := bv.CreateBucket(volumeStateStorage); err != nil {
 		return nil, err
 	}
+	if _, err := bv.CreateBucket(volumeStateClock); err != nil {
+		return nil, err
+	}
 	v := &Volume{
 		b:  bv,
 		id: id[:],
@@ -122,7 +126,11 @@ random:
 	if err := v.Storage().Add("default", storage, sharingKey); err != nil {
 		return nil, err
 	}
-	if err := v.setEpoch(clock.Epoch(1)); err != nil {
+	epoch := clock.Epoch(1)
+	if err := v.setEpoch(epoch); err != nil {
+		return nil, err
+	}
+	if _, err := v.Clock().Create(0, "", epoch); err != nil {
 		return nil, err
 	}
 	return v, nil
@@ -156,6 +164,11 @@ func (v *Volume) VolumeID(out *VolumeID) {
 func (v *Volume) Storage() *VolumeStorage {
 	b := v.b.Bucket(volumeStateStorage)
 	return &VolumeStorage{b}
+}
+
+func (v *Volume) Clock() *VolumeClock {
+	b := v.b.Bucket(volumeStateClock)
+	return &VolumeClock{b}
 }
 
 // Dirs provides a way of accessing the directory entries stored in
