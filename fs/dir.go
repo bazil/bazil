@@ -279,7 +279,6 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 	}
 }
 
-// caller does locking
 func (d *dir) forgetChild(name string, child node) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
