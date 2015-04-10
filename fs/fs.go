@@ -2,9 +2,11 @@ package fs
 
 import (
 	"log"
+	"sync"
 
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/db"
+	"bazil.org/bazil/fs/clock"
 	"bazil.org/bazil/fs/inodes"
 	wiresnap "bazil.org/bazil/fs/snap/wire"
 	"bazil.org/bazil/fs/wire"
@@ -18,6 +20,15 @@ type Volume struct {
 	volID      db.VolumeID
 	chunkStore chunks.Store
 	root       *dir
+
+	epoch struct {
+		mu sync.Mutex
+		// Epoch is a logical clock keeping track of file mutations. It
+		// increments for every outgoing (dirty) sync of this volume.
+		ticks clock.Epoch
+		// Have changes been made since epoch ticked?
+		dirty bool
+	}
 }
 
 var _ = fs.FS(&Volume{})
@@ -50,7 +61,21 @@ func Open(db *db.DB, chunkStore chunks.Store, volumeID *db.VolumeID) (*Volume, e
 	fs.volID = *volumeID
 	fs.chunkStore = chunkStore
 	fs.root = newDir(fs, tokens.InodeRoot, nil, "")
+	// assume we crashed, to be safe
+	fs.epoch.dirty = true
+	if err := fs.db.View(fs.initFromDB); err != nil {
+		return nil, err
+	}
 	return fs, nil
+}
+
+func (v *Volume) initFromDB(tx *db.Tx) error {
+	epoch, err := v.bucket(tx).Epoch()
+	if err != nil {
+		return err
+	}
+	v.epoch.ticks = epoch
+	return nil
 }
 
 func (v *Volume) Root() (fs.Node, error) {
@@ -73,6 +98,49 @@ func (v *Volume) Snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Snapshot, e
 	}
 	snapshot.Contents = sde
 	return snapshot, nil
+}
+
+// caller is responsible for locking
+//
+// TODO nextEpoch only needs to tick if the volume is seeing mutation;
+// unmounted is safe?
+func (v *Volume) nextEpoch(vb *db.Volume) error {
+	if !v.epoch.dirty {
+		return nil
+	}
+	n, err := vb.NextEpoch()
+	if err != nil {
+		return err
+	}
+	v.epoch.ticks = n
+	v.epoch.dirty = false
+	return nil
+}
+
+func (v *Volume) dirtyEpoch() clock.Epoch {
+	v.epoch.mu.Lock()
+	defer v.epoch.mu.Unlock()
+	v.epoch.dirty = true
+	return v.epoch.ticks
+}
+
+func (v *Volume) cleanEpoch() (clock.Epoch, error) {
+	v.epoch.mu.Lock()
+	defer v.epoch.mu.Unlock()
+	if !v.epoch.dirty {
+		return v.epoch.ticks, nil
+	}
+	inc := func(tx *db.Tx) error {
+		vb := v.bucket(tx)
+		if err := v.nextEpoch(vb); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := v.db.Update(inc); err != nil {
+		return 0, err
+	}
+	return v.epoch.ticks, nil
 }
 
 type node interface {

@@ -4,15 +4,17 @@ import (
 	"crypto/rand"
 	"errors"
 
+	"bazil.org/bazil/fs/clock"
 	"bazil.org/bazil/tokens"
 	"github.com/boltdb/bolt"
 )
 
 var (
-	ErrVolNameInvalid   = errors.New("invalid volume name")
-	ErrVolNameNotFound  = errors.New("volume name not found")
-	ErrVolNameExist     = errors.New("volume name exists already")
-	ErrVolumeIDNotFound = errors.New("volume ID not found")
+	ErrVolNameInvalid        = errors.New("invalid volume name")
+	ErrVolNameNotFound       = errors.New("volume name not found")
+	ErrVolNameExist          = errors.New("volume name exists already")
+	ErrVolumeIDNotFound      = errors.New("volume ID not found")
+	ErrVolumeEpochWraparound = errors.New("volume epoch wraparound")
 )
 
 var (
@@ -22,6 +24,7 @@ var (
 	volumeStateInode   = []byte(tokens.VolumeStateInode)
 	volumeStateSnap    = []byte(tokens.VolumeStateSnap)
 	volumeStateStorage = []byte(tokens.VolumeStateStorage)
+	volumeStateEpoch   = []byte(tokens.VolumeStateEpoch)
 )
 
 func (tx *Tx) initVolumes() error {
@@ -119,6 +122,9 @@ random:
 	if err := v.Storage().Add("default", storage, sharingKey); err != nil {
 		return nil, err
 	}
+	if err := v.setEpoch(clock.Epoch(1)); err != nil {
+		return nil, err
+	}
 	return v, nil
 }
 
@@ -166,4 +172,49 @@ func (v *Volume) InodeBucket() *bolt.Bucket {
 // SnapBucket returns a bolt bucket for storing snapshots in.
 func (v *Volume) SnapBucket() *bolt.Bucket {
 	return v.b.Bucket(volumeStateSnap)
+}
+
+// Epoch returns the current mutation epoch of the volume.
+//
+// Returned value is valid after the transaction.
+func (v *Volume) Epoch() (clock.Epoch, error) {
+	val := v.b.Get(volumeStateEpoch)
+	var epoch clock.Epoch
+	if err := epoch.UnmarshalBinary(val); err != nil {
+		return 0, err
+	}
+	return epoch, nil
+}
+
+func (v *Volume) setEpoch(epoch clock.Epoch) error {
+	buf, err := epoch.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	if err := v.b.Put(volumeStateEpoch, buf); err != nil {
+		return err
+	}
+	return nil
+}
+
+// NextEpoch increments the epoch and returns the new value. The value
+// is only safe to use if the transaction commits.
+//
+// If epoch wraps around, returns ErrVolumeEpochWraparound. This
+// should be boil-the-oceans rare.
+//
+// Returned value is valid after the transaction.
+func (v *Volume) NextEpoch() (clock.Epoch, error) {
+	epoch, err := v.Epoch()
+	if err != nil {
+		return epoch, err
+	}
+	epoch++
+	if epoch == 0 {
+		return epoch, ErrVolumeEpochWraparound
+	}
+	if err := v.setEpoch(epoch); err != nil {
+		return epoch, err
+	}
+	return epoch, nil
 }
