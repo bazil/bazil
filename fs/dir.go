@@ -312,16 +312,16 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 
 	var child node
 	mkdir := func(tx *db.Tx) error {
-		bucket := d.fs.bucket(tx).InodeBucket()
-		if bucket == nil {
-			return errors.New("inode bucket is missing")
-		}
-		inode, err := inodes.Allocate(bucket)
+		bucket := d.fs.bucket(tx)
+		inode, err := inodes.Allocate(bucket.InodeBucket())
 		if err != nil {
 			return err
 		}
 		child = newDir(d.fs, inode, d, req.Name)
 		if err := d.saveInternal(tx, req.Name, child); err != nil {
+			return err
+		}
+		if _, err := bucket.Clock().Create(d.inode, req.Name, d.fs.dirtyEpoch()); err != nil {
 			return err
 		}
 		return nil
