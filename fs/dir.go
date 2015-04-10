@@ -406,9 +406,6 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 	kOld := pathToKey(d.inode, req.OldName)
 	kNew := pathToKey(d.inode, req.NewName)
 
-	// the file getting overwritten
-	var loserInode uint64
-
 	rename := func(tx *db.Tx) error {
 		bucket := d.fs.bucket(tx).DirBucket()
 		if bucket == nil {
@@ -423,6 +420,8 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 			return fuse.ENOENT
 		}
 
+		// the file getting overwritten
+		var loserInode uint64
 		{
 			// TODO don't need to load from db if req.NewName is in active
 			bufLoser := bucket.Get(kNew)
@@ -442,6 +441,11 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 		if err := bucket.Delete(kOld); err != nil {
 			return err
 		}
+
+		if loserInode > 0 {
+			// TODO free loser inode
+		}
+
 		return nil
 	}
 	if err := d.fs.db.Update(rename); err != nil {
@@ -458,10 +462,6 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 		nodeOld.setName(req.NewName)
 		delete(d.active, req.OldName)
 		d.active[req.NewName] = nodeOld
-	}
-
-	if loserInode > 0 {
-		// TODO free loser inode
 	}
 
 	return nil
