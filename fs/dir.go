@@ -11,6 +11,7 @@ import (
 	"bazil.org/bazil/cas/blobs"
 	wirecas "bazil.org/bazil/cas/wire"
 	"bazil.org/bazil/db"
+	"bazil.org/bazil/fs/clock"
 	"bazil.org/bazil/fs/inodes"
 	"bazil.org/bazil/fs/snap"
 	wiresnap "bazil.org/bazil/fs/snap/wire"
@@ -197,6 +198,49 @@ func (d *dir) saveInternal(tx *db.Tx, name string, n node) error {
 	return nil
 }
 
+// updateParents updates the modified clock on d and its parents.
+//
+// The source of the modification time change is a child of d, with
+// the given modified clock.
+//
+// d may be nil, this makes handling the root directory simpler.
+func (d *dir) updateParents(vc *db.VolumeClock, c *clock.Clock) error {
+	cur := d
+	for cur != nil {
+		// ugly conditional locking kludge because caller
+		// holds lock to d
+		if d != cur {
+			cur.mu.Lock()
+		}
+		parent := cur.parent
+		name := cur.name
+		if d != cur {
+			cur.mu.Unlock()
+		}
+
+		if parent != nil && name == "" {
+			// unlinked
+			break
+		}
+
+		// dir.inode is safe to access without a lock, it is
+		// immutable.
+		var inode uint64
+		if parent != nil {
+			inode = parent.inode
+		}
+		changed, err := vc.UpdateFromChild(inode, name, c)
+		if err != nil {
+			return err
+		}
+		if !changed {
+			break
+		}
+		cur = parent
+	}
+	return nil
+}
+
 func (d *dir) marshal() (*wire.Dirent, error) {
 	de := &wire.Dirent{
 		Inode: d.inode,
@@ -318,10 +362,15 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 			return err
 		}
 		child = newDir(d.fs, inode, d, req.Name)
+		vc := bucket.Clock()
+		clock, err := vc.Create(d.inode, req.Name, d.fs.dirtyEpoch())
+		if err != nil {
+			return err
+		}
 		if err := d.saveInternal(tx, req.Name, child); err != nil {
 			return err
 		}
-		if _, err := bucket.Clock().Create(d.inode, req.Name, d.fs.dirtyEpoch()); err != nil {
+		if err := d.updateParents(vc, clock); err != nil {
 			return err
 		}
 		return nil
