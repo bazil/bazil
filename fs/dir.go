@@ -257,7 +257,23 @@ func (d *dir) save(tx *db.Tx, name string, n node) error {
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.saveInternal(tx, name, n)
+
+	bucket := d.fs.bucket(tx)
+	vc := bucket.Clock()
+	now := d.fs.dirtyEpoch()
+	clock, changed, err := vc.Update(d.inode, name, now)
+	if err != nil {
+		return err
+	}
+	if err := d.saveInternal(tx, name, n); err != nil {
+		return err
+	}
+	if changed {
+		if err := d.updateParents(vc, clock); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 const debugCreateExisting = true
