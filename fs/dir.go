@@ -225,11 +225,8 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 	case 0:
 		var child node
 		createFile := func(tx *db.Tx) error {
-			bucket := d.fs.bucket(tx).InodeBucket()
-			if bucket == nil {
-				return errors.New("inode bucket is missing")
-			}
-			inode, err := inodes.Allocate(bucket)
+			bucket := d.fs.bucket(tx)
+			inode, err := inodes.Allocate(bucket.InodeBucket())
 			if err != nil {
 				return err
 			}
@@ -246,6 +243,9 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 				blob:   blob,
 			}
 			if err := d.saveInternal(tx, req.Name, child); err != nil {
+				return err
+			}
+			if _, err := bucket.Clock().Create(d.inode, req.Name, d.fs.dirtyEpoch()); err != nil {
 				return err
 			}
 			return nil
