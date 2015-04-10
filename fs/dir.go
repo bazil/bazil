@@ -265,14 +265,15 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 				parent: d,
 				blob:   blob,
 			}
-			d.active[req.Name] = child
-
-			return d.saveInternal(tx, req.Name, child)
-			// TODO clean up active on error
+			if err := d.saveInternal(tx, req.Name, child); err != nil {
+				return err
+			}
+			return nil
 		}
 		if err := d.fs.db.Update(createFile); err != nil {
 			return nil, nil, err
 		}
+		d.active[req.Name] = child
 		return child, child, nil
 	default:
 		return nil, nil, fuse.EPERM
@@ -338,9 +339,10 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 			fs:     d.fs,
 			active: make(map[string]node),
 		}
-		d.active[req.Name] = child
-		return d.saveInternal(tx, req.Name, child)
-		// TODO clean up active on error
+		if err := d.saveInternal(tx, req.Name, child); err != nil {
+			return err
+		}
+		return nil
 	}
 	if err := d.fs.db.Update(mkdir); err != nil {
 		if err == inodes.ErrOutOfInodes {
@@ -348,6 +350,7 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 		}
 		return nil, err
 	}
+	d.active[req.Name] = child
 	return child, nil
 }
 
@@ -355,6 +358,7 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
+	node, isActive := d.active[req.Name]
 	key := pathToKey(d.inode, req.Name)
 	remove := func(tx *db.Tx) error {
 		bucket := d.fs.bucket(tx).DirBucket()
@@ -362,7 +366,6 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 			return errors.New("dir bucket missing")
 		}
 
-		node, isActive := d.active[req.Name]
 		// does it exist? can short-circuit existence check if active
 		if !isActive {
 			if bucket.Get(key) == nil {
@@ -374,16 +377,16 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 		if err != nil {
 			return err
 		}
-		if isActive {
-			delete(d.active, req.Name)
-			node.setName("")
-		}
 
 		// TODO free inode
 		return nil
 	}
 	if err := d.fs.db.Update(remove); err != nil {
 		return err
+	}
+	if isActive {
+		delete(d.active, req.Name)
+		node.setName("")
 	}
 	return nil
 }
