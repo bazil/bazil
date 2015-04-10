@@ -10,6 +10,8 @@ package clock
 
 import (
 	"encoding"
+	"encoding/binary"
+	"errors"
 	"fmt"
 )
 
@@ -23,6 +25,24 @@ const MaxPeer = ^Peer(0)
 
 // Epoch is a logical clock timestamp. Time 0 is never valid.
 type Epoch uint64
+
+var _ encoding.BinaryMarshaler = (*Epoch)(nil)
+
+func (e *Epoch) MarshalBinary() ([]byte, error) {
+	var tmp [8]byte
+	binary.BigEndian.PutUint64(tmp[:], uint64(*e))
+	return tmp[:], nil
+}
+
+var _ encoding.BinaryUnmarshaler = (*Epoch)(nil)
+
+func (e *Epoch) UnmarshalBinary(data []byte) error {
+	if len(data) != 8 {
+		return errors.New("binary epoch is wrong length")
+	}
+	*e = Epoch(binary.BigEndian.Uint64(data))
+	return nil
+}
 
 // Clock is a logical clock.
 //
