@@ -430,15 +430,44 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 		return fuse.Errno(syscall.EXDEV)
 	}
 
+	// TODO this gets clocks wrong for when moving whole subtrees; the
+	// grandchildren don't realize they've been moved, and their
+	// clocks won't reflect the creation at the new location.
+	//
+	// Current plan to fix this is to carry a "rename epoch" in the
+	// clock, make subtree moves set the rename epoch for the parent
+	// to a fresh epoch, and then at sync time move down the
+	// hierarchy, and whenever parent rename epoch is greater than
+	// child, fix up the clocks.
+	//
+	// The motivation for this is to amortize the clock updating and
+	// keep Rename a fast operation, even for massive trees.
+
 	rename := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx)
 		// TODO don't need to load from db if req.OldName is in active.
 		// instead, save active state if we have it; call .save() not this
 		// kludge
 		//
 		// TODO don't need to load from db if req.NewName is in active
-		loser, err := d.fs.bucket(tx).Dirs().Rename(d.inode, req.OldName, req.NewName)
+		loser, err := bucket.Dirs().Rename(d.inode, req.OldName, req.NewName)
 		if err != nil {
 			return err
+		}
+
+		vc := bucket.Clock()
+		if err := vc.Tombstone(d.inode, req.OldName); err != nil {
+			return err
+		}
+		now := d.fs.dirtyEpoch()
+		clock, changed, err := vc.UpdateOrCreate(d.inode, req.NewName, now)
+		if err != nil {
+			return err
+		}
+		if changed {
+			if err := newDir.(*dir).updateParents(vc, clock); err != nil {
+				return err
+			}
 		}
 
 		if loser != nil {
