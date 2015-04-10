@@ -286,10 +286,15 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 				parent: d,
 				blob:   blob,
 			}
+			vc := bucket.Clock()
+			clock, err := vc.Create(d.inode, req.Name, d.fs.dirtyEpoch())
+			if err != nil {
+				return err
+			}
 			if err := d.saveInternal(tx, req.Name, child); err != nil {
 				return err
 			}
-			if _, err := bucket.Clock().Create(d.inode, req.Name, d.fs.dirtyEpoch()); err != nil {
+			if err := d.updateParents(vc, clock); err != nil {
 				return err
 			}
 			return nil
