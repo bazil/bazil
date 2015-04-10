@@ -74,13 +74,16 @@ func (v *vector) updateSimplify(id Peer, now Epoch) {
 	v.list = []item{{id: id, t: now}}
 }
 
-func (v *vector) merge(other vector) {
+func (v *vector) merge(other vector) bool {
+	changed := false
 	for _, o := range other.list {
 		i := v.add(o.id)
 		if v.list[i].t < o.t {
+			changed = true
 			v.list[i].t = o.t
 		}
 	}
+	return changed
 }
 
 // rebase sets v to only include the items not in other.

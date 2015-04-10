@@ -98,3 +98,17 @@ func TestFigure12Continuation(t *testing.T) {
 	c_dx.ValidateFile(c_d)
 	c_dy.ValidateFile(c_d)
 }
+
+func TestUpdateFromChildReturn(t *testing.T) {
+	a_dx := clock.Create(10, 1)
+	a_dy := clock.Create(10, 1)
+	a_d := &clock.Clock{}
+
+	a_d.UpdateSync(10, 1)
+	if g, e := a_d.UpdateFromChild(a_dx), true; g != e {
+		t.Errorf("UpdateFromChild return %v != %v", g, e)
+	}
+	if g, e := a_d.UpdateFromChild(a_dy), false; g != e {
+		t.Errorf("UpdateFromChild return %v != %v", g, e)
+	}
+}

@@ -79,8 +79,11 @@ func (s *Clock) UpdateSync(id Peer, now Epoch) {
 }
 
 // UpdateFromChild tracks child modification times in the parent.
-func (s *Clock) UpdateFromChild(child *Clock) {
-	s.mod.merge(child.mod)
+//
+// Return value reports whether s changed.
+func (s *Clock) UpdateFromChild(child *Clock) bool {
+	changed := s.mod.merge(child.mod)
+	return changed
 }
 
 // UpdateFromParent simplifies child sync times based on the parent.

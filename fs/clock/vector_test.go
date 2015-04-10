@@ -156,3 +156,15 @@ func TestMergeDiverged(t *testing.T) {
 	a.update(13, 1)
 	le(t, b, a)
 }
+
+func TestMergeReturn(t *testing.T) {
+	var a vector
+	a.update(10, 1)
+	var b vector
+	if g, e := b.merge(a), true; g != e {
+		t.Errorf("merge of %v return %v != %v", a, g, e)
+	}
+	if g, e := b.merge(a), false; g != e {
+		t.Errorf("merge of %v return %v != %v", a, g, e)
+	}
+}
