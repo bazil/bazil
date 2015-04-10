@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 	"syscall"
@@ -37,9 +38,8 @@ type dir struct {
 	// each in-memory child, so we can return the same node on
 	// multiple Lookups and know what to do on .save()
 	//
-	// each child also stores its own name; if the value in the child,
-	// looked up in this map, does not equal the child, that means the
-	// child has been unlinked
+	// each child also stores its own name; if the value in the child
+	// is an empty string, that means the child has been unlinked
 	active map[string]node
 }
 
@@ -194,11 +194,6 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 // caller does locking
 func (d *dir) saveInternal(tx *db.Tx, name string, n node) error {
-	if have, ok := d.active[name]; !ok || have != n {
-		// unlinked
-		return nil
-	}
-
 	de, err := n.marshal()
 	if err != nil {
 		return fmt.Errorf("node save error: %v", err)
@@ -230,6 +225,11 @@ func (d *dir) marshal() (*wire.Dirent, error) {
 }
 
 func (d *dir) save(tx *db.Tx, name string, n node) error {
+	if name == "" {
+		// unlinked
+		return nil
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.saveInternal(tx, name, n)
@@ -279,17 +279,27 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 	}
 }
 
+const debugActiveChildren = true
+
 func (d *dir) forgetChild(name string, child node) {
+	if name == "" {
+		// unlinked
+		return
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if have, ok := d.active[name]; ok {
-		// have something by that name
-		if have == child {
-			// has not been overwritten
-			delete(d.active, name)
+	if debugActiveChildren {
+		have, ok := d.active[name]
+		switch {
+		case !ok:
+			log.Printf("asked to forget non-active child: %q %#v", name, child)
+		case have != child:
+			log.Printf("asked to forget wrong child: %q %#v", name, child)
 		}
 	}
+	delete(d.active, name)
 }
 
 func (d *dir) Forget() {
@@ -352,8 +362,9 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 			return errors.New("dir bucket missing")
 		}
 
+		node, isActive := d.active[req.Name]
 		// does it exist? can short-circuit existence check if active
-		if _, ok := d.active[req.Name]; !ok {
+		if !isActive {
 			if bucket.Get(key) == nil {
 				return fuse.ENOENT
 			}
@@ -363,7 +374,10 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 		if err != nil {
 			return err
 		}
-		delete(d.active, req.Name)
+		if isActive {
+			delete(d.active, req.Name)
+			node.setName("")
+		}
 
 		// TODO free inode
 		return nil
@@ -429,6 +443,11 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 	}
 	if err := d.fs.db.Update(rename); err != nil {
 		return err
+	}
+
+	// tell overwritten node it's unlinked
+	if n, ok := d.active[req.NewName]; ok {
+		n.setName("")
 	}
 
 	// if the source inode is active, record its new name
