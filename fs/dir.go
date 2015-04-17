@@ -31,6 +31,15 @@ type dir struct {
 	fs     *Volume
 
 	// mu protects the fields below.
+	//
+	// If multiple dir.mu instances need to be locked at the same
+	// time, the locks must be taken in topologically sorted
+	// order, parent first.
+	//
+	// As there can be only one db.Update at a time, those calls
+	// must be considered as lock operations too. To avoid lock
+	// ordering related deadlocks, never hold mu while calling
+	// db.Update.
 	mu sync.Mutex
 
 	name string
