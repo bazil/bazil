@@ -374,19 +374,14 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	node, isActive := d.active[req.Name]
 	key := pathToKey(d.inode, req.Name)
 	remove := func(tx *db.Tx) error {
 		bucket := d.fs.bucket(tx)
 		dirBucket := bucket.DirBucket()
 
-		// does it exist? can short-circuit existence check if active
-		if !isActive {
-			if dirBucket.Get(key) == nil {
-				return fuse.ENOENT
-			}
+		if dirBucket.Get(key) == nil {
+			return fuse.ENOENT
 		}
-
 		err := dirBucket.Delete(key)
 		if err != nil {
 			return err
@@ -398,7 +393,7 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	if err := d.fs.db.Update(remove); err != nil {
 		return err
 	}
-	if isActive {
+	if node, ok := d.active[req.Name]; ok {
 		delete(d.active, req.Name)
 		node.setName("")
 	}
