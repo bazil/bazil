@@ -371,9 +371,6 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 }
 
 func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
 	key := pathToKey(d.inode, req.Name)
 	remove := func(tx *db.Tx) error {
 		bucket := d.fs.bucket(tx)
@@ -393,6 +390,9 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	if err := d.fs.db.Update(remove); err != nil {
 		return err
 	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if node, ok := d.active[req.Name]; ok {
 		delete(d.active, req.Name)
 		node.setName("")
