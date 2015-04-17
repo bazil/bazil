@@ -235,10 +235,9 @@ func (d *dir) save(tx *db.Tx, name string, n node) error {
 	return d.saveInternal(tx, name, n)
 }
 
-func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+const debugCreateExisting = true
 
+func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
 	// TODO check for duplicate name
 
 	switch req.Mode & os.ModeType {
@@ -272,6 +271,15 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 		}
 		if err := d.fs.db.Update(createFile); err != nil {
 			return nil, nil, err
+		}
+
+		d.mu.Lock()
+		defer d.mu.Unlock()
+		if debugCreateExisting {
+			if n, ok := d.active[req.Name]; ok {
+				log.Printf("asked to create with existing node: %q %#v", req.Name, n)
+				n.setName("")
+			}
 		}
 		d.active[req.Name] = child
 		return child, child, nil
