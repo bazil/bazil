@@ -94,7 +94,7 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 			return fuse.ENOENT
 		}
 		var err error
-		de, err = d.unmarshalDirent(buf)
+		de, err = unmarshalDirent(buf)
 		if err != nil {
 			return fmt.Errorf("dirent unmarshal problem: %v", err)
 		}
@@ -111,7 +111,7 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	return child, nil
 }
 
-func (d *dir) unmarshalDirent(buf []byte) (*wire.Dirent, error) {
+func unmarshalDirent(buf []byte) (*wire.Dirent, error) {
 	var de wire.Dirent
 	err := proto.Unmarshal(buf, &de)
 	if err != nil {
@@ -179,7 +179,7 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			}
 
 			name := string(k[len(prefix):])
-			de, err := d.unmarshalDirent(v)
+			de, err := unmarshalDirent(v)
 			if err != nil {
 				return fmt.Errorf("readdir error: %v", err)
 			}
@@ -427,7 +427,7 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 			bufLoser := bucket.Get(kNew)
 			if bufLoser != nil {
 				// overwriting
-				deLoser, err := d.unmarshalDirent(bufLoser)
+				deLoser, err := unmarshalDirent(bufLoser)
 				if err != nil {
 					return fmt.Errorf("dirent unmarshal problem: %v", err)
 				}
@@ -493,7 +493,7 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
 		}
 
 		name := string(k[len(prefix):])
-		de, err := d.unmarshalDirent(v)
+		de, err := unmarshalDirent(v)
 		if err != nil {
 			return nil, err
 		}
