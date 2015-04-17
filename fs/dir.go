@@ -401,9 +401,6 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 }
 
 func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Node) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
 	// if you ever change this, also guard against renaming into
 	// special directories like .snap; check type of newDir is *dir
 	//
@@ -458,6 +455,9 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 	if err := d.fs.db.Update(rename); err != nil {
 		return err
 	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	// tell overwritten node it's unlinked
 	if n, ok := d.active[req.NewName]; ok {
