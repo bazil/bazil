@@ -324,10 +324,9 @@ func (d *dir) Forget() {
 	d.parent.forgetChild(name, d)
 }
 
-func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+const debugMkdirExisting = true
 
+func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
 	// TODO handle req.Mode
 
 	var child node
@@ -357,6 +356,15 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 			return nil, fuse.Errno(syscall.ENOSPC)
 		}
 		return nil, err
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if debugMkdirExisting {
+		if n, ok := d.active[req.Name]; ok {
+			log.Printf("asked to mkdir with existing node: %q %#v", req.Name, n)
+			n.setName("")
+		}
 	}
 	d.active[req.Name] = child
 	return child, nil
