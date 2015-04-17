@@ -48,6 +48,11 @@ func (db *DB) View(fn func(*Tx) error) error {
 	return db.DB.View(wrapper)
 }
 
+// Update makes changes to the database. There can be only one Update
+// call at a time.
+//
+// If a lock L is held while calling db.Update, L must never be taken
+// inside a write transaction, at the risk of a deadlock.
 func (db *DB) Update(fn func(*Tx) error) error {
 	wrapper := func(tx *bolt.Tx) error {
 		return fn(&Tx{tx})
