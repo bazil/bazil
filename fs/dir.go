@@ -85,11 +85,8 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	var de *wire.Dirent
 	key := pathToKey(d.inode, name)
 	lookup := func(tx *db.Tx) error {
-		bucket := d.fs.bucket(tx).DirBucket()
-		if bucket == nil {
-			return errors.New("dir bucket missing")
-		}
-		buf := bucket.Get(key)
+		bucket := d.fs.bucket(tx)
+		buf := bucket.DirBucket().Get(key)
 		if buf == nil {
 			return fuse.ENOENT
 		}
@@ -165,11 +162,8 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 	var entries []fuse.Dirent
 	readDirAll := func(tx *db.Tx) error {
-		bucket := d.fs.bucket(tx).DirBucket()
-		if bucket == nil {
-			return errors.New("dir bucket missing")
-		}
-		c := bucket.Cursor()
+		bucket := d.fs.bucket(tx)
+		c := bucket.DirBucket().Cursor()
 		prefix := pathToKey(d.inode, "")
 		for k, v := c.Seek(prefix); k != nil; k, v = c.Next() {
 			if !bytes.HasPrefix(k, prefix) {
@@ -204,12 +198,8 @@ func (d *dir) saveInternal(tx *db.Tx, name string, n node) error {
 	}
 
 	key := pathToKey(d.inode, name)
-	bucket := d.fs.bucket(tx).DirBucket()
-	if bucket == nil {
-		return errors.New("dir bucket missing")
-	}
-	err = bucket.Put(key, buf)
-	if err != nil {
+	bucket := d.fs.bucket(tx)
+	if err := bucket.DirBucket().Put(key, buf); err != nil {
 		return fmt.Errorf("db write error: %v", err)
 	}
 	return nil
@@ -360,19 +350,17 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	node, isActive := d.active[req.Name]
 	key := pathToKey(d.inode, req.Name)
 	remove := func(tx *db.Tx) error {
-		bucket := d.fs.bucket(tx).DirBucket()
-		if bucket == nil {
-			return errors.New("dir bucket missing")
-		}
+		bucket := d.fs.bucket(tx)
+		dirBucket := bucket.DirBucket()
 
 		// does it exist? can short-circuit existence check if active
 		if !isActive {
-			if bucket.Get(key) == nil {
+			if dirBucket.Get(key) == nil {
 				return fuse.ENOENT
 			}
 		}
 
-		err := bucket.Delete(key)
+		err := dirBucket.Delete(key)
 		if err != nil {
 			return err
 		}
@@ -406,15 +394,13 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 	kNew := pathToKey(d.inode, req.NewName)
 
 	rename := func(tx *db.Tx) error {
-		bucket := d.fs.bucket(tx).DirBucket()
-		if bucket == nil {
-			return errors.New("dir bucket missing")
-		}
+		bucket := d.fs.bucket(tx)
+		dirBucket := bucket.DirBucket()
 
 		// TODO don't need to load from db if req.OldName is in active.
 		// instead, save active state if we have it; call .save() not this
 		// kludge
-		bufOld := bucket.Get(kOld)
+		bufOld := dirBucket.Get(kOld)
 		if bufOld == nil {
 			return fuse.ENOENT
 		}
@@ -423,7 +409,7 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 		var loserInode uint64
 		{
 			// TODO don't need to load from db if req.NewName is in active
-			bufLoser := bucket.Get(kNew)
+			bufLoser := dirBucket.Get(kNew)
 			if bufLoser != nil {
 				// overwriting
 				deLoser, err := unmarshalDirent(bufLoser)
@@ -434,10 +420,10 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 			}
 		}
 
-		if err := bucket.Put(kNew, bufOld); err != nil {
+		if err := dirBucket.Put(kNew, bufOld); err != nil {
 			return err
 		}
-		if err := bucket.Delete(kOld); err != nil {
+		if err := dirBucket.Delete(kOld); err != nil {
 			return err
 		}
 
@@ -471,10 +457,7 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
 	// NOT HOLDING THE LOCK, accessing database snapshot ONLY
 
 	// TODO move bucket lookup to caller?
-	bucket := d.fs.bucket(tx).DirBucket()
-	if bucket == nil {
-		return nil, errors.New("dir bucket missing")
-	}
+	bucket := d.fs.bucket(tx)
 
 	manifest := blobs.EmptyManifest("dir")
 	blob, err := blobs.Open(d.fs.chunkStore, manifest)
@@ -483,7 +466,7 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
 	}
 	w := snap.NewWriter(blob)
 
-	c := bucket.Cursor()
+	c := bucket.DirBucket().Cursor()
 	prefix := pathToKey(d.inode, "")
 	for k, v := c.Seek(prefix); k != nil; k, v = c.Next() {
 		if !bytes.HasPrefix(k, prefix) {
