@@ -194,7 +194,9 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	return entries, err
 }
 
-// caller does locking
+// saveInternal persists entry name in dir to the database.
+//
+// uses no mutable state of d, and hence does not need to lock d.mu.
 func (d *dir) saveInternal(tx *db.Tx, name string, n node) error {
 	de, err := n.marshal()
 	if err != nil {
