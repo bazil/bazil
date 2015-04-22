@@ -113,8 +113,7 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 func unmarshalDirent(buf []byte) (*wire.Dirent, error) {
 	var de wire.Dirent
-	err := proto.Unmarshal(buf, &de)
-	if err != nil {
+	if err := proto.Unmarshal(buf, &de); err != nil {
 		return nil, err
 	}
 	return &de, nil
