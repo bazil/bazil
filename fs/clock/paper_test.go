@@ -349,3 +349,14 @@ func TestFigure12(t *testing.T) {
 	c_dx.ValidateFile(c_d)
 	c_dy.ValidateFile(c_d)
 }
+
+func TestSection3_3_2(t *testing.T) {
+	a := clock.Create(10, 1)
+	a.Update(11, 2)
+	a.UpdateSync(11, 3)
+
+	a.Tombstone()
+	if g, e := a.String(), `{sync{10:1 11:3} mod{} create{}}`; g != e {
+		t.Errorf("bad state for tombstone: %v != %v", g, e)
+	}
+}

@@ -88,6 +88,13 @@ func (s *Clock) UpdateFromParent(parent *Clock) {
 	s.sync.rebase(parent.sync)
 }
 
+// Tombstone changes clock into a tombstone.
+func (s *Clock) Tombstone() {
+	// vpair paper section 3.3.2
+	s.mod = vector{}
+	s.create = vector{}
+}
+
 // ResolveTheirs records a conflict resolution in favor of other.
 func (s *Clock) ResolveTheirs(other *Clock) {
 	s.mod = vector{}
