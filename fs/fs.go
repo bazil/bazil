@@ -60,12 +60,7 @@ func (f *Volume) Init(ctx context.Context, req *fuse.InitRequest, resp *fuse.Ini
 }
 
 func (v *Volume) Root() (fs.Node, error) {
-	d := &dir{
-		inode:  tokens.InodeRoot,
-		parent: nil,
-		fs:     v,
-		active: make(map[string]node),
-	}
+	d := newDir(v, tokens.InodeRoot, nil, "")
 	return d, nil
 }
 

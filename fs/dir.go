@@ -52,6 +52,17 @@ type dir struct {
 	active map[string]node
 }
 
+func newDir(filesys *Volume, inode uint64, parent *dir, name string) *dir {
+	d := &dir{
+		inode:  inode,
+		name:   name,
+		parent: parent,
+		fs:     filesys,
+		active: make(map[string]node),
+	}
+	return d
+}
+
 var _ = node(&dir{})
 var _ = fs.Node(&dir{})
 var _ = fs.NodeCreater(&dir{})
@@ -129,13 +140,7 @@ func (d *dir) reviveDir(de *wire.Dirent, name string) (*dir, error) {
 	if de.Dir == nil {
 		return nil, fmt.Errorf("tried to revive non-directory as directory: %v", de)
 	}
-	child := &dir{
-		inode:  de.Inode,
-		name:   name,
-		parent: d,
-		fs:     d.fs,
-		active: make(map[string]node),
-	}
+	child := newDir(d.fs, de.Inode, d, name)
 	return child, nil
 }
 
@@ -339,13 +344,7 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 		if err != nil {
 			return err
 		}
-		child = &dir{
-			inode:  inode,
-			name:   req.Name,
-			parent: d,
-			fs:     d.fs,
-			active: make(map[string]node),
-		}
+		child = newDir(d.fs, inode, d, req.Name)
 		if err := d.saveInternal(tx, req.Name, child); err != nil {
 			return err
 		}
