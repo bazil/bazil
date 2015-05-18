@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"net"
+	"time"
 
 	"bazil.org/bazil/util/edtls"
 	"github.com/agl/ed25519"
@@ -18,44 +19,13 @@ var (
 
 type Authenticator struct {
 	Config func() (*tls.Config, error)
-	Lookup func(network string, addr string) (network2, addr2 string, peerPub *[ed25519.PublicKeySize]byte, err error)
+	Lookup func(addr string) (addr2 string, peerPub *[ed25519.PublicKeySize]byte, err error)
 }
 
 var _ credentials.TransportAuthenticator = (*Authenticator)(nil)
 
 func (a *Authenticator) GetRequestMetadata(ctx context.Context) (map[string]string, error) {
 	return nil, nil
-}
-
-func (a *Authenticator) DialWithDialer(dialer *net.Dialer, network, addr string) (_ net.Conn, err error) {
-	if a.Config == nil {
-		return nil, errMissingTLSConfig
-	}
-	conf, err := a.Config()
-	if err != nil {
-		return nil, err
-	}
-	if a.Lookup == nil {
-		return nil, errMissingLookup
-	}
-	network, addr, peerPub, err := a.Lookup(network, addr)
-	if err != nil {
-		return nil, err
-	}
-	// We do our own verification, with edtls.
-	conf.InsecureSkipVerify = true
-	return edtls.Dial(dialer, network, addr, conf, peerPub)
-}
-
-func (a *Authenticator) Dial(network, addr string) (_ net.Conn, err error) {
-	return a.DialWithDialer(&net.Dialer{}, network, addr)
-}
-
-func (a *Authenticator) NewListener(lis net.Listener) net.Listener {
-	return &listener{
-		Listener: lis,
-		config:   a.Config,
-	}
 }
 
 type peerKeyT int
@@ -86,4 +56,48 @@ func FromContext(ctx context.Context) (pub *[ed25519.PublicKeySize]byte, ok bool
 		return nil, false
 	}
 	return edtls.Verify(state.PeerCertificates[0])
+}
+
+func (a *Authenticator) ClientHandshake(addr string, rawConn net.Conn, timeout time.Duration) (net.Conn, error) {
+	if a.Config == nil {
+		return nil, errMissingTLSConfig
+	}
+	conf, err := a.Config()
+	if err != nil {
+		return nil, err
+	}
+	if a.Lookup == nil {
+		return nil, errMissingLookup
+	}
+	addr, peerPub, err := a.Lookup(addr)
+	if err != nil {
+		return nil, err
+	}
+	// We do our own verification, with edtls.
+	conf.InsecureSkipVerify = true
+	return edtls.NewClient(rawConn, conf, peerPub)
+}
+
+func (a *Authenticator) ServerHandshake(conn net.Conn) (net.Conn, error) {
+	if a.Config == nil {
+		return nil, errMissingTLSConfig
+	}
+	tlsConf, err := a.Config()
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	tconn := tls.Server(conn, tlsConf)
+	if err := tconn.Handshake(); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return tconn, nil
+}
+
+func (a *Authenticator) Info() credentials.ProtocolInfo {
+	return credentials.ProtocolInfo{
+		SecurityProtocol: "TODO",
+		SecurityVersion:  "TODO",
+	}
 }
