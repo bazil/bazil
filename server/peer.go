@@ -50,7 +50,7 @@ func (p *peerClient) Close() error {
 }
 
 func (app *App) DialPeer(pub *peer.PublicKey) (PeerClient, error) {
-	lookup := func(network string, addr string) (string, string, *[ed25519.PublicKeySize]byte, error) {
+	lookup := func(addr string) (string, *[ed25519.PublicKeySize]byte, error) {
 		find := func(tx *db.Tx) error {
 			p, err := tx.Peers().Get(pub)
 			if err != nil {
@@ -64,9 +64,9 @@ func (app *App) DialPeer(pub *peer.PublicKey) (PeerClient, error) {
 			return nil
 		}
 		if err := app.DB.View(find); err != nil {
-			return "", "", nil, err
+			return "", nil, err
 		}
-		return network, addr, (*[ed25519.PublicKeySize]byte)(pub), nil
+		return addr, (*[ed25519.PublicKeySize]byte)(pub), nil
 	}
 
 	auth := &grpcedtls.Authenticator{
