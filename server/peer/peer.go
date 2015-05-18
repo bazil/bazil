@@ -40,7 +40,7 @@ func New(app *server.App) *grpc.Server {
 		// TODO Lookup:
 	}
 	srv := grpc.NewServer(
-		grpc.WithServerTransportAuthenticator(auth),
+		grpc.Creds(auth),
 	)
 	rpc := &peers{app: app}
 	wire.RegisterPeerServer(srv, rpc)
