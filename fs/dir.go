@@ -49,7 +49,21 @@ type dir struct {
 	//
 	// each child also stores its own name; if the value in the child
 	// is an empty string, that means the child has been unlinked
-	active map[string]node
+	active map[string]*refcount
+}
+
+type refcount struct {
+	// all data guarded by dir.mu
+
+	node node
+
+	// Whether FUSE has an active Node reference to this. True between
+	// first Lookup/Create/Mkdir/etc and Forget/Unmount.
+	//
+	// TODO: not yet reliably unset at unmount time.
+	kernel bool
+
+	refs uint32
 }
 
 func newDir(filesys *Volume, inode uint64, parent *dir, name string) *dir {
@@ -58,7 +72,7 @@ func newDir(filesys *Volume, inode uint64, parent *dir, name string) *dir {
 		name:   name,
 		parent: parent,
 		fs:     filesys,
-		active: make(map[string]node),
+		active: make(map[string]*refcount),
 	}
 	return d
 }
@@ -87,18 +101,14 @@ func (d *dir) Attr(ctx context.Context, a *fuse.Attr) error {
 	return nil
 }
 
-func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
-	if d.inode == 1 && name == ".snap" {
-		return &listSnaps{
-			fs: d.fs,
-		}, nil
-	}
-
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if child, ok := d.active[name]; ok {
-		return child, nil
+// Lookup name in active children, adding one if necessary, and return
+// the refcount data for it. Caller is responsible for increasing the
+// refcount.
+//
+// Caller must hold dir.mu.
+func (d *dir) lookup(name string) (*refcount, error) {
+	if a, ok := d.active[name]; ok {
+		return a, nil
 	}
 
 	var de *wire.Dirent
@@ -117,8 +127,27 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dirent node unmarshal problem: %v", err)
 	}
-	d.active[name] = child
-	return child, nil
+	a := &refcount{node: child}
+	d.active[name] = a
+	return a, nil
+}
+
+func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
+	if d.inode == 1 && name == ".snap" {
+		return &listSnaps{
+			fs: d.fs,
+		}, nil
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	a, err := d.lookup(name)
+	if err != nil {
+		return nil, err
+	}
+	a.kernel = true
+	return a.node, nil
 }
 
 func unmarshalDirent(buf []byte) (*wire.Dirent, error) {
@@ -322,12 +351,12 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 		d.mu.Lock()
 		defer d.mu.Unlock()
 		if debugCreateExisting {
-			if n, ok := d.active[req.Name]; ok {
-				log.Printf("asked to create with existing node: %q %#v", req.Name, n)
-				n.setName("")
+			if a, ok := d.active[req.Name]; ok {
+				log.Printf("asked to create with existing node: %q %#v", req.Name, a.node)
+				a.node.setName("")
 			}
 		}
-		d.active[req.Name] = child
+		d.active[req.Name] = &refcount{node: child, kernel: true}
 		return child, child, nil
 	default:
 		return nil, nil, fuse.EPERM
@@ -345,16 +374,23 @@ func (d *dir) forgetChild(name string, child node) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if debugActiveChildren {
-		have, ok := d.active[name]
-		switch {
-		case !ok:
+	a, ok := d.active[name]
+	if !ok {
+		if debugActiveChildren {
 			log.Printf("asked to forget non-active child: %q %#v", name, child)
-		case have != child:
+		}
+		return
+	}
+	if debugActiveChildren {
+		if a.node != child {
 			log.Printf("asked to forget wrong child: %q %#v", name, child)
 		}
 	}
-	delete(d.active, name)
+
+	a.kernel = false
+	if a.refs == 0 {
+		delete(d.active, name)
+	}
 }
 
 func (d *dir) Forget() {
@@ -406,12 +442,12 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if debugMkdirExisting {
-		if n, ok := d.active[req.Name]; ok {
-			log.Printf("asked to mkdir with existing node: %q %#v", req.Name, n)
-			n.setName("")
+		if a, ok := d.active[req.Name]; ok {
+			log.Printf("asked to mkdir with existing node: %q %#v", req.Name, a.node)
+			a.node.setName("")
 		}
 	}
-	d.active[req.Name] = child
+	d.active[req.Name] = &refcount{node: child, kernel: true}
 	return child, nil
 }
 
@@ -434,9 +470,9 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if node, ok := d.active[req.Name]; ok {
+	if a, ok := d.active[req.Name]; ok {
 		delete(d.active, req.Name)
-		node.setName("")
+		a.node.setName("")
 	}
 	return nil
 }
@@ -503,15 +539,15 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 	defer d.mu.Unlock()
 
 	// tell overwritten node it's unlinked
-	if n, ok := d.active[req.NewName]; ok {
-		n.setName("")
+	if a, ok := d.active[req.NewName]; ok {
+		a.node.setName("")
 	}
 
 	// if the source inode is active, record its new name
-	if nodeOld, ok := d.active[req.OldName]; ok {
-		nodeOld.setName(req.NewName)
+	if aOld, ok := d.active[req.OldName]; ok {
+		aOld.node.setName(req.NewName)
 		delete(d.active, req.OldName)
-		d.active[req.NewName] = nodeOld
+		d.active[req.NewName] = aOld
 	}
 
 	return nil
