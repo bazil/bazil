@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"encoding/binary"
 
 	wirefs "bazil.org/bazil/fs/wire"
@@ -35,4 +36,59 @@ func (b *Dirs) Get(parentInode uint64, name string) (*wirefs.Dirent, error) {
 		return nil, err
 	}
 	return &de, nil
+}
+
+func (b *Dirs) List(inode uint64) *DirsCursor {
+	c := b.b.Cursor()
+	prefix := dirKey(inode, "")
+	return &DirsCursor{
+		inode:  inode,
+		prefix: prefix,
+		c:      c,
+	}
+}
+
+type DirsCursor struct {
+	inode  uint64
+	prefix []byte
+	c      *bolt.Cursor
+}
+
+func (c *DirsCursor) First() *DirEntry {
+	return c.item(c.c.Seek(c.prefix))
+}
+
+func (c *DirsCursor) Next() *DirEntry {
+	return c.item(c.c.Next())
+}
+
+func (c *DirsCursor) item(k, v []byte) *DirEntry {
+	if !bytes.HasPrefix(k, c.prefix) {
+		// past the end of the directory
+		return nil
+	}
+	name := k[len(c.prefix):]
+	return &DirEntry{name: name, data: v}
+}
+
+type DirEntry struct {
+	name []byte
+	data []byte
+}
+
+// Name returns the basename of this directory entry.
+//
+// name is valid after the transaction.
+func (e *DirEntry) Name() string {
+	return string(e.name)
+}
+
+// Unmarshal the directory entry to out.
+//
+// out is valid after the transaction.
+func (e *DirEntry) Unmarshal(out *wirefs.Dirent) error {
+	if err := proto.Unmarshal(e.data, out); err != nil {
+		return err
+	}
+	return nil
 }

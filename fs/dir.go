@@ -170,21 +170,13 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 	var entries []fuse.Dirent
 	readDirAll := func(tx *db.Tx) error {
-		bucket := d.fs.bucket(tx)
-		c := bucket.DirBucket().Cursor()
-		prefix := pathToKey(d.inode, "")
-		for k, v := c.Seek(prefix); k != nil; k, v = c.Next() {
-			if !bytes.HasPrefix(k, prefix) {
-				// past the end of the directory
-				break
-			}
-
-			name := string(k[len(prefix):])
-			de, err := unmarshalDirent(v)
-			if err != nil {
+		c := d.fs.bucket(tx).Dirs().List(d.inode)
+		for item := c.First(); item != nil; item = c.Next() {
+			var de wire.Dirent
+			if err := item.Unmarshal(&de); err != nil {
 				return fmt.Errorf("readdir error: %v", err)
 			}
-			fde := de.GetFUSEDirent(name)
+			fde := de.GetFUSEDirent(item.Name())
 			entries = append(entries, fde)
 		}
 		return nil
