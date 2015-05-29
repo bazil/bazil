@@ -103,17 +103,11 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	var de *wire.Dirent
-	key := pathToKey(d.inode, name)
 	lookup := func(tx *db.Tx) error {
-		bucket := d.fs.bucket(tx)
-		buf := bucket.DirBucket().Get(key)
-		if buf == nil {
-			return fuse.ENOENT
-		}
 		var err error
-		de, err = unmarshalDirent(buf)
+		de, err = d.fs.bucket(tx).Dirs().Get(d.inode, name)
 		if err != nil {
-			return fmt.Errorf("dirent unmarshal problem: %v", err)
+			return err
 		}
 		return nil
 	}

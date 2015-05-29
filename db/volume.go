@@ -152,6 +152,12 @@ func (v *Volume) Storage() *VolumeStorage {
 	return &VolumeStorage{b}
 }
 
+// Dirs provides a way of accessing the directory entries stored in
+// this volume.
+func (v *Volume) Dirs() *Dirs {
+	return &Dirs{b: v.b.Bucket(volumeStateDir)}
+}
+
 // DirBucket returns a bolt bucket for storing directory contents in.
 func (v *Volume) DirBucket() *bolt.Bucket {
 	return v.b.Bucket(volumeStateDir)
