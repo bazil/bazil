@@ -136,10 +136,6 @@ random:
 	return v, nil
 }
 
-const VolumeIDLen = 64
-
-type VolumeID [VolumeIDLen]byte
-
 func randomVolumeID() (*VolumeID, error) {
 	var id VolumeID
 	_, err := rand.Read(id[:])
