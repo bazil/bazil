@@ -158,9 +158,9 @@ func RegisterControlServer(s *grpc.Server, srv ControlServer) {
 	s.RegisterService(&_Control_serviceDesc, srv)
 }
 
-func _Control_Ping_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Control_Ping_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(PingRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(ControlServer).Ping(ctx, in)
@@ -170,9 +170,9 @@ func _Control_Ping_Handler(srv interface{}, ctx context.Context, buf []byte) (in
 	return out, nil
 }
 
-func _Control_VolumeCreate_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Control_VolumeCreate_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(VolumeCreateRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(ControlServer).VolumeCreate(ctx, in)
@@ -182,9 +182,9 @@ func _Control_VolumeCreate_Handler(srv interface{}, ctx context.Context, buf []b
 	return out, nil
 }
 
-func _Control_VolumeMount_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Control_VolumeMount_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(VolumeMountRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(ControlServer).VolumeMount(ctx, in)
@@ -194,9 +194,9 @@ func _Control_VolumeMount_Handler(srv interface{}, ctx context.Context, buf []by
 	return out, nil
 }
 
-func _Control_VolumeStorageAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Control_VolumeStorageAdd_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(VolumeStorageAddRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(ControlServer).VolumeStorageAdd(ctx, in)
@@ -206,9 +206,9 @@ func _Control_VolumeStorageAdd_Handler(srv interface{}, ctx context.Context, buf
 	return out, nil
 }
 
-func _Control_SharingKeyAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Control_SharingKeyAdd_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(SharingKeyAddRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(ControlServer).SharingKeyAdd(ctx, in)
@@ -218,9 +218,9 @@ func _Control_SharingKeyAdd_Handler(srv interface{}, ctx context.Context, buf []
 	return out, nil
 }
 
-func _Control_PeerAdd_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Control_PeerAdd_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(PeerAddRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(ControlServer).PeerAdd(ctx, in)
@@ -230,9 +230,9 @@ func _Control_PeerAdd_Handler(srv interface{}, ctx context.Context, buf []byte) 
 	return out, nil
 }
 
-func _Control_PeerLocationSet_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Control_PeerLocationSet_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(PeerLocationSetRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(ControlServer).PeerLocationSet(ctx, in)
@@ -242,9 +242,9 @@ func _Control_PeerLocationSet_Handler(srv interface{}, ctx context.Context, buf 
 	return out, nil
 }
 
-func _Control_PeerStorageAllow_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Control_PeerStorageAllow_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(PeerStorageAllowRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(ControlServer).PeerStorageAllow(ctx, in)

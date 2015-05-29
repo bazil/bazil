@@ -185,9 +185,9 @@ func RegisterPeerServer(s *grpc.Server, srv PeerServer) {
 	s.RegisterService(&_Peer_serviceDesc, srv)
 }
 
-func _Peer_Ping_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Peer_Ping_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(PingRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(PeerServer).Ping(ctx, in)
