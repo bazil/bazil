@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math/big"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -85,40 +86,24 @@ func mustGenerateTLSConfig(t *testing.T, signPub *[ed25519.PublicKeySize]byte, s
 
 // TODO this code is ugly
 // TODO test coverage for error cases
-func TestDialNotEd(t *testing.T) {
+func TestNewClientNotEd(t *testing.T) {
 	confSrv := mustGenerateTLSConfig(t, nil, nil)
-	l, err := tls.Listen("tcp", "localhost:0", confSrv)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer l.Close()
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
 
-	quit := make(chan struct{})
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for {
-			c, err := l.Accept()
-			select {
-			case <-quit:
-				// nevermind the error, it's probably unexported
-				// errClosing anyway
-				return
-			default:
-			}
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			_, _ = io.Copy(ioutil.Discard, c)
-			c.Close()
-		}
+		c := tls.Server(server, confSrv)
+		defer c.Close()
+		_, _ = io.Copy(ioutil.Discard, c)
 	}()
 
 	confClient := mustGenerateTLSConfig(t, nil, nil)
 	confClient.InsecureSkipVerify = true
-	c, err := edtls.Dial(nil, "tcp", l.Addr().String(), confClient, testKeyPub)
+	c, err := edtls.NewClient(client, confClient, testKeyPub)
 	if err == nil {
 		c.Close()
 		t.Fatal("expected an error")
@@ -127,7 +112,5 @@ func TestDialNotEd(t *testing.T) {
 		t.Fatalf("expected ErrNotEdTLS, got %T: %v", err, err)
 	}
 
-	close(quit)
-	l.Close()
 	wg.Wait()
 }

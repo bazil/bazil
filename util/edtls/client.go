@@ -27,17 +27,8 @@ func (e *WrongPublicKeyError) Error() string {
 	return fmt.Sprintf("wrong public key: %x", e.Pub[:])
 }
 
-var defaultDialer net.Dialer
-
-// Dial connects to a remote peer, that much have the given edtls public key.
-func Dial(dialer *net.Dialer, network, addr string, config *tls.Config, peerPub *[ed25519.PublicKeySize]byte) (*tls.Conn, error) {
-	if dialer == nil {
-		dialer = &defaultDialer
-	}
-	c, err := tls.DialWithDialer(dialer, network, addr, config)
-	if err != nil {
-		return nil, err
-	}
+func NewClient(rawConn net.Conn, config *tls.Config, peerPub *[ed25519.PublicKeySize]byte) (*tls.Conn, error) {
+	c := tls.Client(rawConn, config)
 	if err := c.Handshake(); err != nil {
 		_ = c.Close()
 		return nil, err
