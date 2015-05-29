@@ -110,6 +110,41 @@ func (b *Peers) Make(pub *peer.PublicKey) (*Peer, error) {
 	return p, nil
 }
 
+func (b *Peers) Cursor() *PeersCursor {
+	return &PeersCursor{b.peers.Cursor()}
+}
+
+type PeersCursor struct {
+	c *bolt.Cursor
+}
+
+func (c *PeersCursor) item(k, _ []byte) *Peer {
+	if k == nil {
+		return nil
+	}
+	bucket := c.c.Bucket().Bucket(k)
+	if bucket == nil {
+		panic("db peer corrupt, not a bucket")
+	}
+	var pub peer.PublicKey
+	if err := pub.UnmarshalBinary(k); err != nil {
+		panic("db peer corrupt: " + err.Error())
+	}
+	p := &Peer{
+		b:   bucket,
+		pub: &pub,
+	}
+	return p
+}
+
+func (c *PeersCursor) First() *Peer {
+	return c.item(c.c.First())
+}
+
+func (c *PeersCursor) Next() *Peer {
+	return c.item(c.c.Next())
+}
+
 type Peer struct {
 	b   *bolt.Bucket
 	pub *peer.PublicKey
