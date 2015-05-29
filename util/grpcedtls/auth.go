@@ -14,12 +14,11 @@ import (
 
 var (
 	errMissingTLSConfig = errors.New("missing TLS configuration")
-	errMissingLookup    = errors.New("missing peer key lookup mechanism")
 )
 
 type Authenticator struct {
-	Config func() (*tls.Config, error)
-	Lookup func(addr string) (addr2 string, peerPub *[ed25519.PublicKeySize]byte, err error)
+	Config  func() (*tls.Config, error)
+	PeerPub *[ed25519.PublicKeySize]byte
 }
 
 var _ credentials.TransportAuthenticator = (*Authenticator)(nil)
@@ -66,16 +65,9 @@ func (a *Authenticator) ClientHandshake(addr string, rawConn net.Conn, timeout t
 	if err != nil {
 		return nil, err
 	}
-	if a.Lookup == nil {
-		return nil, errMissingLookup
-	}
-	addr, peerPub, err := a.Lookup(addr)
-	if err != nil {
-		return nil, err
-	}
 	// We do our own verification, with edtls.
 	conf.InsecureSkipVerify = true
-	return edtls.NewClient(rawConn, conf, peerPub)
+	return edtls.NewClient(rawConn, conf, a.PeerPub)
 }
 
 func (a *Authenticator) ServerHandshake(conn net.Conn) (net.Conn, error) {

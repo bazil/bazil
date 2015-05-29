@@ -50,33 +50,31 @@ func (p *peerClient) Close() error {
 }
 
 func (app *App) DialPeer(pub *peer.PublicKey) (PeerClient, error) {
-	lookup := func(addr string) (string, *[ed25519.PublicKeySize]byte, error) {
-		find := func(tx *db.Tx) error {
-			p, err := tx.Peers().Get(pub)
-			if err != nil {
-				return err
-			}
-			a, err := p.Locations().Get()
-			if err != nil {
-				return err
-			}
-			addr = a
-			return nil
+	var addr string
+	find := func(tx *db.Tx) error {
+		p, err := tx.Peers().Get(pub)
+		if err != nil {
+			return err
 		}
-		if err := app.DB.View(find); err != nil {
-			return "", nil, err
+		a, err := p.Locations().Get()
+		if err != nil {
+			return err
 		}
-		return addr, (*[ed25519.PublicKeySize]byte)(pub), nil
+		addr = a
+		return nil
+	}
+	if err := app.DB.View(find); err != nil {
+		return nil, err
 	}
 
 	auth := &grpcedtls.Authenticator{
-		Config: app.GetTLSConfig,
-		Lookup: lookup,
+		Config:  app.GetTLSConfig,
+		PeerPub: (*[ed25519.PublicKeySize]byte)(pub),
 	}
 
 	// TODO never delay here.
 	// https://github.com/grpc/grpc-go/blob/8ce50750fe22e967aa8b1d308b21511844674b57/clientconn.go#L85
-	conn, err := grpc.Dial("placeholder.bazil.org.invalid.:443",
+	conn, err := grpc.Dial(addr,
 		grpc.WithTransportCredentials(auth),
 		grpc.WithTimeout(30*time.Second),
 	)

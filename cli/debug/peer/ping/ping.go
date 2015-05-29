@@ -31,10 +31,8 @@ func (c *pingCommand) Run() error {
 
 	pub := (*[ed25519.PublicKeySize]byte)(&c.Arguments.Pub)
 	auth := &grpcedtls.Authenticator{
-		Config: app.GetTLSConfig,
-		Lookup: func(addr string) (string, *[ed25519.PublicKeySize]byte, error) {
-			return addr, pub, nil
-		},
+		Config:  app.GetTLSConfig,
+		PeerPub: pub,
 	}
 	addr := c.Arguments.Addr
 	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(auth))
