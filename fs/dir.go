@@ -59,11 +59,12 @@ func (d *dir) setName(name string) {
 	d.name = name
 }
 
-func (d *dir) Attr(a *fuse.Attr) {
+func (d *dir) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = d.inode
 	a.Mode = os.ModeDir | 0755
 	a.Uid = env.MyUID
 	a.Gid = env.MyGID
+	return nil
 }
 
 func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {

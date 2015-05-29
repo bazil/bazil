@@ -30,11 +30,12 @@ var _ = fs.NodeStringLookuper(&listSnaps{})
 var _ = fs.Handle(&listSnaps{})
 var _ = fs.HandleReadDirAller(&listSnaps{})
 
-func (d *listSnaps) Attr(a *fuse.Attr) {
+func (d *listSnaps) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = tokens.InodeSnap
 	a.Mode = os.ModeDir | 0755
 	a.Uid = env.MyUID
 	a.Gid = env.MyGID
+	return nil
 }
 
 var _ = fs.NodeStringLookuper(&listSnaps{})

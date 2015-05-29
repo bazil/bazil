@@ -64,7 +64,7 @@ func (f *file) marshal() (*wire.Dirent, error) {
 	return de, nil
 }
 
-func (f *file) Attr(a *fuse.Attr) {
+func (f *file) Attr(ctx context.Context, a *fuse.Attr) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -73,6 +73,7 @@ func (f *file) Attr(a *fuse.Attr) {
 	a.Uid = env.MyUID
 	a.Gid = env.MyGID
 	a.Size = f.blob.Size()
+	return nil
 }
 
 func (f *file) Forget() {
