@@ -27,9 +27,6 @@ message Dir {
   // If >0, the direntries are guaranteed to be aligned at
   // 1<<(12+align-1) byte boundaries (that is, minimum alignment is
   // 4kB).
-  //
-  // Required, with value 0 reserved for disabled, to avoid pointer
-  // indirection costs for a few bytes.
   uint32 align = 2;
 }
 
