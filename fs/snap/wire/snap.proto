@@ -33,5 +33,5 @@ message Dir {
 // Snapshot as it is stored into CAS.
 message Snapshot {
   string name = 1;
-  bazil.snap.Dir contents = 2;
+  Dir contents = 2;
 }
