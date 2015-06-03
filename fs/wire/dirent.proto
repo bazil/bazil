@@ -15,7 +15,6 @@ message Dirent {
 
   // TODO executable, xattr, acl
   // TODO mtime
-  // TODO vector clocks
 }
 
 message File {
