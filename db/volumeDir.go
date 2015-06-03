@@ -21,6 +21,10 @@ func dirKey(parentInode uint64, name string) []byte {
 	return buf
 }
 
+func basename(dirKey []byte) []byte {
+	return dirKey[8:]
+}
+
 // Get the entry in parent directory with the given name.
 //
 // Returned value is valid after the transaction.
@@ -63,6 +67,39 @@ func (b *Dirs) Delete(parentInode uint64, name string) error {
 		return err
 	}
 	return nil
+}
+
+// Rename renames an entry in the parent directory from oldName to
+// newName.
+//
+// Returns the overwritten entry, or nil.
+func (b *Dirs) Rename(parentInode uint64, oldName string, newName string) (*DirEntry, error) {
+	kOld := dirKey(parentInode, oldName)
+	kNew := dirKey(parentInode, newName)
+
+	bufOld := b.b.Get(kOld)
+	if bufOld == nil {
+		return nil, fuse.ENOENT
+	}
+
+	// the file getting overwritten
+	var loser *DirEntry
+	if buf := b.b.Get(kNew); buf != nil {
+		// overwriting
+		loser = &DirEntry{
+			name: basename(kNew),
+			data: buf,
+		}
+	}
+
+	if err := b.b.Put(kNew, bufOld); err != nil {
+		return nil, err
+	}
+	if err := b.b.Delete(kOld); err != nil {
+		return nil, err
+	}
+
+	return loser, nil
 }
 
 func (b *Dirs) List(inode uint64) *DirsCursor {
