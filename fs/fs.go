@@ -1,7 +1,6 @@
 package fs
 
 import (
-	"encoding/binary"
 	"log"
 
 	"bazil.org/bazil/cas/chunks"
@@ -69,13 +68,6 @@ func (*Volume) GenerateInode(parent uint64, name string) uint64 {
 }
 
 var _ = fs.FSInodeGenerator(&Volume{})
-
-func pathToKey(parentInode uint64, name string) []byte {
-	buf := make([]byte, 8+len(name))
-	binary.BigEndian.PutUint64(buf, parentInode)
-	copy(buf[8:], name)
-	return buf
-}
 
 type node interface {
 	fs.Node
