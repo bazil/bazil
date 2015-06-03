@@ -1,7 +1,6 @@
 package fs
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -473,21 +472,14 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
 	}
 	w := snap.NewWriter(blob)
 
-	c := bucket.DirBucket().Cursor()
-	prefix := pathToKey(d.inode, "")
-	for k, v := c.Seek(prefix); k != nil; k, v = c.Next() {
-		if !bytes.HasPrefix(k, prefix) {
-			// past the end of the directory
-			break
-		}
-
-		name := string(k[len(prefix):])
-		de, err := unmarshalDirent(v)
-		if err != nil {
+	c := bucket.Dirs().List(d.inode)
+	for item := c.First(); item != nil; item = c.Next() {
+		var de wire.Dirent
+		if err := item.Unmarshal(&de); err != nil {
 			return nil, err
 		}
 		sde := wiresnap.Dirent{
-			Name: name,
+			Name: item.Name(),
 		}
 		switch {
 		case de.File != nil:
@@ -497,7 +489,7 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
 				Manifest: de.File.Manifest,
 			}
 		case de.Dir != nil:
-			child, err := d.reviveDir(de, name)
+			child, err := d.reviveDir(&de, sde.Name)
 			if err != nil {
 				return nil, err
 			}
