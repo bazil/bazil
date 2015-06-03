@@ -158,11 +158,6 @@ func (v *Volume) Dirs() *Dirs {
 	return &Dirs{b: v.b.Bucket(volumeStateDir)}
 }
 
-// DirBucket returns a bolt bucket for storing directory contents in.
-func (v *Volume) DirBucket() *bolt.Bucket {
-	return v.b.Bucket(volumeStateDir)
-}
-
 // InodeBucket returns a bolt bucket for storing inodes in.
 func (v *Volume) InodeBucket() *bolt.Bucket {
 	return v.b.Bucket(volumeStateInode)
