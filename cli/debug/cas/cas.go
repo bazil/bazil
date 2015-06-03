@@ -9,7 +9,11 @@ import (
 	"bazil.org/bazil/cas/chunks/kvchunks"
 	"bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
+	"bazil.org/bazil/db"
+	"bazil.org/bazil/kv"
 	"bazil.org/bazil/kv/kvfiles"
+	"bazil.org/bazil/kv/untrusted"
+	"bazil.org/bazil/server"
 )
 
 type casCommand struct {
@@ -17,7 +21,8 @@ type casCommand struct {
 	subcommands.Synopsis
 	flag.FlagSet
 	Config struct {
-		Path string
+		Path    string
+		Sharing string
 	}
 	State struct {
 		Store chunks.Store
@@ -26,12 +31,44 @@ type casCommand struct {
 
 var _ = cli.Service(&casCommand{})
 
+func (c *casCommand) getSharingKey(name string, out *[32]byte) error {
+	app, err := server.New(cli.Bazil.Config.DataDir.String())
+	if err != nil {
+		return err
+	}
+	defer app.Close()
+
+	view := func(tx *db.Tx) error {
+		sharingKey, err := tx.SharingKeys().Get(name)
+		if err != nil {
+			return err
+		}
+		sharingKey.Secret(out)
+		return nil
+	}
+	if err := app.DB.View(view); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *casCommand) Setup() (ok bool) {
 	path := filepath.Join(cli.Bazil.Config.DataDir.String(), c.Config.Path)
-	kvstore, err := kvfiles.Open(path)
+	var kvstore kv.KV
+	var err error
+	kvstore, err = kvfiles.Open(path)
 	if err != nil {
 		log.Printf("cannot open CAS: %v", err)
 		return false
+	}
+
+	if c.Config.Sharing != "" {
+		var secret [32]byte
+		if err := c.getSharingKey(c.Config.Sharing, &secret); err != nil {
+			log.Printf("cannot get sharing key: %q: %v", c.Config.Sharing, err)
+			return false
+		}
+		kvstore = untrusted.New(kvstore, &secret)
 	}
 
 	c.State.Store = kvchunks.New(kvstore)
@@ -52,6 +89,7 @@ var CAS = casCommand{
 func init() {
 	// paths are relative to datadir
 	CAS.StringVar(&CAS.Config.Path, "path", "chunks", "path to chunk store, relative to datadir")
+	CAS.StringVar(&CAS.Config.Sharing, "sharing", "default", "sharing group content is encrypted for")
 
 	subcommands.Register(&CAS)
 }
