@@ -355,16 +355,8 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 }
 
 func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
-	key := pathToKey(d.inode, req.Name)
 	remove := func(tx *db.Tx) error {
-		bucket := d.fs.bucket(tx)
-		dirBucket := bucket.DirBucket()
-
-		if dirBucket.Get(key) == nil {
-			return fuse.ENOENT
-		}
-		err := dirBucket.Delete(key)
-		if err != nil {
+		if err := d.fs.bucket(tx).Dirs().Delete(d.inode, req.Name); err != nil {
 			return err
 		}
 

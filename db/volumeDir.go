@@ -38,6 +38,20 @@ func (b *Dirs) Get(parentInode uint64, name string) (*wirefs.Dirent, error) {
 	return &de, nil
 }
 
+// Delete the entry in parent directory with the given name.
+//
+// Returns fuse.ENOENT if an entry does not exist.
+func (b *Dirs) Delete(parentInode uint64, name string) error {
+	key := dirKey(parentInode, name)
+	if b.b.Get(key) == nil {
+		return fuse.ENOENT
+	}
+	if err := b.b.Delete(key); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (b *Dirs) List(inode uint64) *DirsCursor {
 	c := b.b.Cursor()
 	prefix := dirKey(inode, "")
