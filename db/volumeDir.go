@@ -38,6 +38,19 @@ func (b *Dirs) Get(parentInode uint64, name string) (*wirefs.Dirent, error) {
 	return &de, nil
 }
 
+// Put an entry in parent directory with the given name.
+func (b *Dirs) Put(parentInode uint64, name string, de *wirefs.Dirent) error {
+	buf, err := proto.Marshal(de)
+	if err != nil {
+		return err
+	}
+	key := dirKey(parentInode, name)
+	if err := b.b.Put(key, buf); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Delete the entry in parent directory with the given name.
 //
 // Returns fuse.ENOENT if an entry does not exist.

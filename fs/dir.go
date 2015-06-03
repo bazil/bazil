@@ -192,16 +192,8 @@ func (d *dir) saveInternal(tx *db.Tx, name string, n node) error {
 	if err != nil {
 		return fmt.Errorf("node save error: %v", err)
 	}
-
-	buf, err := proto.Marshal(de)
-	if err != nil {
-		return fmt.Errorf("Dirent marshal error: %v", err)
-	}
-
-	key := pathToKey(d.inode, name)
-	bucket := d.fs.bucket(tx)
-	if err := bucket.DirBucket().Put(key, buf); err != nil {
-		return fmt.Errorf("db write error: %v", err)
+	if err := d.fs.bucket(tx).Dirs().Put(d.inode, name, de); err != nil {
+		return fmt.Errorf("dirent save error: %v", err)
 	}
 	return nil
 }
