@@ -10,6 +10,7 @@ import (
 	"bazil.org/bazil/fs/inodes"
 	wiresnap "bazil.org/bazil/fs/snap/wire"
 	"bazil.org/bazil/fs/wire"
+	"bazil.org/bazil/peer"
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse/fs"
 	"golang.org/x/net/context"
@@ -18,6 +19,7 @@ import (
 type Volume struct {
 	db         *db.DB
 	volID      db.VolumeID
+	pubKey     peer.PublicKey
 	chunkStore chunks.Store
 	root       *dir
 
@@ -55,10 +57,11 @@ func (v *Volume) bucket(tx *db.Tx) *db.Volume {
 //
 // Caller guarantees volume ID exists at least as long as requests are
 // served for this file system.
-func Open(db *db.DB, chunkStore chunks.Store, volumeID *db.VolumeID) (*Volume, error) {
+func Open(db *db.DB, chunkStore chunks.Store, volumeID *db.VolumeID, pubKey *peer.PublicKey) (*Volume, error) {
 	fs := &Volume{}
 	fs.db = db
 	fs.volID = *volumeID
+	fs.pubKey = *pubKey
 	fs.chunkStore = chunkStore
 	fs.root = newDir(fs, tokens.InodeRoot, nil, "")
 	// assume we crashed, to be safe

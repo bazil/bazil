@@ -246,7 +246,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 		}
 
 		chunkStore := kvchunks.New(kvstore)
-		vol, err = fs.Open(app.DB, chunkStore, &info.VolumeID)
+		vol, err = fs.Open(app.DB, chunkStore, &info.VolumeID, (*peer.PublicKey)(app.Keys.Sign.Pub))
 		if err != nil {
 			return err
 		}
