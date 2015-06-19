@@ -8,9 +8,7 @@ import (
 	"bazil.org/bazil/fs/inodes"
 	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/tokens"
-	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"golang.org/x/net/context"
 )
 
 type Volume struct {
@@ -20,7 +18,6 @@ type Volume struct {
 }
 
 var _ = fs.FS(&Volume{})
-var _ = fs.FSIniter(&Volume{})
 var _ = fs.FSInodeGenerator(&Volume{})
 
 var bucketVolume = []byte(tokens.BucketVolume)
@@ -50,12 +47,6 @@ func Open(db *db.DB, chunkStore chunks.Store, volumeID *db.VolumeID) (*Volume, e
 	fs.volID = *volumeID
 	fs.chunkStore = chunkStore
 	return fs, nil
-}
-
-func (f *Volume) Init(ctx context.Context, req *fuse.InitRequest, resp *fuse.InitResponse) error {
-	resp.MaxReadahead = 32 * 1024 * 1024
-	resp.Flags |= fuse.InitAsyncRead
-	return nil
 }
 
 func (v *Volume) Root() (fs.Node, error) {
