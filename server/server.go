@@ -107,9 +107,10 @@ func (app *App) Close() {
 
 // TODO this function smells
 func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string) error {
-	// TODO reintroduce MaxReadahead = 32 * 1024 * 1024
-	// TODO reintroduce fuse.InitAsyncRead
-	conn, err := fuse.Mount(mountpoint)
+	conn, err := fuse.Mount(mountpoint,
+		fuse.MaxReadahead(32*1024*1024),
+		fuse.AsyncRead(),
+	)
 	if err != nil {
 		// remove map entry if the mount never took place
 		app.mounts.Lock()
