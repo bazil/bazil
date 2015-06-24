@@ -12,4 +12,8 @@ const (
 	// Key is storage backend, value is empty for now. Later this may
 	// include quota style restrictions.
 	PeerStateStorage = "storage"
+
+	// The DB bucket that configures what volumes peer can see.
+	// Key is volume ID, value is empty for now.
+	PeerStateVolume = "volume"
 )

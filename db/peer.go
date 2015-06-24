@@ -23,6 +23,7 @@ var (
 	peerStateID       = []byte(tokens.PeerStateID)
 	peerStateLocation = []byte(tokens.PeerStateLocation)
 	peerStateStorage  = []byte(tokens.PeerStateStorage)
+	peerStateVolume   = []byte(tokens.PeerStateVolume)
 )
 
 func (tx *Tx) initPeers() error {
@@ -100,6 +101,9 @@ func (b *Peers) Make(pub *peer.PublicKey) (*Peer, error) {
 		return nil, err
 	}
 	if _, err := bp.CreateBucket(peerStateStorage); err != nil {
+		return nil, err
+	}
+	if _, err := bp.CreateBucket(peerStateVolume); err != nil {
 		return nil, err
 	}
 
@@ -238,4 +242,24 @@ func (p *PeerStorage) Open(opener func(string) (kv.KV, error)) (kv.KV, error) {
 		return nil, ErrNoStorageForPeer
 	}
 	return kvmulti.New(kvstores...), nil
+}
+
+func (p *Peer) Volumes() *PeerVolumes {
+	b := p.b.Bucket(peerStateVolume)
+	return &PeerVolumes{b}
+}
+
+type PeerVolumes struct {
+	b *bolt.Bucket
+}
+
+func (p *PeerVolumes) Allow(vol *Volume) error {
+	return p.b.Put([]byte(vol.id), nil)
+}
+
+func (p *PeerVolumes) IsAllowed(vol *Volume) bool {
+	if p.b.Get([]byte(vol.id)) == nil {
+		return false
+	}
+	return true
 }
