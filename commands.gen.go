@@ -13,6 +13,7 @@ import (
 	_ "bazil.org/bazil/cli/peer/add"
 	_ "bazil.org/bazil/cli/peer/location/set"
 	_ "bazil.org/bazil/cli/peer/storage/allow"
+	_ "bazil.org/bazil/cli/peer/volume/allow"
 	_ "bazil.org/bazil/cli/server/ping"
 	_ "bazil.org/bazil/cli/server/run"
 	_ "bazil.org/bazil/cli/sharing/add"
