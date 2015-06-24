@@ -8,6 +8,7 @@ service Peer {
   rpc Ping(PingRequest) returns (PingResponse) {}
   rpc ObjectPut(stream ObjectPutRequest) returns (ObjectPutResponse) {}
   rpc ObjectGet(ObjectGetRequest) returns (stream ObjectGetResponse) {}
+  rpc VolumeConnect(VolumeConnectRequest) returns (VolumeConnectResponse) {}
 }
 
 message PingRequest {
@@ -31,4 +32,12 @@ message ObjectGetRequest {
 
 message ObjectGetResponse {
   bytes data = 1;
+}
+
+message VolumeConnectRequest {
+  string volumeName = 1;
+}
+
+message VolumeConnectResponse {
+  bytes volumeID = 1;
 }

@@ -15,6 +15,8 @@ It has these top-level messages:
 	ObjectPutResponse
 	ObjectGetRequest
 	ObjectGetResponse
+	VolumeConnectRequest
+	VolumeConnectResponse
 */
 package wire
 
@@ -79,6 +81,22 @@ func (m *ObjectGetResponse) Reset()         { *m = ObjectGetResponse{} }
 func (m *ObjectGetResponse) String() string { return proto.CompactTextString(m) }
 func (*ObjectGetResponse) ProtoMessage()    {}
 
+type VolumeConnectRequest struct {
+	VolumeName string `protobuf:"bytes,1,opt,name=volumeName" json:"volumeName,omitempty"`
+}
+
+func (m *VolumeConnectRequest) Reset()         { *m = VolumeConnectRequest{} }
+func (m *VolumeConnectRequest) String() string { return proto.CompactTextString(m) }
+func (*VolumeConnectRequest) ProtoMessage()    {}
+
+type VolumeConnectResponse struct {
+	VolumeID []byte `protobuf:"bytes,1,opt,name=volumeID,proto3" json:"volumeID,omitempty"`
+}
+
+func (m *VolumeConnectResponse) Reset()         { *m = VolumeConnectResponse{} }
+func (m *VolumeConnectResponse) String() string { return proto.CompactTextString(m) }
+func (*VolumeConnectResponse) ProtoMessage()    {}
+
 func init() {
 }
 
@@ -88,6 +106,7 @@ type PeerClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	ObjectPut(ctx context.Context, opts ...grpc.CallOption) (Peer_ObjectPutClient, error)
 	ObjectGet(ctx context.Context, in *ObjectGetRequest, opts ...grpc.CallOption) (Peer_ObjectGetClient, error)
+	VolumeConnect(ctx context.Context, in *VolumeConnectRequest, opts ...grpc.CallOption) (*VolumeConnectResponse, error)
 }
 
 type peerClient struct {
@@ -173,12 +192,22 @@ func (x *peerObjectGetClient) Recv() (*ObjectGetResponse, error) {
 	return m, nil
 }
 
+func (c *peerClient) VolumeConnect(ctx context.Context, in *VolumeConnectRequest, opts ...grpc.CallOption) (*VolumeConnectResponse, error) {
+	out := new(VolumeConnectResponse)
+	err := grpc.Invoke(ctx, "/bazil.peer.Peer/VolumeConnect", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Peer service
 
 type PeerServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	ObjectPut(Peer_ObjectPutServer) error
 	ObjectGet(*ObjectGetRequest, Peer_ObjectGetServer) error
+	VolumeConnect(context.Context, *VolumeConnectRequest) (*VolumeConnectResponse, error)
 }
 
 func RegisterPeerServer(s *grpc.Server, srv PeerServer) {
@@ -244,6 +273,18 @@ func (x *peerObjectGetServer) Send(m *ObjectGetResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Peer_VolumeConnect_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(VolumeConnectRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(PeerServer).VolumeConnect(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Peer_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "bazil.peer.Peer",
 	HandlerType: (*PeerServer)(nil),
@@ -251,6 +292,10 @@ var _Peer_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _Peer_Ping_Handler,
+		},
+		{
+			MethodName: "VolumeConnect",
+			Handler:    _Peer_VolumeConnect_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
