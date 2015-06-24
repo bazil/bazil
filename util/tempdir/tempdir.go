@@ -50,7 +50,7 @@ func (d Dir) Subdir(name string) string {
 	p := path.Join(d.Path, name)
 	err := os.Mkdir(p, 0700)
 	if err != nil {
-		d.t.Fatal("cannot create subdir of temp dir: %v", err)
+		d.t.Fatalf("cannot create subdir of temp dir: %v", err)
 	}
 	return p
 }
