@@ -42,6 +42,26 @@ func (m *VolumeCreateResponse) Reset()         { *m = VolumeCreateResponse{} }
 func (m *VolumeCreateResponse) String() string { return proto.CompactTextString(m) }
 func (*VolumeCreateResponse) ProtoMessage()    {}
 
+type VolumeConnectRequest struct {
+	// Must be exactly 32 bytes long.
+	Pub             []byte `protobuf:"bytes,1,opt,name=pub,proto3" json:"pub,omitempty"`
+	VolumeName      string `protobuf:"bytes,2,opt,name=volumeName" json:"volumeName,omitempty"`
+	LocalVolumeName string `protobuf:"bytes,3,opt,name=localVolumeName" json:"localVolumeName,omitempty"`
+	Backend         string `protobuf:"bytes,4,opt,name=backend" json:"backend,omitempty"`
+	SharingKeyName  string `protobuf:"bytes,5,opt,name=sharingKeyName" json:"sharingKeyName,omitempty"`
+}
+
+func (m *VolumeConnectRequest) Reset()         { *m = VolumeConnectRequest{} }
+func (m *VolumeConnectRequest) String() string { return proto.CompactTextString(m) }
+func (*VolumeConnectRequest) ProtoMessage()    {}
+
+type VolumeConnectResponse struct {
+}
+
+func (m *VolumeConnectResponse) Reset()         { *m = VolumeConnectResponse{} }
+func (m *VolumeConnectResponse) String() string { return proto.CompactTextString(m) }
+func (*VolumeConnectResponse) ProtoMessage()    {}
+
 type VolumeStorageAddRequest struct {
 	VolumeName     string `protobuf:"bytes,1,opt,name=volumeName" json:"volumeName,omitempty"`
 	Name           string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`

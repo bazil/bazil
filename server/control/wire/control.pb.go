@@ -53,6 +53,7 @@ func init() {
 type ControlClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	VolumeCreate(ctx context.Context, in *VolumeCreateRequest, opts ...grpc.CallOption) (*VolumeCreateResponse, error)
+	VolumeConnect(ctx context.Context, in *VolumeConnectRequest, opts ...grpc.CallOption) (*VolumeConnectResponse, error)
 	VolumeMount(ctx context.Context, in *VolumeMountRequest, opts ...grpc.CallOption) (*VolumeMountResponse, error)
 	VolumeStorageAdd(ctx context.Context, in *VolumeStorageAddRequest, opts ...grpc.CallOption) (*VolumeStorageAddResponse, error)
 	SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error)
@@ -82,6 +83,15 @@ func (c *controlClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.
 func (c *controlClient) VolumeCreate(ctx context.Context, in *VolumeCreateRequest, opts ...grpc.CallOption) (*VolumeCreateResponse, error) {
 	out := new(VolumeCreateResponse)
 	err := grpc.Invoke(ctx, "/bazil.control.Control/VolumeCreate", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *controlClient) VolumeConnect(ctx context.Context, in *VolumeConnectRequest, opts ...grpc.CallOption) (*VolumeConnectResponse, error) {
+	out := new(VolumeConnectResponse)
+	err := grpc.Invoke(ctx, "/bazil.control.Control/VolumeConnect", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +166,7 @@ func (c *controlClient) PeerVolumeAllow(ctx context.Context, in *PeerVolumeAllow
 type ControlServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	VolumeCreate(context.Context, *VolumeCreateRequest) (*VolumeCreateResponse, error)
+	VolumeConnect(context.Context, *VolumeConnectRequest) (*VolumeConnectResponse, error)
 	VolumeMount(context.Context, *VolumeMountRequest) (*VolumeMountResponse, error)
 	VolumeStorageAdd(context.Context, *VolumeStorageAddRequest) (*VolumeStorageAddResponse, error)
 	SharingKeyAdd(context.Context, *SharingKeyAddRequest) (*SharingKeyAddResponse, error)
@@ -187,6 +198,18 @@ func _Control_VolumeCreate_Handler(srv interface{}, ctx context.Context, codec g
 		return nil, err
 	}
 	out, err := srv.(ControlServer).VolumeCreate(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Control_VolumeConnect_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(VolumeConnectRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(ControlServer).VolumeConnect(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -288,6 +311,10 @@ var _Control_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VolumeCreate",
 			Handler:    _Control_VolumeCreate_Handler,
+		},
+		{
+			MethodName: "VolumeConnect",
+			Handler:    _Control_VolumeConnect_Handler,
 		},
 		{
 			MethodName: "VolumeMount",

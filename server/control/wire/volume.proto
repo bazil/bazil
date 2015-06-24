@@ -21,6 +21,18 @@ message VolumeCreateRequest {
 message VolumeCreateResponse {
 }
 
+message VolumeConnectRequest {
+  // Must be exactly 32 bytes long.
+  bytes pub = 1;
+  string volumeName = 2;
+  string localVolumeName = 3;
+  string backend = 4;
+  string sharingKeyName = 5;
+}
+
+message VolumeConnectResponse {
+}
+
 message VolumeStorageAddRequest {
   string volumeName = 1;
   string name = 2;
