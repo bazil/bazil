@@ -13,6 +13,7 @@ var (
 	ErrVolNameInvalid        = errors.New("invalid volume name")
 	ErrVolNameNotFound       = errors.New("volume name not found")
 	ErrVolNameExist          = errors.New("volume name exists already")
+	ErrVolumeIDExist         = errors.New("volume ID exists already")
 	ErrVolumeIDNotFound      = errors.New("volume ID not found")
 	ErrVolumeEpochWraparound = errors.New("volume epoch wraparound")
 )
@@ -76,10 +77,12 @@ func (b *Volumes) GetByVolumeID(volID *VolumeID) (*Volume, error) {
 	return v, nil
 }
 
-// Create a totally new volume, not yet shared with any peers.
+// add a new volume.
 //
 // If the name exists already, returns ErrVolNameExist.
-func (b *Volumes) Create(name string, storage string, sharingKey *SharingKey) (*Volume, error) {
+//
+// If the volume ID exists already, returns ErrVolIDExist.
+func (b *Volumes) add(name string, volID *VolumeID, storage string, sharingKey *SharingKey) (*Volume, error) {
 	if name == "" {
 		return nil, ErrVolNameInvalid
 	}
@@ -88,20 +91,15 @@ func (b *Volumes) Create(name string, storage string, sharingKey *SharingKey) (*
 		return nil, ErrVolNameExist
 	}
 
-random:
-	id, err := randomVolumeID()
-	if err != nil {
-		return nil, err
-	}
-	bv, err := b.volumes.CreateBucket(id[:])
+	bv, err := b.volumes.CreateBucket(volID[:])
 	if err == bolt.ErrBucketExists {
-		goto random
+		return nil, ErrVolumeIDExist
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	if err := b.names.Put(n, id[:]); err != nil {
+	if err := b.names.Put(n, volID[:]); err != nil {
 		return nil, err
 	}
 	if _, err := bv.CreateBucket(volumeStateDir); err != nil {
@@ -121,7 +119,7 @@ random:
 	}
 	v := &Volume{
 		b:  bv,
-		id: id[:],
+		id: volID[:],
 	}
 	if err := v.Storage().Add("default", storage, sharingKey); err != nil {
 		return nil, err
@@ -134,6 +132,32 @@ random:
 		return nil, err
 	}
 	return v, nil
+}
+
+// Create a totally new volume, not yet shared with any peers.
+//
+// If the name exists already, returns ErrVolNameExist.
+func (b *Volumes) Create(name string, storage string, sharingKey *SharingKey) (*Volume, error) {
+random:
+	id, err := randomVolumeID()
+	if err != nil {
+		return nil, err
+	}
+	v, err := b.add(name, id, storage, sharingKey)
+	if err == ErrVolumeIDExist {
+		goto random
+	}
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// Add adds a volume that was created elsewhere to this node.
+//
+// If the name exists already, returns ErrVolNameExist.
+func (b *Volumes) Add(name string, volID *VolumeID, storage string, sharingKey *SharingKey) (*Volume, error) {
+	return b.add(name, volID, storage, sharingKey)
 }
 
 func randomVolumeID() (*VolumeID, error) {
