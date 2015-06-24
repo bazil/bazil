@@ -17,6 +17,7 @@ service Control {
   rpc PeerAdd(PeerAddRequest) returns (PeerAddResponse) {}
   rpc PeerLocationSet(PeerLocationSetRequest) returns (PeerLocationSetResponse) {}
   rpc PeerStorageAllow(PeerStorageAllowRequest) returns (PeerStorageAllowResponse) {}
+  rpc PeerVolumeAllow(PeerVolumeAllowRequest) returns (PeerVolumeAllowResponse) {}
 }
 
 message PingRequest {

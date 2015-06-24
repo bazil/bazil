@@ -59,5 +59,22 @@ func (m *PeerStorageAllowResponse) Reset()         { *m = PeerStorageAllowRespon
 func (m *PeerStorageAllowResponse) String() string { return proto.CompactTextString(m) }
 func (*PeerStorageAllowResponse) ProtoMessage()    {}
 
+type PeerVolumeAllowRequest struct {
+	// Must be exactly 32 bytes long.
+	Pub        []byte `protobuf:"bytes,1,opt,name=pub,proto3" json:"pub,omitempty"`
+	VolumeName string `protobuf:"bytes,2,opt,name=volumeName" json:"volumeName,omitempty"`
+}
+
+func (m *PeerVolumeAllowRequest) Reset()         { *m = PeerVolumeAllowRequest{} }
+func (m *PeerVolumeAllowRequest) String() string { return proto.CompactTextString(m) }
+func (*PeerVolumeAllowRequest) ProtoMessage()    {}
+
+type PeerVolumeAllowResponse struct {
+}
+
+func (m *PeerVolumeAllowResponse) Reset()         { *m = PeerVolumeAllowResponse{} }
+func (m *PeerVolumeAllowResponse) String() string { return proto.CompactTextString(m) }
+func (*PeerVolumeAllowResponse) ProtoMessage()    {}
+
 func init() {
 }
