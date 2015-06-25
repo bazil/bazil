@@ -106,19 +106,7 @@ func (app *App) Close() {
 }
 
 // TODO this function smells
-func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string) error {
-	conn, err := fuse.Mount(mountpoint,
-		fuse.MaxReadahead(32*1024*1024),
-		fuse.AsyncRead(),
-	)
-	if err != nil {
-		// remove map entry if the mount never took place
-		app.mounts.Lock()
-		delete(app.mounts.open, *id)
-		app.mounts.Unlock()
-		return fmt.Errorf("mount fail: %v", err)
-	}
-
+func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string, conn *fuse.Conn) error {
 	serveErr := make(chan error, 1)
 	go func() {
 		defer func() {
@@ -133,11 +121,11 @@ func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string) e
 
 	select {
 	case <-conn.Ready:
-		if conn.MountError != nil {
+		if err := conn.MountError; err != nil {
 			return fmt.Errorf("mount fail (delayed): %v", err)
 		}
 		return nil
-	case err = <-serveErr:
+	case err := <-serveErr:
 		// Serve quit early
 		if err != nil {
 			return fmt.Errorf("filesystem failure: %v", err)
@@ -225,7 +213,6 @@ func (app *App) ValidateKV(backend string) error {
 func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) {
 	// TODO obey `bazil -debug server run`
 
-	var vol *fs.Volume
 	info := &MountInfo{}
 	var ready = make(chan error, 1)
 	app.mounts.Lock()
@@ -240,13 +227,21 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 			return errors.New("volume already mounted")
 		}
 
+		conn, err := fuse.Mount(mountpoint,
+			fuse.MaxReadahead(32*1024*1024),
+			fuse.AsyncRead(),
+		)
+		if err != nil {
+			return fmt.Errorf("mount fail: %v", err)
+		}
+
 		kvstore, err := app.openKV(tx, v.Storage())
 		if err != nil {
 			return err
 		}
 
 		chunkStore := kvchunks.New(kvstore)
-		vol, err = fs.Open(app.DB, chunkStore, &info.VolumeID, (*peer.PublicKey)(app.Keys.Sign.Pub))
+		vol, err := fs.Open(app.DB, chunkStore, &info.VolumeID, (*peer.PublicKey)(app.Keys.Sign.Pub))
 		if err != nil {
 			return err
 		}
@@ -255,7 +250,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 		}
 		go func() {
 			defer close(mnt.unmounted)
-			ready <- app.serveMount(vol, &info.VolumeID, mountpoint)
+			ready <- app.serveMount(vol, &info.VolumeID, mountpoint, conn)
 		}()
 		app.mounts.open[info.VolumeID] = mnt
 		return nil
