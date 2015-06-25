@@ -106,7 +106,7 @@ func (app *App) Close() {
 }
 
 // TODO this function smells
-func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string, conn *fuse.Conn) error {
+func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string, conn *fuse.Conn, srv *fusefs.Server) error {
 	serveErr := make(chan error, 1)
 	go func() {
 		defer func() {
@@ -116,7 +116,7 @@ func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string, c
 			app.mounts.Unlock()
 		}()
 		defer conn.Close()
-		serveErr <- fusefs.Serve(conn, vol)
+		serveErr <- srv.Serve(vol)
 	}()
 
 	select {
@@ -235,6 +235,8 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 			return fmt.Errorf("mount fail: %v", err)
 		}
 
+		srv := fusefs.New(conn, nil)
+
 		kvstore, err := app.openKV(tx, v.Storage())
 		if err != nil {
 			return err
@@ -250,7 +252,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 		}
 		go func() {
 			defer close(mnt.unmounted)
-			ready <- app.serveMount(vol, &info.VolumeID, mountpoint, conn)
+			ready <- app.serveMount(vol, &info.VolumeID, mountpoint, conn, srv)
 		}()
 		app.mounts.open[info.VolumeID] = mnt
 		return nil
