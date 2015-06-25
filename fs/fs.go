@@ -15,6 +15,7 @@ type Volume struct {
 	db         *db.DB
 	volID      db.VolumeID
 	chunkStore chunks.Store
+	root       *dir
 }
 
 var _ = fs.FS(&Volume{})
@@ -46,12 +47,12 @@ func Open(db *db.DB, chunkStore chunks.Store, volumeID *db.VolumeID) (*Volume, e
 	fs.db = db
 	fs.volID = *volumeID
 	fs.chunkStore = chunkStore
+	fs.root = newDir(fs, tokens.InodeRoot, nil, "")
 	return fs, nil
 }
 
 func (v *Volume) Root() (fs.Node, error) {
-	d := newDir(v, tokens.InodeRoot, nil, "")
-	return d, nil
+	return v.root, nil
 }
 
 func (*Volume) GenerateInode(parent uint64, name string) uint64 {
