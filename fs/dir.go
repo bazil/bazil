@@ -416,7 +416,7 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 }
 
 // snapshot records a snapshot of the directory and stores it in wde
-func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
+func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dirent, error) {
 	// NOT HOLDING THE LOCK, accessing database snapshot ONLY
 
 	// TODO move bucket lookup to caller?
@@ -435,29 +435,30 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
 		if err := item.Unmarshal(&de); err != nil {
 			return nil, err
 		}
-		sde := wiresnap.Dirent{
-			Name: item.Name(),
-		}
+		var sde *wiresnap.Dirent
 		switch {
 		case de.File != nil:
 			// TODO d.reviveNode would do blobs.Open and that's a bit
 			// too much work; rework the apis
-			sde.File = &wiresnap.File{
-				Manifest: de.File.Manifest,
+			sde = &wiresnap.Dirent{
+				File: &wiresnap.File{
+					Manifest: de.File.Manifest,
+				},
 			}
 		case de.Dir != nil:
-			child, err := d.reviveDir(&de, sde.Name)
+			child, err := d.reviveDir(&de, item.Name())
 			if err != nil {
 				return nil, err
 			}
-			sde.Dir, err = child.snapshot(ctx, tx)
+			sde, err = child.snapshot(ctx, tx)
 			if err != nil {
 				return nil, err
 			}
 		default:
 			return nil, errors.New("TODO")
 		}
-		err = w.Add(&sde)
+		sde.Name = item.Name()
+		err = w.Add(sde)
 		if err != nil {
 			return nil, err
 		}
@@ -467,9 +468,11 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dir, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg := wiresnap.Dir{
-		Manifest: wirecas.FromBlob(manifest),
-		Align:    w.Align(),
+	msg := wiresnap.Dirent{
+		Dir: &wiresnap.Dir{
+			Manifest: wirecas.FromBlob(manifest),
+			Align:    w.Align(),
+		},
 	}
 	return &msg, nil
 }

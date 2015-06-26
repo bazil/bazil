@@ -33,5 +33,7 @@ message Dir {
 // Snapshot as it is stored into CAS.
 message Snapshot {
   string name = 1;
-  Dir contents = 2;
+
+  // The name field of the root directory is empty.
+  Dirent contents = 2;
 }

@@ -16,24 +16,45 @@ import (
 )
 
 // Serve this snapshot with FUSE, with this object store.
-func Open(chunkStore chunks.Store, dir *wire.Dir) (fusefs.Node, error) {
-	manifest, err := dir.Manifest.ToBlob("dir")
-	if err != nil {
-		return nil, err
+func Open(chunkStore chunks.Store, de *wire.Dirent) (fusefs.Node, error) {
+	switch {
+	case de.File != nil:
+		manifest, err := de.File.Manifest.ToBlob("file")
+		if err != nil {
+			return nil, err
+		}
+		blob, err := blobs.Open(chunkStore, manifest)
+		if err != nil {
+			return nil, fmt.Errorf("snap file blob open error: %v", err)
+		}
+		child := fuseFile{
+			rat: blob,
+			de:  de,
+		}
+		return child, nil
+
+	case de.Dir != nil:
+		manifest, err := de.Dir.Manifest.ToBlob("dir")
+		if err != nil {
+			return nil, err
+		}
+		blob, err := blobs.Open(chunkStore, manifest)
+		if err != nil {
+			return nil, err
+		}
+		r, err := NewReader(blob, de.Dir.Align)
+		if err != nil {
+			return nil, err
+		}
+		child := fuseDir{
+			chunkStore: chunkStore,
+			reader:     r,
+		}
+		return child, nil
+
+	default:
+		return nil, fmt.Errorf("unknown entry in tree, %v", de)
 	}
-	blob, err := blobs.Open(chunkStore, manifest)
-	if err != nil {
-		return nil, err
-	}
-	r, err := NewReader(blob, dir.Align)
-	if err != nil {
-		return nil, err
-	}
-	node := fuseDir{
-		chunkStore: chunkStore,
-		reader:     r,
-	}
-	return node, nil
 }
 
 type fuseDir struct {
@@ -64,33 +85,7 @@ func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 		}
 		return nil, fmt.Errorf("snap lookup error: %v", err)
 	}
-
-	switch {
-	case de.File != nil:
-		manifest, err := de.File.Manifest.ToBlob("file")
-		if err != nil {
-			return nil, err
-		}
-		blob, err := blobs.Open(d.chunkStore, manifest)
-		if err != nil {
-			return nil, fmt.Errorf("snap file blob open error: %v", err)
-		}
-		child := fuseFile{
-			rat: blob,
-			de:  de,
-		}
-		return child, nil
-
-	case de.Dir != nil:
-		child, err := Open(d.chunkStore, de.Dir)
-		if err != nil {
-			return nil, fmt.Errorf("snap dir FUSE serving error: %v", err)
-		}
-		return child, nil
-
-	default:
-		return nil, fmt.Errorf("unknown entry in tree, %v", de)
-	}
+	return Open(d.chunkStore, de)
 }
 
 func (d fuseDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {

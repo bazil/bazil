@@ -66,9 +66,6 @@ type Dir struct {
 	// If >0, the direntries are guaranteed to be aligned at
 	// 1<<(12+align-1) byte boundaries (that is, minimum alignment is
 	// 4kB).
-	//
-	// Required, with value 0 reserved for disabled, to avoid pointer
-	// indirection costs for a few bytes.
 	Align uint32 `protobuf:"varint,2,opt,name=align" json:"align,omitempty"`
 }
 
@@ -85,15 +82,16 @@ func (m *Dir) GetManifest() *bazil_cas.Manifest {
 
 // Snapshot as it is stored into CAS.
 type Snapshot struct {
-	Name     string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Contents *Dir   `protobuf:"bytes,2,opt,name=contents" json:"contents,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	// The name field of the root directory is empty.
+	Contents *Dirent `protobuf:"bytes,2,opt,name=contents" json:"contents,omitempty"`
 }
 
 func (m *Snapshot) Reset()         { *m = Snapshot{} }
 func (m *Snapshot) String() string { return proto.CompactTextString(m) }
 func (*Snapshot) ProtoMessage()    {}
 
-func (m *Snapshot) GetContents() *Dir {
+func (m *Snapshot) GetContents() *Dirent {
 	if m != nil {
 		return m.Contents
 	}

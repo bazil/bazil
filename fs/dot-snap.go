@@ -92,11 +92,11 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 		Name: req.Name,
 	}
 	record := func(tx *db.Tx) error {
-		dir, err := d.rootDir.snapshot(ctx, tx)
+		sde, err := d.rootDir.snapshot(ctx, tx)
 		if err != nil {
 			return err
 		}
-		snapshot.Contents = dir
+		snapshot.Contents = sde
 		return nil
 	}
 	if err := d.fs.db.View(record); err != nil {

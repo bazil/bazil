@@ -29,8 +29,8 @@ func (f *FS) Root() (fs.Node, error) {
 	return f.root, nil
 }
 
-func newFS(chunkStore chunks.Store, dir *wire.Dir) (*FS, error) {
-	root, err := snap.Open(chunkStore, dir)
+func newFS(chunkStore chunks.Store, de *wire.Dirent) (*FS, error) {
+	root, err := snap.Open(chunkStore, de)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func setup_fs(t *testing.T) fs.FS {
 		},
 	})
 
-	filesys, err := newFS(chunkStore, dir.Dir)
+	filesys, err := newFS(chunkStore, dir)
 	if err != nil {
 		t.Fatalf("cannot serve snapshot as FUSE: %v", err)
 	}
@@ -240,7 +240,7 @@ func TestTwoLevels(t *testing.T) {
 		dir1.Name = "second"
 		dir2 := setup_dir(t, chunkStore, []*wire.Dirent{dir1})
 
-		filesys, err := newFS(chunkStore, dir2.Dir)
+		filesys, err := newFS(chunkStore, dir2)
 		if err != nil {
 			t.Fatalf("cannot serve snapshot as FUSE: %v", err)
 		}
@@ -283,7 +283,7 @@ func TestJunkType(t *testing.T) {
 				Name: "junk",
 			},
 		})
-		filesys, err := newFS(chunkStore, dir.Dir)
+		filesys, err := newFS(chunkStore, dir)
 		if err != nil {
 			t.Fatalf("cannot serve snapshot as FUSE: %v", err)
 		}
