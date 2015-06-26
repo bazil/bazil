@@ -112,3 +112,34 @@ func TestUpdateFromChildReturn(t *testing.T) {
 		t.Errorf("UpdateFromChild return %v != %v", g, e)
 	}
 }
+
+func TestRewritePeersSimple(t *testing.T) {
+	c := clock.Create(10, 1)
+	c.UpdateSync(11, 2)
+	c.Update(12, 3)
+	if g, e := c.String(), `{sync{10:1 11:2 12:3} mod{12:3} create{10:1}}`; g != e {
+		t.Errorf("bad initial state: %v != %v", g, e)
+	}
+
+	m := map[clock.Peer]clock.Peer{
+		10: 20,
+		11: 12,
+		12: 10,
+	}
+	if err := c.RewritePeers(m); err != nil {
+		t.Fatalf("rewrite error: %v", err)
+	}
+	if g, e := c.String(), `{sync{20:1 12:2 10:3} mod{10:3} create{20:1}}`; g != e {
+		t.Errorf("bad state: %v != %v", g, e)
+	}
+}
+
+func TestRewritePeersBadPeer(t *testing.T) {
+	c := clock.Create(10, 1)
+	m := map[clock.Peer]clock.Peer{
+		42: 13,
+	}
+	if g, e := c.RewritePeers(m), clock.ErrRewritePeerNotMapped; g != e {
+		t.Errorf("wrong error: %v != %v", g, e)
+	}
+}

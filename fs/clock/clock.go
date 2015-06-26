@@ -158,6 +158,30 @@ func (s Clock) String() string {
 	return fmt.Sprintf("{sync%s mod%s create%s}", s.sync, s.mod, s.create)
 }
 
+var (
+	ErrRewritePeerNotMapped = errors.New("cannot rewrite peer id for an unknown peer")
+)
+
+// RewritePeers updates the peer identifiers in the clock based on the
+// given mapping. This is useful because the short identifiers are not
+// globally allocated.
+//
+// Returns ErrRewritePeerNotMapped if the clock contains a peer not
+// present in the map. If an error occurs, the clock is in an
+// undefined state and must not be used.
+func (c *Clock) RewritePeers(m map[Peer]Peer) error {
+	if err := c.sync.rewritePeers(m); err != nil {
+		return err
+	}
+	if err := c.mod.rewritePeers(m); err != nil {
+		return err
+	}
+	if err := c.create.rewritePeers(m); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Action is a suggested action to take to combine two data items.
 //
 // The zero value of Action is not valid.

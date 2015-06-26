@@ -117,6 +117,17 @@ outer:
 	}
 }
 
+func (v *vector) rewritePeers(m map[Peer]Peer) error {
+	for i := range v.list {
+		id, ok := m[v.list[i].id]
+		if !ok {
+			return ErrRewritePeerNotMapped
+		}
+		v.list[i].id = id
+	}
+	return nil
+}
+
 // compareLE tests if A <= B.
 func compareLE(a, b vector) bool {
 	aIdx := 0
