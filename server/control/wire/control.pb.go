@@ -56,6 +56,7 @@ type ControlClient interface {
 	VolumeConnect(ctx context.Context, in *VolumeConnectRequest, opts ...grpc.CallOption) (*VolumeConnectResponse, error)
 	VolumeMount(ctx context.Context, in *VolumeMountRequest, opts ...grpc.CallOption) (*VolumeMountResponse, error)
 	VolumeStorageAdd(ctx context.Context, in *VolumeStorageAddRequest, opts ...grpc.CallOption) (*VolumeStorageAddResponse, error)
+	VolumeSync(ctx context.Context, in *VolumeSyncRequest, opts ...grpc.CallOption) (*VolumeSyncResponse, error)
 	SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error)
 	PeerAdd(ctx context.Context, in *PeerAddRequest, opts ...grpc.CallOption) (*PeerAddResponse, error)
 	PeerLocationSet(ctx context.Context, in *PeerLocationSetRequest, opts ...grpc.CallOption) (*PeerLocationSetResponse, error)
@@ -116,6 +117,15 @@ func (c *controlClient) VolumeStorageAdd(ctx context.Context, in *VolumeStorageA
 	return out, nil
 }
 
+func (c *controlClient) VolumeSync(ctx context.Context, in *VolumeSyncRequest, opts ...grpc.CallOption) (*VolumeSyncResponse, error) {
+	out := new(VolumeSyncResponse)
+	err := grpc.Invoke(ctx, "/bazil.control.Control/VolumeSync", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *controlClient) SharingKeyAdd(ctx context.Context, in *SharingKeyAddRequest, opts ...grpc.CallOption) (*SharingKeyAddResponse, error) {
 	out := new(SharingKeyAddResponse)
 	err := grpc.Invoke(ctx, "/bazil.control.Control/SharingKeyAdd", in, out, c.cc, opts...)
@@ -169,6 +179,7 @@ type ControlServer interface {
 	VolumeConnect(context.Context, *VolumeConnectRequest) (*VolumeConnectResponse, error)
 	VolumeMount(context.Context, *VolumeMountRequest) (*VolumeMountResponse, error)
 	VolumeStorageAdd(context.Context, *VolumeStorageAddRequest) (*VolumeStorageAddResponse, error)
+	VolumeSync(context.Context, *VolumeSyncRequest) (*VolumeSyncResponse, error)
 	SharingKeyAdd(context.Context, *SharingKeyAddRequest) (*SharingKeyAddResponse, error)
 	PeerAdd(context.Context, *PeerAddRequest) (*PeerAddResponse, error)
 	PeerLocationSet(context.Context, *PeerLocationSetRequest) (*PeerLocationSetResponse, error)
@@ -234,6 +245,18 @@ func _Control_VolumeStorageAdd_Handler(srv interface{}, ctx context.Context, cod
 		return nil, err
 	}
 	out, err := srv.(ControlServer).VolumeStorageAdd(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Control_VolumeSync_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(VolumeSyncRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(ControlServer).VolumeSync(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -323,6 +346,10 @@ var _Control_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VolumeStorageAdd",
 			Handler:    _Control_VolumeStorageAdd_Handler,
+		},
+		{
+			MethodName: "VolumeSync",
+			Handler:    _Control_VolumeSync_Handler,
 		},
 		{
 			MethodName: "SharingKeyAdd",

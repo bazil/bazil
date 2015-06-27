@@ -14,6 +14,7 @@ service Control {
   rpc VolumeConnect(VolumeConnectRequest) returns (VolumeConnectResponse) {}
   rpc VolumeMount(VolumeMountRequest) returns (VolumeMountResponse) {}
   rpc VolumeStorageAdd(VolumeStorageAddRequest) returns (VolumeStorageAddResponse) {}
+  rpc VolumeSync(VolumeSyncRequest) returns (VolumeSyncResponse) {}
   rpc SharingKeyAdd(SharingKeyAddRequest) returns (SharingKeyAddResponse) {}
   rpc PeerAdd(PeerAddRequest) returns (PeerAddResponse) {}
   rpc PeerLocationSet(PeerLocationSetRequest) returns (PeerLocationSetResponse) {}

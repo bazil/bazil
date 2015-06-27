@@ -42,3 +42,13 @@ message VolumeStorageAddRequest {
 
 message VolumeStorageAddResponse {
 }
+
+message VolumeSyncRequest {
+  string volumeName = 1;
+  // Must be exactly 32 bytes long.
+  bytes pub = 2;
+  string path = 3;
+}
+
+message VolumeSyncResponse {
+}

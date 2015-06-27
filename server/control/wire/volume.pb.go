@@ -80,5 +80,23 @@ func (m *VolumeStorageAddResponse) Reset()         { *m = VolumeStorageAddRespon
 func (m *VolumeStorageAddResponse) String() string { return proto.CompactTextString(m) }
 func (*VolumeStorageAddResponse) ProtoMessage()    {}
 
+type VolumeSyncRequest struct {
+	VolumeName string `protobuf:"bytes,1,opt,name=volumeName" json:"volumeName,omitempty"`
+	// Must be exactly 32 bytes long.
+	Pub  []byte `protobuf:"bytes,2,opt,name=pub,proto3" json:"pub,omitempty"`
+	Path string `protobuf:"bytes,3,opt,name=path" json:"path,omitempty"`
+}
+
+func (m *VolumeSyncRequest) Reset()         { *m = VolumeSyncRequest{} }
+func (m *VolumeSyncRequest) String() string { return proto.CompactTextString(m) }
+func (*VolumeSyncRequest) ProtoMessage()    {}
+
+type VolumeSyncResponse struct {
+}
+
+func (m *VolumeSyncResponse) Reset()         { *m = VolumeSyncResponse{} }
+func (m *VolumeSyncResponse) String() string { return proto.CompactTextString(m) }
+func (*VolumeSyncResponse) ProtoMessage()    {}
+
 func init() {
 }
