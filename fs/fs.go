@@ -6,9 +6,11 @@ import (
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/fs/inodes"
+	wiresnap "bazil.org/bazil/fs/snap/wire"
 	"bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse/fs"
+	"golang.org/x/net/context"
 )
 
 type Volume struct {
@@ -60,6 +62,18 @@ func (*Volume) GenerateInode(parent uint64, name string) uint64 {
 }
 
 var _ = fs.FSInodeGenerator(&Volume{})
+
+// Snapshot records a snapshot of the volume. The Snapshot message
+// itself has not been persisted yet.
+func (v *Volume) Snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Snapshot, error) {
+	snapshot := &wiresnap.Snapshot{}
+	sde, err := v.root.snapshot(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+	snapshot.Contents = sde
+	return snapshot, nil
+}
 
 type node interface {
 	fs.Node

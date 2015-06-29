@@ -87,24 +87,24 @@ var _ = fs.NodeMkdirer(&listSnaps{})
 // Mkdir takes a snapshot of this volume and records it under the
 // given name.
 func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error) {
-	var snapshot = wiresnap.Snapshot{
-		Name: req.Name,
-	}
+	var snapshot *wiresnap.Snapshot
 	record := func(tx *db.Tx) error {
-		sde, err := d.fs.root.snapshot(ctx, tx)
+		s, err := d.fs.Snapshot(ctx, tx)
 		if err != nil {
 			return err
 		}
-		snapshot.Contents = sde
+		snapshot = s
 		return nil
 	}
 	if err := d.fs.db.View(record); err != nil {
 		return nil, fmt.Errorf("cannot record snapshot: %v", err)
 	}
 
+	snapshot.Name = req.Name
+
 	var key cas.Key
 	{
-		buf, err := proto.Marshal(&snapshot)
+		buf, err := proto.Marshal(snapshot)
 		if err != nil {
 			return nil, fmt.Errorf("cannot marshal snapshot: %v", err)
 		}
