@@ -20,8 +20,7 @@ import (
 )
 
 type listSnaps struct {
-	fs      *Volume
-	rootDir *dir
+	fs *Volume
 }
 
 var _ = fs.Node(&listSnaps{})
@@ -92,7 +91,7 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 		Name: req.Name,
 	}
 	record := func(tx *db.Tx) error {
-		sde, err := d.rootDir.snapshot(ctx, tx)
+		sde, err := d.fs.root.snapshot(ctx, tx)
 		if err != nil {
 			return err
 		}

@@ -89,8 +89,7 @@ func (d *dir) Attr(ctx context.Context, a *fuse.Attr) error {
 func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if d.inode == 1 && name == ".snap" {
 		return &listSnaps{
-			fs:      d.fs,
-			rootDir: d,
+			fs: d.fs,
 		}, nil
 	}
 
