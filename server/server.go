@@ -265,6 +265,13 @@ func (ref *VolumeRef) Close() {
 	}
 }
 
+// FS returns the underlying filesystem implementation.
+//
+// Caller must keep a reference to VolumeRef for the duration
+func (ref *VolumeRef) FS() *fs.Volume {
+	return ref.fs
+}
+
 // Mount makes the contents of the volume visible at the given
 // mountpoint. If Mount returns with a nil error, the mount has
 // occurred.
