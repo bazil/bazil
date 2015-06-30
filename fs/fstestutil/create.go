@@ -38,10 +38,9 @@ func CreateVolume(t testing.TB, app *server.App, volumeName string) {
 
 type Mount struct {
 	// Dir is the temporary directory where the filesystem is mounted.
-	Dir  string
-	Info *server.MountInfo
+	Dir string
 
-	app    *server.App
+	ref    *server.VolumeRef
 	closed bool
 }
 
@@ -66,7 +65,7 @@ func (mnt *Mount) Close() {
 		}
 		break
 	}
-	mnt.app.WaitForUnmount(&mnt.Info.VolumeID)
+	mnt.ref.WaitForUnmount()
 	os.Remove(mnt.Dir)
 }
 
@@ -77,16 +76,19 @@ func Mounted(t testing.TB, app *server.App, volumeName string) *Mount {
 		t.Fatal(err)
 	}
 
-	// TODO make it log debug if `go test ./fs -fuse.debug`
-	info, err := app.Mount(volumeName, mountpoint)
+	ref, err := app.GetVolumeByName(volumeName)
 	if err != nil {
+		t.Fatal(err)
+	}
+	defer ref.Close()
+	// TODO make it log debug if `go test ./fs -fuse.debug`
+	if err := ref.Mount(mountpoint); err != nil {
 		t.Fatal(err)
 	}
 
 	mnt := &Mount{
-		Dir:  mountpoint,
-		Info: info,
-		app:  app,
+		Dir: mountpoint,
+		ref: ref,
 	}
 	return mnt
 }

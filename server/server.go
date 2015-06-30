@@ -24,17 +24,15 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-type VolumeRef struct {
-	// closed after the serve loop has exited
-	unmounted chan struct{}
-}
-
 type App struct {
 	DataDir  string
 	lockFile *os.File
 	DB       *db.DB
 	volumes  struct {
 		sync.Mutex
+		// This Broadcasts whenever open volumes, or their mounted
+		// state, changes.
+		sync.Cond
 		open map[db.VolumeID]*VolumeRef
 	}
 	Keys *CryptoKeys
@@ -96,46 +94,84 @@ func New(dataDir string) (app *App, err error) {
 		DB:       database,
 		Keys:     keys,
 	}
+	app.volumes.Cond.L = &app.volumes.Mutex
 	app.volumes.open = make(map[db.VolumeID]*VolumeRef)
 	return app, nil
 }
 
 func (app *App) Close() {
+	// Wait for VolumeRefs to go away, to detect refcounting bugs.
+	app.volumes.Lock()
+	for len(app.volumes.open) > 0 {
+		app.volumes.Wait()
+	}
+	app.volumes.Unlock()
+
 	app.DB.Close()
 	app.lockFile.Close()
 }
 
-// TODO this function smells
-func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string, conn *fuse.Conn, srv *fusefs.Server) error {
-	serveErr := make(chan error, 1)
-	go func() {
-		defer func() {
-			// remove map entry on unmount or failed mount
-			app.volumes.Lock()
-			delete(app.volumes.open, *id)
-			app.volumes.Unlock()
-		}()
-		defer conn.Close()
-		serveErr <- srv.Serve(vol)
-	}()
+func (app *App) GetVolume(id *db.VolumeID) (*VolumeRef, error) {
+	app.volumes.Lock()
+	defer app.volumes.Unlock()
 
-	select {
-	case <-conn.Ready:
-		if err := conn.MountError; err != nil {
-			return fmt.Errorf("mount fail (delayed): %v", err)
+	ref, found := app.volumes.open[*id]
+	if !found {
+		open := func(tx *db.Tx) error {
+			vol, err := app.openVolume(tx, id)
+			if err != nil {
+				return err
+			}
+			ref = &VolumeRef{
+				app:   app,
+				volID: *id,
+				fs:    vol,
+			}
+			return nil
 		}
-		return nil
-	case err := <-serveErr:
-		// Serve quit early
-		if err != nil {
-			return fmt.Errorf("filesystem failure: %v", err)
+		if err := app.DB.View(open); err != nil {
+			return nil, err
 		}
-		return errors.New("Serve exited early")
+		app.volumes.open[*id] = ref
+		app.volumes.Broadcast()
 	}
+	ref.refs++
+	return ref, nil
 }
 
-type MountInfo struct {
-	VolumeID db.VolumeID
+func (app *App) GetVolumeByName(name string) (*VolumeRef, error) {
+	var volID db.VolumeID
+	find := func(tx *db.Tx) error {
+		vol, err := tx.Volumes().GetByName(name)
+		if err != nil {
+			return err
+		}
+		vol.VolumeID(&volID)
+		return nil
+	}
+	if err := app.DB.View(find); err != nil {
+		return nil, err
+	}
+	return app.GetVolume(&volID)
+}
+
+// caller must hold App.volumes.Mutex
+func (app *App) openVolume(tx *db.Tx, id *db.VolumeID) (*fs.Volume, error) {
+	v, err := tx.Volumes().GetByVolumeID(id)
+	if err != nil {
+		return nil, err
+	}
+	kvstore, err := app.openKV(tx, v.Storage())
+	if err != nil {
+		return nil, err
+	}
+
+	chunkStore := kvchunks.New(kvstore)
+	vol, err := fs.Open(app.DB, chunkStore, id, (*peer.PublicKey)(app.Keys.Sign.Pub))
+	if err != nil {
+		return nil, err
+	}
+	return vol, nil
 }
 
 func (app *App) openKV(tx *db.Tx, storage *db.VolumeStorage) (kv.KV, error) {
@@ -207,79 +243,92 @@ func (app *App) ValidateKV(backend string) error {
 	return err
 }
 
+type VolumeRef struct {
+	app   *App
+	volID db.VolumeID
+	fs    *fs.Volume
+
+	// fields protected by App.volumes.Mutex
+
+	refs    uint32
+	mounted bool
+}
+
+func (ref *VolumeRef) Close() {
+	ref.app.volumes.Lock()
+	defer ref.app.volumes.Unlock()
+
+	ref.refs--
+	if ref.refs == 0 {
+		delete(ref.app.volumes.open, ref.volID)
+		ref.app.volumes.Broadcast()
+	}
+}
+
 // Mount makes the contents of the volume visible at the given
 // mountpoint. If Mount returns with a nil error, the mount has
 // occurred.
-func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) {
+func (ref *VolumeRef) Mount(mountpoint string) error {
+	ref.app.volumes.Lock()
+	defer ref.app.volumes.Unlock()
+
 	// TODO obey `bazil -debug server run`
 
-	info := &MountInfo{}
-	var ready = make(chan error, 1)
-	app.volumes.Lock()
-	err := app.DB.View(func(tx *db.Tx) error {
-		v, err := tx.Volumes().GetByName(volumeName)
-		if err != nil {
-			return err
-		}
-		v.VolumeID(&info.VolumeID)
+	if ref.mounted {
+		return errors.New("volume already mounted")
+	}
 
-		if _, ok := app.volumes.open[info.VolumeID]; ok {
-			return errors.New("volume already mounted")
-		}
+	conn, err := fuse.Mount(mountpoint,
+		fuse.MaxReadahead(32*1024*1024),
+		fuse.AsyncRead(),
+	)
+	if err != nil {
+		return fmt.Errorf("mount fail: %v", err)
+	}
 
-		conn, err := fuse.Mount(mountpoint,
-			fuse.MaxReadahead(32*1024*1024),
-			fuse.AsyncRead(),
-		)
-		if err != nil {
-			return fmt.Errorf("mount fail: %v", err)
-		}
-
-		srv := fusefs.New(conn, nil)
-
-		kvstore, err := app.openKV(tx, v.Storage())
-		if err != nil {
-			return err
-		}
-
-		chunkStore := kvchunks.New(kvstore)
-		vol, err := fs.Open(app.DB, chunkStore, &info.VolumeID, (*peer.PublicKey)(app.Keys.Sign.Pub))
-		if err != nil {
-			return err
-		}
-		mnt := &VolumeRef{
-			unmounted: make(chan struct{}),
-		}
-		go func() {
-			defer close(mnt.unmounted)
-			ready <- app.serveMount(vol, &info.VolumeID, mountpoint, conn, srv)
+	srv := fusefs.New(conn, nil)
+	serveErr := make(chan error, 1)
+	go func() {
+		defer func() {
+			// remove map entry on unmount or failed mount
+			ref.app.volumes.Lock()
+			ref.mounted = false
+			ref.app.volumes.Unlock()
+			ref.app.volumes.Broadcast()
+			ref.Close()
 		}()
-		app.volumes.open[info.VolumeID] = mnt
+		defer conn.Close()
+		serveErr <- srv.Serve(ref.fs)
+	}()
+
+	select {
+	case <-conn.Ready:
+		if err := conn.MountError; err != nil {
+			return fmt.Errorf("mount fail (delayed): %v", err)
+		}
+		ref.refs++
+		ref.mounted = true
+		ref.app.volumes.Broadcast()
 		return nil
-	})
-	app.volumes.Unlock()
-	if err != nil {
-		return nil, err
+	case err := <-serveErr:
+		// Serve quit early
+		if err != nil {
+			return fmt.Errorf("filesystem failure: %v", err)
+		}
+		return errors.New("Serve exited early")
 	}
-	err = <-ready
-	if err != nil {
-		return nil, err
-	}
-	return info, nil
 }
 
 var ErrNotMounted = errors.New("not currently mounted")
 
-func (app *App) WaitForUnmount(volumeID *db.VolumeID) error {
-	app.volumes.Lock()
-	// we hold onto mnt after releasing the lock, but it's safe in
-	// this case; gc keeps it pinned, and we don't look at mutable
-	// data
-	mnt, ok := app.volumes.open[*volumeID]
-	app.volumes.Unlock()
-	if !ok {
+func (ref *VolumeRef) WaitForUnmount() error {
+	ref.app.volumes.Lock()
+	defer ref.app.volumes.Unlock()
+	if !ref.mounted {
 		return ErrNotMounted
 	}
-	<-mnt.unmounted
+	for ref.mounted {
+		ref.app.volumes.Wait()
+	}
 	return nil
 }
