@@ -1,6 +1,7 @@
 package ping
 
 import (
+	"fmt"
 	"log"
 
 	clibazil "bazil.org/bazil/cli"
@@ -37,14 +38,14 @@ func (c *pingCommand) Run() error {
 	addr := c.Arguments.Addr
 	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(auth))
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		return fmt.Errorf("did not connect: %v", err)
 	}
 	defer conn.Close()
 	client := wire.NewPeerClient(conn)
 
 	r, err := client.Ping(context.Background(), &wire.PingRequest{})
 	if err != nil {
-		log.Fatalf("could not greet: %v", err)
+		return fmt.Errorf("could not greet: %v", err)
 	}
 	log.Printf("pong: %#v", r)
 	return nil
