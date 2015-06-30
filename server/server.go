@@ -24,7 +24,7 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-type mountState struct {
+type VolumeRef struct {
 	// closed after the serve loop has exited
 	unmounted chan struct{}
 }
@@ -33,9 +33,9 @@ type App struct {
 	DataDir  string
 	lockFile *os.File
 	DB       *db.DB
-	mounts   struct {
+	volumes  struct {
 		sync.Mutex
-		open map[db.VolumeID]*mountState
+		open map[db.VolumeID]*VolumeRef
 	}
 	Keys *CryptoKeys
 	tls  struct {
@@ -96,7 +96,7 @@ func New(dataDir string) (app *App, err error) {
 		DB:       database,
 		Keys:     keys,
 	}
-	app.mounts.open = make(map[db.VolumeID]*mountState)
+	app.volumes.open = make(map[db.VolumeID]*VolumeRef)
 	return app, nil
 }
 
@@ -111,9 +111,9 @@ func (app *App) serveMount(vol *fs.Volume, id *db.VolumeID, mountpoint string, c
 	go func() {
 		defer func() {
 			// remove map entry on unmount or failed mount
-			app.mounts.Lock()
-			delete(app.mounts.open, *id)
-			app.mounts.Unlock()
+			app.volumes.Lock()
+			delete(app.volumes.open, *id)
+			app.volumes.Unlock()
 		}()
 		defer conn.Close()
 		serveErr <- srv.Serve(vol)
@@ -215,7 +215,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 
 	info := &MountInfo{}
 	var ready = make(chan error, 1)
-	app.mounts.Lock()
+	app.volumes.Lock()
 	err := app.DB.View(func(tx *db.Tx) error {
 		v, err := tx.Volumes().GetByName(volumeName)
 		if err != nil {
@@ -223,7 +223,7 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 		}
 		v.VolumeID(&info.VolumeID)
 
-		if _, ok := app.mounts.open[info.VolumeID]; ok {
+		if _, ok := app.volumes.open[info.VolumeID]; ok {
 			return errors.New("volume already mounted")
 		}
 
@@ -247,17 +247,17 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 		if err != nil {
 			return err
 		}
-		mnt := &mountState{
+		mnt := &VolumeRef{
 			unmounted: make(chan struct{}),
 		}
 		go func() {
 			defer close(mnt.unmounted)
 			ready <- app.serveMount(vol, &info.VolumeID, mountpoint, conn, srv)
 		}()
-		app.mounts.open[info.VolumeID] = mnt
+		app.volumes.open[info.VolumeID] = mnt
 		return nil
 	})
-	app.mounts.Unlock()
+	app.volumes.Unlock()
 	if err != nil {
 		return nil, err
 	}
@@ -271,12 +271,12 @@ func (app *App) Mount(volumeName string, mountpoint string) (*MountInfo, error) 
 var ErrNotMounted = errors.New("not currently mounted")
 
 func (app *App) WaitForUnmount(volumeID *db.VolumeID) error {
-	app.mounts.Lock()
+	app.volumes.Lock()
 	// we hold onto mnt after releasing the lock, but it's safe in
 	// this case; gc keeps it pinned, and we don't look at mutable
 	// data
-	mnt, ok := app.mounts.open[*volumeID]
-	app.mounts.Unlock()
+	mnt, ok := app.volumes.open[*volumeID]
+	app.volumes.Unlock()
 	if !ok {
 		return ErrNotMounted
 	}
