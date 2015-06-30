@@ -161,7 +161,7 @@ func (app *App) openVolume(tx *db.Tx, id *db.VolumeID) (*fs.Volume, error) {
 	if err != nil {
 		return nil, err
 	}
-	kvstore, err := app.openKV(tx, v.Storage())
+	kvstore, err := app.OpenKV(tx, v.Storage())
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (app *App) openVolume(tx *db.Tx, id *db.VolumeID) (*fs.Volume, error) {
 	return vol, nil
 }
 
-func (app *App) openKV(tx *db.Tx, storage *db.VolumeStorage) (kv.KV, error) {
+func (app *App) OpenKV(tx *db.Tx, storage *db.VolumeStorage) (kv.KV, error) {
 	var kvstores []kv.KV
 
 	c := storage.Cursor()
