@@ -22,4 +22,5 @@ import (
 	_ "bazil.org/bazil/cli/volume/create"
 	_ "bazil.org/bazil/cli/volume/mount"
 	_ "bazil.org/bazil/cli/volume/storage/add"
+	_ "bazil.org/bazil/cli/volume/sync"
 )
