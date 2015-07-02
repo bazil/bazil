@@ -5,7 +5,7 @@ import (
 
 	"bazil.org/bazil/db/wire"
 	"github.com/boltdb/bolt"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 var (

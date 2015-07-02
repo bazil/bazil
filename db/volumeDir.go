@@ -7,7 +7,7 @@ import (
 	wirefs "bazil.org/bazil/fs/wire"
 	"bazil.org/fuse"
 	"github.com/boltdb/bolt"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type Dirs struct {
