@@ -837,10 +837,6 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, recv fun
 		if err := d.fs.db.Update(sync); err != nil {
 			return err
 		}
-
-		d.mu.Lock()
-		defer d.mu.Unlock()
-
 	}
 
 	// TODO sync time for dir itself
