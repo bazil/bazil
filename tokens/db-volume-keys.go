@@ -18,4 +18,16 @@ const (
 	// clock.Version. For the purposes of this, the root directory has
 	// parent inode 0 and empty string as name.
 	VolumeStateClock = "clock"
+
+	// The DB bucket that stores alternate versions of this directory
+	// entry.
+	//
+	// The entries may not actually be conflicting; incoming sync to
+	// open files is deferred.
+	//
+	// Key is <dirInode:uint64_be><name>"\x00"<clock>, value is
+	// protobuf bazil.snap.Dirent with fields name and clock empty.
+	// For the purposes of this, the root directory has parent inode 0
+	// and empty string as name.
+	VolumeStateConflict = "conflict"
 )

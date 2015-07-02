@@ -19,14 +19,15 @@ var (
 )
 
 var (
-	bucketVolume       = []byte(tokens.BucketVolume)
-	bucketVolName      = []byte(tokens.BucketVolName)
-	volumeStateDir     = []byte(tokens.VolumeStateDir)
-	volumeStateInode   = []byte(tokens.VolumeStateInode)
-	volumeStateSnap    = []byte(tokens.VolumeStateSnap)
-	volumeStateStorage = []byte(tokens.VolumeStateStorage)
-	volumeStateEpoch   = []byte(tokens.VolumeStateEpoch)
-	volumeStateClock   = []byte(tokens.VolumeStateClock)
+	bucketVolume        = []byte(tokens.BucketVolume)
+	bucketVolName       = []byte(tokens.BucketVolName)
+	volumeStateDir      = []byte(tokens.VolumeStateDir)
+	volumeStateInode    = []byte(tokens.VolumeStateInode)
+	volumeStateSnap     = []byte(tokens.VolumeStateSnap)
+	volumeStateStorage  = []byte(tokens.VolumeStateStorage)
+	volumeStateEpoch    = []byte(tokens.VolumeStateEpoch)
+	volumeStateClock    = []byte(tokens.VolumeStateClock)
+	volumeStateConflict = []byte(tokens.VolumeStateConflict)
 )
 
 func (tx *Tx) initVolumes() error {
@@ -117,6 +118,9 @@ func (b *Volumes) add(name string, volID *VolumeID, storage string, sharingKey *
 	if _, err := bv.CreateBucket(volumeStateClock); err != nil {
 		return nil, err
 	}
+	if _, err := bv.CreateBucket(volumeStateConflict); err != nil {
+		return nil, err
+	}
 	v := &Volume{
 		b:  bv,
 		id: volID[:],
@@ -189,6 +193,11 @@ func (v *Volume) Storage() *VolumeStorage {
 func (v *Volume) Clock() *VolumeClock {
 	b := v.b.Bucket(volumeStateClock)
 	return &VolumeClock{b}
+}
+
+func (v *Volume) Conflicts() *VolumeConflicts {
+	b := v.b.Bucket(volumeStateConflict)
+	return &VolumeConflicts{b}
 }
 
 // Dirs provides a way of accessing the directory entries stored in
