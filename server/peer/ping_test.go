@@ -12,6 +12,7 @@ import (
 	bazfstestutil "bazil.org/bazil/fs/fstestutil"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/peer/wire"
+	"bazil.org/bazil/server/http/httptest"
 	"bazil.org/bazil/util/tempdir"
 )
 
@@ -25,7 +26,7 @@ func TestPing(t *testing.T) {
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
-	web1 := serveHTTP(t, &wg, app1)
+	web1 := httptest.ServeHTTP(t, &wg, app1)
 	defer web1.Close()
 
 	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
@@ -77,7 +78,7 @@ func TestPingBadNotPeer(t *testing.T) {
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
-	web1 := serveHTTP(t, &wg, app1)
+	web1 := httptest.ServeHTTP(t, &wg, app1)
 	defer web1.Close()
 
 	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)

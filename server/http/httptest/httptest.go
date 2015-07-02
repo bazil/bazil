@@ -1,4 +1,4 @@
-package peer_test
+package httptest
 
 import (
 	"sync"
@@ -8,7 +8,7 @@ import (
 	"bazil.org/bazil/server/http"
 )
 
-func serveHTTP(t testing.TB, wg *sync.WaitGroup, app *server.App) *http.Web {
+func ServeHTTP(t testing.TB, wg *sync.WaitGroup, app *server.App) *http.Web {
 	web, err := http.New(app)
 	if err != nil {
 		t.Fatalf("cannot listen: %v", err)
