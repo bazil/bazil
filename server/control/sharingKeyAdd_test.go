@@ -1,4 +1,4 @@
-package control
+package control_test
 
 import (
 	"fmt"

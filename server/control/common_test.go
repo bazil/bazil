@@ -1,16 +1,17 @@
-package control
+package control_test
 
 import (
 	"fmt"
 	"testing"
 
 	"bazil.org/bazil/server"
+	"bazil.org/bazil/server/control"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
 
 func controlListenAndServe(t testing.TB, app *server.App) (stop func()) {
-	c, err := New(app)
+	c, err := control.New(app)
 	if err != nil {
 		t.Fatalf("control socket cannot listen: %v", err)
 	}
