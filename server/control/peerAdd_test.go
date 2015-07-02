@@ -3,11 +3,13 @@ package control_test
 import (
 	"fmt"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/server"
+	"bazil.org/bazil/server/control/controltest"
 	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/tokens"
 	"bazil.org/bazil/util/grpcunix"
@@ -40,7 +42,11 @@ func TestPeerAdd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer controlListenAndServe(t, app)()
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	ctrl := controltest.ListenAndServe(t, &wg, app)
+	defer ctrl.Close()
 
 	pub := peer.PublicKey{1, 2, 3, 4, 5}
 	addReq := &wire.PeerAddRequest{
@@ -81,7 +87,11 @@ func TestPeerAddBadPubLong(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer controlListenAndServe(t, app)()
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	ctrl := controltest.ListenAndServe(t, &wg, app)
+	defer ctrl.Close()
 
 	tooLong := make([]byte, 33)
 	addReq := &wire.PeerAddRequest{
@@ -115,7 +125,11 @@ func TestPeerAddBadPubShort(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer controlListenAndServe(t, app)()
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	ctrl := controltest.ListenAndServe(t, &wg, app)
+	defer ctrl.Close()
 
 	tooShort := make([]byte, 33)
 	addReq := &wire.PeerAddRequest{
@@ -149,7 +163,11 @@ func TestPeerAddBadPubSelf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer controlListenAndServe(t, app)()
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	ctrl := controltest.ListenAndServe(t, &wg, app)
+	defer ctrl.Close()
 
 	addReq := &wire.PeerAddRequest{
 		Pub: app.Keys.Sign.Pub[:],
