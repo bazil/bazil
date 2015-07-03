@@ -326,10 +326,11 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 				return fmt.Errorf("blob open problem: %v", err)
 			}
 			child = &file{
-				inode:  inode,
-				name:   req.Name,
-				parent: d,
-				blob:   blob,
+				inode:   inode,
+				name:    req.Name,
+				parent:  d,
+				blob:    blob,
+				handles: 1,
 			}
 			vc := bucket.Clock()
 			clock, err := vc.Create(d.inode, req.Name, d.fs.dirtyEpoch())

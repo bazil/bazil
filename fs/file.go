@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"syscall"
 
 	"bazil.org/bazil/cas/blobs"
 	wirecas "bazil.org/bazil/cas/wire"
@@ -32,9 +33,10 @@ type file struct {
 	// mu protects the fields below.
 	mu sync.Mutex
 
-	name  string
-	blob  *blobs.Blob
-	dirty dirtiness
+	name    string
+	blob    *blobs.Blob
+	dirty   dirtiness
+	handles uint32
 
 	// when was this entry last changed
 	// TODO: written time.Time
@@ -49,6 +51,7 @@ var _ = fs.NodeFsyncer(&file{})
 var _ = fs.HandleFlusher(&file{})
 var _ = fs.HandleReader(&file{})
 var _ = fs.HandleWriter(&file{})
+var _ = fs.HandleReleaser(&file{})
 
 func (f *file) setName(name string) {
 	f.mu.Lock()
@@ -100,6 +103,13 @@ func (f *file) Forget() {
 func (f *file) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
 	// allow kernel to use buffer cache
 	resp.Flags &^= fuse.OpenDirectIO
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	tmp := f.handles + 1
+	if tmp == 0 {
+		return nil, fuse.Errno(syscall.ENFILE)
+	}
+	f.handles = tmp
 	return f, nil
 }
 
@@ -215,4 +225,11 @@ func (f *file) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 	// flush forces writes to backing stores; we don't current
 	// differentiate between the backing stores writing vs syncing.
 	return f.flush(ctx)
+}
+
+func (f *file) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
+	f.mu.Lock()
+	f.handles--
+	f.mu.Unlock()
+	return nil
 }
