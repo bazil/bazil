@@ -127,9 +127,8 @@ func (v *Volume) dirtyEpoch() clock.Epoch {
 	return v.epoch.ticks
 }
 
+// caller must hold v.epoch.mu
 func (v *Volume) cleanEpoch() (clock.Epoch, error) {
-	v.epoch.mu.Lock()
-	defer v.epoch.mu.Unlock()
 	if !v.epoch.dirty {
 		return v.epoch.ticks, nil
 	}
