@@ -15,6 +15,14 @@ import (
 	"golang.org/x/net/context"
 )
 
+type dirtiness int
+
+const (
+	clean dirtiness = iota
+	dirty
+	writing
+)
+
 type file struct {
 	fs.NodeRef
 
@@ -24,8 +32,9 @@ type file struct {
 	// mu protects the fields below.
 	mu sync.Mutex
 
-	name string
-	blob *blobs.Blob
+	name  string
+	blob  *blobs.Blob
+	dirty dirtiness
 
 	// when was this entry last changed
 	// TODO: written time.Time
@@ -98,6 +107,8 @@ func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	f.dirty = dirty
+
 	n, err := f.blob.WriteAt(req.Data, req.Offset)
 	resp.Size = n
 	if err != nil {
@@ -108,12 +119,27 @@ func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 }
 
 func (f *file) flush(ctx context.Context) error {
-	// TODO only if dirty
+	f.mu.Lock()
+	locked := true
+	defer func() {
+		if locked {
+			f.mu.Unlock()
+		}
+	}()
 
-	de, err := f.marshal()
+	// only if dirty
+	if f.dirty == clean {
+		return nil
+	}
+	f.dirty = writing
+
+	de, err := f.marshalInternal()
 	if err != nil {
 		return err
 	}
+
+	f.mu.Unlock()
+	locked = false
 
 	save := func(tx *db.Tx) error {
 		return f.parent.save(tx, f.name, de)
@@ -121,6 +147,13 @@ func (f *file) flush(ctx context.Context) error {
 	if err := f.parent.fs.db.Update(save); err != nil {
 		return err
 	}
+
+	f.mu.Lock()
+	if f.dirty == writing {
+		// was not dirtied in the meanwhile
+		f.dirty = clean
+	}
+	f.mu.Unlock()
 	return nil
 }
 
@@ -155,6 +188,8 @@ func (f *file) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 func (f *file) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse.SetattrResponse) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+
+	f.dirty = dirty
 
 	valid := req.Valid
 	if valid.Size() {
