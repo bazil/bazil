@@ -17,10 +17,16 @@ It has these top-level messages:
 	ObjectGetResponse
 	VolumeConnectRequest
 	VolumeConnectResponse
+	VolumeSyncPullRequest
+	VolumeSyncPullItem
+	Dirent
+	File
+	Dir
 */
 package wire
 
 import proto "github.com/golang/protobuf/proto"
+import bazil_cas "bazil.org/bazil/cas/wire"
 
 import (
 	context "golang.org/x/net/context"
@@ -33,6 +39,27 @@ var _ grpc.ClientConn
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+
+type VolumeSyncPullItem_Error int32
+
+const (
+	VolumeSyncPullItem_SUCCESS VolumeSyncPullItem_Error = 0
+	// The path in the request did not refer to a directory.
+	VolumeSyncPullItem_NOT_A_DIRECTORY VolumeSyncPullItem_Error = 1
+)
+
+var VolumeSyncPullItem_Error_name = map[int32]string{
+	0: "SUCCESS",
+	1: "NOT_A_DIRECTORY",
+}
+var VolumeSyncPullItem_Error_value = map[string]int32{
+	"SUCCESS":         0,
+	"NOT_A_DIRECTORY": 1,
+}
+
+func (x VolumeSyncPullItem_Error) String() string {
+	return proto.EnumName(VolumeSyncPullItem_Error_name, int32(x))
+}
 
 type PingRequest struct {
 }
@@ -97,7 +124,100 @@ func (m *VolumeConnectResponse) Reset()         { *m = VolumeConnectResponse{} }
 func (m *VolumeConnectResponse) String() string { return proto.CompactTextString(m) }
 func (*VolumeConnectResponse) ProtoMessage()    {}
 
+type VolumeSyncPullRequest struct {
+	VolumeID []byte `protobuf:"bytes,1,opt,name=volumeID,proto3" json:"volumeID,omitempty"`
+	Path     string `protobuf:"bytes,2,opt,name=path" json:"path,omitempty"`
+}
+
+func (m *VolumeSyncPullRequest) Reset()         { *m = VolumeSyncPullRequest{} }
+func (m *VolumeSyncPullRequest) String() string { return proto.CompactTextString(m) }
+func (*VolumeSyncPullRequest) ProtoMessage()    {}
+
+type VolumeSyncPullItem struct {
+	// This is used to work around gRPC fixed error codes and error
+	// strings.
+	//
+	// It can only be present in the first streamed message.
+	// All other fields are to be ignored.
+	Error VolumeSyncPullItem_Error `protobuf:"varint,1,opt,name=error,enum=bazil.peer.VolumeSyncPullItem_Error" json:"error,omitempty"`
+	// Logical clocks in Dirents use small integers to identify peers.
+	// This map connects those identifiers to globally unique peer
+	// public keys.
+	//
+	// This can only be present in the first streamed message.
+	Peers map[uint32][]byte `protobuf:"bytes,2,rep,name=peers" json:"peers,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Directory entries. More entries may follow in later streamed
+	// messages.
+	Children []*Dirent `protobuf:"bytes,3,rep,name=children" json:"children,omitempty"`
+}
+
+func (m *VolumeSyncPullItem) Reset()         { *m = VolumeSyncPullItem{} }
+func (m *VolumeSyncPullItem) String() string { return proto.CompactTextString(m) }
+func (*VolumeSyncPullItem) ProtoMessage()    {}
+
+func (m *VolumeSyncPullItem) GetPeers() map[uint32][]byte {
+	if m != nil {
+		return m.Peers
+	}
+	return nil
+}
+
+func (m *VolumeSyncPullItem) GetChildren() []*Dirent {
+	if m != nil {
+		return m.Children
+	}
+	return nil
+}
+
+type Dirent struct {
+	Name  string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	File  *File  `protobuf:"bytes,2,opt,name=file" json:"file,omitempty"`
+	Dir   *Dir   `protobuf:"bytes,3,opt,name=dir" json:"dir,omitempty"`
+	Clock []byte `protobuf:"bytes,4,opt,name=clock,proto3" json:"clock,omitempty"`
+}
+
+func (m *Dirent) Reset()         { *m = Dirent{} }
+func (m *Dirent) String() string { return proto.CompactTextString(m) }
+func (*Dirent) ProtoMessage()    {}
+
+func (m *Dirent) GetFile() *File {
+	if m != nil {
+		return m.File
+	}
+	return nil
+}
+
+func (m *Dirent) GetDir() *Dir {
+	if m != nil {
+		return m.Dir
+	}
+	return nil
+}
+
+type File struct {
+	Manifest *bazil_cas.Manifest `protobuf:"bytes,1,opt,name=manifest" json:"manifest,omitempty"`
+}
+
+func (m *File) Reset()         { *m = File{} }
+func (m *File) String() string { return proto.CompactTextString(m) }
+func (*File) ProtoMessage()    {}
+
+func (m *File) GetManifest() *bazil_cas.Manifest {
+	if m != nil {
+		return m.Manifest
+	}
+	return nil
+}
+
+type Dir struct {
+}
+
+func (m *Dir) Reset()         { *m = Dir{} }
+func (m *Dir) String() string { return proto.CompactTextString(m) }
+func (*Dir) ProtoMessage()    {}
+
 func init() {
+	proto.RegisterEnum("bazil.peer.VolumeSyncPullItem_Error", VolumeSyncPullItem_Error_name, VolumeSyncPullItem_Error_value)
 }
 
 // Client API for Peer service
@@ -107,6 +227,7 @@ type PeerClient interface {
 	ObjectPut(ctx context.Context, opts ...grpc.CallOption) (Peer_ObjectPutClient, error)
 	ObjectGet(ctx context.Context, in *ObjectGetRequest, opts ...grpc.CallOption) (Peer_ObjectGetClient, error)
 	VolumeConnect(ctx context.Context, in *VolumeConnectRequest, opts ...grpc.CallOption) (*VolumeConnectResponse, error)
+	VolumeSyncPull(ctx context.Context, in *VolumeSyncPullRequest, opts ...grpc.CallOption) (Peer_VolumeSyncPullClient, error)
 }
 
 type peerClient struct {
@@ -201,6 +322,38 @@ func (c *peerClient) VolumeConnect(ctx context.Context, in *VolumeConnectRequest
 	return out, nil
 }
 
+func (c *peerClient) VolumeSyncPull(ctx context.Context, in *VolumeSyncPullRequest, opts ...grpc.CallOption) (Peer_VolumeSyncPullClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Peer_serviceDesc.Streams[2], c.cc, "/bazil.peer.Peer/VolumeSyncPull", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &peerVolumeSyncPullClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Peer_VolumeSyncPullClient interface {
+	Recv() (*VolumeSyncPullItem, error)
+	grpc.ClientStream
+}
+
+type peerVolumeSyncPullClient struct {
+	grpc.ClientStream
+}
+
+func (x *peerVolumeSyncPullClient) Recv() (*VolumeSyncPullItem, error) {
+	m := new(VolumeSyncPullItem)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for Peer service
 
 type PeerServer interface {
@@ -208,6 +361,7 @@ type PeerServer interface {
 	ObjectPut(Peer_ObjectPutServer) error
 	ObjectGet(*ObjectGetRequest, Peer_ObjectGetServer) error
 	VolumeConnect(context.Context, *VolumeConnectRequest) (*VolumeConnectResponse, error)
+	VolumeSyncPull(*VolumeSyncPullRequest, Peer_VolumeSyncPullServer) error
 }
 
 func RegisterPeerServer(s *grpc.Server, srv PeerServer) {
@@ -285,6 +439,27 @@ func _Peer_VolumeConnect_Handler(srv interface{}, ctx context.Context, codec grp
 	return out, nil
 }
 
+func _Peer_VolumeSyncPull_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(VolumeSyncPullRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PeerServer).VolumeSyncPull(m, &peerVolumeSyncPullServer{stream})
+}
+
+type Peer_VolumeSyncPullServer interface {
+	Send(*VolumeSyncPullItem) error
+	grpc.ServerStream
+}
+
+type peerVolumeSyncPullServer struct {
+	grpc.ServerStream
+}
+
+func (x *peerVolumeSyncPullServer) Send(m *VolumeSyncPullItem) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _Peer_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "bazil.peer.Peer",
 	HandlerType: (*PeerServer)(nil),
@@ -307,6 +482,11 @@ var _Peer_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ObjectGet",
 			Handler:       _Peer_ObjectGet_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "VolumeSyncPull",
+			Handler:       _Peer_VolumeSyncPull_Handler,
 			ServerStreams: true,
 		},
 	},

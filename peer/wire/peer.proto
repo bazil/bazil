@@ -4,11 +4,14 @@ package bazil.peer;
 
 option go_package = "wire";
 
+import "bazil.org/bazil/cas/wire/manifest.proto";
+
 service Peer {
   rpc Ping(PingRequest) returns (PingResponse) {}
   rpc ObjectPut(stream ObjectPutRequest) returns (ObjectPutResponse) {}
   rpc ObjectGet(ObjectGetRequest) returns (stream ObjectGetResponse) {}
   rpc VolumeConnect(VolumeConnectRequest) returns (VolumeConnectResponse) {}
+  rpc VolumeSyncPull(VolumeSyncPullRequest) returns (stream VolumeSyncPullItem) {}
 }
 
 message PingRequest {
@@ -40,4 +43,54 @@ message VolumeConnectRequest {
 
 message VolumeConnectResponse {
   bytes volumeID = 1;
+}
+
+message VolumeSyncPullRequest {
+  bytes volumeID = 1;
+  string path = 2;
+}
+
+message VolumeSyncPullItem {
+  enum Error {
+    SUCCESS = 0;
+    // The path in the request did not refer to a directory.
+    NOT_A_DIRECTORY = 1;
+  }
+  // This is used to work around gRPC fixed error codes and error
+  // strings.
+  //
+  // It can only be present in the first streamed message.
+  // All other fields are to be ignored.
+  Error error = 1;
+
+  // Logical clocks in Dirents use small integers to identify peers.
+  // This map connects those identifiers to globally unique peer
+  // public keys.
+  //
+  // This can only be present in the first streamed message.
+  map<uint32,bytes> peers = 2;
+
+  // Directory entries. More entries may follow in later streamed
+  // messages. The entries are required to be in lexicographical
+  // (bytewise) order, across all messages.
+  repeated Dirent children = 3;
+}
+
+message Dirent {
+  string name = 1;
+  oneof type {
+    File file = 2;
+    Dir dir = 3;
+  }
+
+  bytes clock = 4;
+  // TODO executable, xattr, acl
+  // TODO mtime
+}
+
+message File {
+  bazil.cas.Manifest manifest = 1;
+}
+
+message Dir {
 }
