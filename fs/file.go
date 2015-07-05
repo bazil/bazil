@@ -47,10 +47,7 @@ func (f *file) setName(name string) {
 	f.name = name
 }
 
-func (f *file) marshal() (*wire.Dirent, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
+func (f *file) marshalInternal() (*wire.Dirent, error) {
 	de := &wire.Dirent{
 		Inode: f.inode,
 	}
@@ -62,6 +59,13 @@ func (f *file) marshal() (*wire.Dirent, error) {
 		Manifest: wirecas.FromBlob(manifest),
 	}
 	return de, nil
+}
+
+func (f *file) marshal() (*wire.Dirent, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return f.marshalInternal()
 }
 
 func (f *file) Attr(ctx context.Context, a *fuse.Attr) error {
