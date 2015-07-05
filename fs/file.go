@@ -105,8 +105,14 @@ func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 
 func (f *file) flush(ctx context.Context) error {
 	// TODO only if dirty
+
+	de, err := f.marshal()
+	if err != nil {
+		return err
+	}
+
 	save := func(tx *db.Tx) error {
-		return f.parent.save(tx, f.name, f)
+		return f.parent.save(tx, f.name, de)
 	}
 	if err := f.parent.fs.db.Update(save); err != nil {
 		return err

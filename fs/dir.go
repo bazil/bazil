@@ -249,7 +249,7 @@ func (d *dir) marshal() (*wire.Dirent, error) {
 	return de, nil
 }
 
-func (d *dir) save(tx *db.Tx, name string, n node) error {
+func (d *dir) save(tx *db.Tx, name string, de *wire.Dirent) error {
 	if name == "" {
 		// unlinked
 		return nil
@@ -265,8 +265,8 @@ func (d *dir) save(tx *db.Tx, name string, n node) error {
 	if err != nil {
 		return err
 	}
-	if err := d.saveInternal(tx, name, n); err != nil {
-		return err
+	if err := d.fs.bucket(tx).Dirs().Put(d.inode, name, de); err != nil {
+		return fmt.Errorf("dirent save error: %v", err)
 	}
 	if changed {
 		if err := d.updateParents(vc, clock); err != nil {
