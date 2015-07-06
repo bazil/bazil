@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"syscall"
 
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/db"
@@ -16,6 +17,7 @@ import (
 	"bazil.org/bazil/peer"
 	wirepeer "bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/tokens"
+	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"golang.org/x/net/context"
 )
@@ -293,6 +295,73 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 	if err := v.db.View(sync); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (v *Volume) lookupPath(dirPath string) (n node, drop func(), err error) {
+	dirPath = path.Clean("/" + dirPath)[1:]
+
+	if dirPath == "" {
+		return v.root, func() {}, nil
+	}
+
+	d := v.root
+	d.mu.Lock()
+
+	// each iteration takes the lock in the lock, then releases the one in the parent
+	for {
+		var seg string
+		seg, dirPath = splitPath(dirPath)
+
+		ref, err := d.lookup(seg)
+		if err != nil {
+			d.mu.Unlock()
+			return nil, nil, err
+		}
+
+		if dirPath == "" {
+			ref.refs++
+			d.mu.Unlock()
+			drop := func() {
+				d.mu.Lock()
+				defer d.mu.Unlock()
+
+				ref.refs--
+				if ref.refs == 0 && !ref.kernel {
+					delete(d.active, seg)
+				}
+			}
+			return ref.node, drop, nil
+		}
+
+		d2, ok := ref.node.(*dir)
+		if !ok {
+			d.mu.Unlock()
+			return nil, nil, fuse.ENOENT
+		}
+
+		d2.mu.Lock()
+		d.mu.Unlock()
+		d = d2
+	}
+}
+
+func (v *Volume) SyncReceive(ctx context.Context, dirPath string, peers map[uint32][]byte, recv func() ([]*wirepeer.Dirent, error)) error {
+	n, drop, err := v.lookupPath(dirPath)
+	if err != nil {
+		return err
+	}
+	defer drop()
+
+	d, ok := n.(*dir)
+	if !ok {
+		return fuse.Errno(syscall.ENOTDIR)
+	}
+
+	if err := d.syncReceive(ctx, peers, recv); err != nil {
+		return err
+	}
+
 	return nil
 }
 

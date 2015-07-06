@@ -3,6 +3,7 @@ package fs
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"sync"
@@ -16,6 +17,8 @@ import (
 	"bazil.org/bazil/fs/snap"
 	wiresnap "bazil.org/bazil/fs/snap/wire"
 	"bazil.org/bazil/fs/wire"
+	"bazil.org/bazil/peer"
+	wirepeer "bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
@@ -614,4 +617,236 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dirent, error)
 		},
 	}
 	return &msg, nil
+}
+
+// makePeerMap returns a mapping from the peerids in peers to the ones
+// in the local database.
+func makePeerMap(tx *db.Tx, peers map[uint32][]byte) (map[clock.Peer]clock.Peer, error) {
+	m := make(map[clock.Peer]clock.Peer, len(peers))
+	pb := tx.Peers()
+	var pub peer.PublicKey
+	for id, buf := range peers {
+		if err := pub.UnmarshalBinary(buf); err != nil {
+			return nil, err
+		}
+		p, err := pb.Make(&pub)
+		if err != nil {
+			return nil, err
+		}
+		m[clock.Peer(id)] = clock.Peer(p.ID())
+	}
+	return m, nil
+}
+
+// caller must hold d.mu
+func (d *dir) syncToMissing(ctx context.Context, tx *db.Tx, volume *db.Volume, wde *wirepeer.Dirent, theirs *clock.Clock) error {
+	var action clock.Action
+
+	clocks := volume.Clock()
+	mine, err := clocks.Get(d.inode, wde.Name)
+	switch err := err.(type) {
+	default:
+		return err
+
+	case *db.ClockNotFoundError:
+		// we have no local clock
+		action = clock.Copy
+		mine = theirs
+
+	case nil:
+		action = clock.SyncToMissing(theirs, mine)
+		mine.ResolveTheirs(theirs)
+	}
+
+	switch action {
+	case clock.Nothing:
+		// they lose, do nothing
+	case clock.Conflict:
+		if err := volume.Conflicts().Add(d.inode, theirs, wde); err != nil {
+			return err
+		}
+	case clock.Copy:
+		// save dirent with their clock
+		if err := clocks.Put(d.inode, wde.Name, theirs); err != nil {
+			return err
+		}
+		inode, err := inodes.Allocate(volume.InodeBucket())
+		if err != nil {
+			return err
+		}
+		// TODO share this logic
+		de := &wire.Dirent{
+			Inode: inode,
+		}
+		switch {
+		case wde.File != nil:
+			de.File = &wire.File{
+				Manifest: wde.File.Manifest,
+			}
+		case wde.Dir != nil:
+			de.Dir = &wire.Dir{}
+		default:
+			return fmt.Errorf("unknown direntry type: %v", wde)
+		}
+		if err := volume.Dirs().Put(d.inode, wde.Name, de); err != nil {
+			return fmt.Errorf("dirent save error: %v", err)
+		}
+		return nil
+
+	default:
+		return fmt.Errorf("unknown clock action: %v", action)
+	}
+	return nil
+}
+
+// caller must hold d.mu
+func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, child node, wde *wirepeer.Dirent, theirs *clock.Clock) error {
+	clocks := volume.Clock()
+	mine, err := clocks.Get(d.inode, wde.Name)
+	if err != nil {
+		return err
+	}
+
+	action := clock.Sync(theirs, mine)
+	switch action {
+	case clock.Nothing:
+		// they lose, do nothing
+	case clock.Conflict:
+		if err := volume.Conflicts().Add(d.inode, theirs, wde); err != nil {
+			return err
+		}
+	case clock.Copy:
+		mine.ResolveTheirs(theirs)
+		// TODO add node.update method? with a defined error to
+		// trigger a conflict instead?
+		switch child := child.(type) {
+		case *file:
+			if wde.File == nil {
+				return fmt.Errorf("TODO trying to convert file into non-file: %v", wde)
+			}
+			// TODO combine into reviveNode, make it take in the old node?
+			manifest, err := wde.File.Manifest.ToBlob("file")
+			if err != nil {
+				return err
+			}
+			blob, err := blobs.Open(d.fs.chunkStore, manifest)
+			if err != nil {
+				return err
+			}
+			child.blob = blob
+			// TODO executable, xattr, acl
+			// TODO mtime
+		default:
+			return fmt.Errorf("TODO not handling non-files yet: %T", child)
+		}
+
+		if err := clocks.Put(d.inode, wde.Name, mine); err != nil {
+			return err
+		}
+		if err := d.saveInternal(tx, wde.Name, child); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown clock action: %v", action)
+	}
+	return nil
+}
+
+func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, recv func() ([]*wirepeer.Dirent, error)) error {
+	var peerMap map[clock.Peer]clock.Peer
+	peerMapFn := func(tx *db.Tx) error {
+		m, err := makePeerMap(tx, peers)
+		if err != nil {
+			return err
+		}
+		peerMap = m
+		return nil
+	}
+	if err := d.fs.db.Update(peerMapFn); err != nil {
+		return err
+	}
+
+	for {
+		dirents, err := recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		sync := func(tx *db.Tx) error {
+			d.mu.Lock()
+			defer d.mu.Unlock()
+
+			bucket := d.fs.bucket(tx)
+
+		loop:
+			for _, wde := range dirents {
+				var theirs clock.Clock
+				if err := theirs.UnmarshalBinary(wde.Clock); err != nil {
+					return fmt.Errorf("corrupt vector clock: %v", err)
+				}
+				if err := theirs.RewritePeers(peerMap); err != nil {
+					return fmt.Errorf("error while converting clock ids: %v", err)
+				}
+
+				ref, err := d.lookup(wde.Name)
+				if err != nil && err != fuse.ENOENT {
+					return err
+				}
+
+				if err == fuse.ENOENT {
+					// holding d.mu guarantees it stays non-existent
+					if err := d.syncToMissing(ctx, tx, bucket, wde, &theirs); err != nil {
+						return err
+					}
+					// TODO is there a negative dentry cache that needs to be invalidated
+					continue loop
+				}
+
+				// Ensure sync does not look up special nodes like the ".snap" directory
+				switch ref.node.(type) {
+				case *file, *dir:
+					// nothing
+				default:
+					return fmt.Errorf("cannot import changes to %q of type %T", wde.Name, ref.node)
+				}
+
+				if f, ok := ref.node.(*file); ok {
+					f.mu.Lock()
+					busy := f.handles > 0
+					f.mu.Unlock()
+					if busy {
+						// clocks strictly greater than local are also stored as
+						// conflicts if the file is currently open.
+						if err := bucket.Conflicts().Add(d.inode, &theirs, wde); err != nil {
+							return err
+						}
+						continue loop
+					}
+				}
+
+				if err := d.syncToNode(ctx, tx, bucket, ref.node, wde, &theirs); err != nil {
+					return err
+				}
+
+			}
+			return nil
+		}
+		if err := d.fs.db.Update(sync); err != nil {
+			return err
+		}
+
+		d.mu.Lock()
+		defer d.mu.Unlock()
+
+	}
+
+	// TODO sync time for dir itself
+
+	//TODO implied deletes?
+
+	// TODO who keeps track of where to recurse
+	return nil
 }
