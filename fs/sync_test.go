@@ -3,6 +3,7 @@ package fs_test
 import (
 	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"path/filepath"
 	"sync"
@@ -156,5 +157,147 @@ func TestSyncSimple(t *testing.T) {
 	}
 	if g, e := string(buf), input; g != e {
 		t.Fatalf("wrong content: %q != %q", g, e)
+	}
+}
+
+func TestSyncDelete(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app1 := bazfstestutil.NewApp(t, tmp.Subdir("app1"))
+	defer app1.Close()
+	app2 := bazfstestutil.NewApp(t, tmp.Subdir("app2"))
+	defer app2.Close()
+
+	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
+
+	const (
+		volumeName1 = "testvol1"
+		volumeName2 = "testvol2"
+	)
+	connectVolume(t, app1, volumeName1, app2, volumeName2)
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	web1 := httptest.ServeHTTP(t, &wg, app1)
+	defer web1.Close()
+	setLocation(t, app2, app1.Keys.Sign.Pub, web1.Addr())
+
+	const (
+		filename = "greeting"
+		input    = "hello, world"
+	)
+	mnt1 := bazfstestutil.Mounted(t, app1, volumeName1)
+	defer mnt1.Close()
+	if err := ioutil.WriteFile(path.Join(mnt1.Dir, filename), []byte(input), 0644); err != nil {
+		t.Fatalf("cannot create file: %v", err)
+	}
+
+	// trigger sync
+	ctrl := controltest.ListenAndServe(t, &wg, app2)
+	defer ctrl.Close()
+	rpcConn, err := grpcunix.Dial(filepath.Join(app2.DataDir, "control"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rpcConn.Close()
+	rpcClient := wire.NewControlClient(rpcConn)
+	ctx := context.Background()
+	req := &wire.VolumeSyncRequest{
+		VolumeName: volumeName2,
+		Pub:        pub1[:],
+	}
+	if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+		t.Fatalf("error while syncing: %v", err)
+	}
+
+	if err := os.Remove(path.Join(mnt1.Dir, filename)); err != nil {
+		t.Fatalf("cannot create file: %v", err)
+	}
+
+	// sync again
+	if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+		t.Fatalf("error while syncing: %v", err)
+	}
+
+	mnt := bazfstestutil.Mounted(t, app2, volumeName2)
+	defer mnt.Close()
+	if _, err := os.Stat(path.Join(mnt.Dir, filename)); !os.IsNotExist(err) {
+		t.Fatalf("file should have been removed")
+	}
+}
+
+func TestSyncDeleteLater(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app1 := bazfstestutil.NewApp(t, tmp.Subdir("app1"))
+	defer app1.Close()
+	app2 := bazfstestutil.NewApp(t, tmp.Subdir("app2"))
+	defer app2.Close()
+
+	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
+
+	const (
+		volumeName1 = "testvol1"
+		volumeName2 = "testvol2"
+	)
+	connectVolume(t, app1, volumeName1, app2, volumeName2)
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	web1 := httptest.ServeHTTP(t, &wg, app1)
+	defer web1.Close()
+	setLocation(t, app2, app1.Keys.Sign.Pub, web1.Addr())
+
+	const (
+		filename = "greeting"
+		input    = "hello, world"
+	)
+	mnt1 := bazfstestutil.Mounted(t, app1, volumeName1)
+	defer mnt1.Close()
+	if err := ioutil.WriteFile(path.Join(mnt1.Dir, filename), []byte(input), 0644); err != nil {
+		t.Fatalf("cannot create file: %v", err)
+	}
+
+	// trigger sync
+	ctrl := controltest.ListenAndServe(t, &wg, app2)
+	defer ctrl.Close()
+	rpcConn, err := grpcunix.Dial(filepath.Join(app2.DataDir, "control"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rpcConn.Close()
+	rpcClient := wire.NewControlClient(rpcConn)
+	ctx := context.Background()
+	req := &wire.VolumeSyncRequest{
+		VolumeName: volumeName2,
+		Pub:        pub1[:],
+	}
+	if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+		t.Fatalf("error while syncing: %v", err)
+	}
+
+	const input2 = "goodbye, world"
+	if err := ioutil.WriteFile(path.Join(mnt1.Dir, filename), []byte(input2), 0644); err != nil {
+		t.Fatalf("cannot update file: %v", err)
+	}
+
+	// sync again
+	if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+		t.Fatalf("error while syncing: %v", err)
+	}
+
+	if err := os.Remove(path.Join(mnt1.Dir, filename)); err != nil {
+		t.Fatalf("cannot create file: %v", err)
+	}
+
+	// sync again
+	if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+		t.Fatalf("error while syncing: %v", err)
+	}
+
+	mnt := bazfstestutil.Mounted(t, app2, volumeName2)
+	defer mnt.Close()
+	if _, err := os.Stat(path.Join(mnt.Dir, filename)); !os.IsNotExist(err) {
+		t.Fatalf("file should have been removed")
 	}
 }

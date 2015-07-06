@@ -795,7 +795,14 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClock
 	if err := dirClock.RewritePeers(peerMap); err != nil {
 		return fmt.Errorf("error while converting dir clock ids: %v", err)
 	}
+	tombstoneClock := clock.TombstoneFromParent(&dirClock)
 
+	// Merge two streams of lexicographic names: the incoming sync,
+	// and our directory listing. Any entries not mentioned by the
+	// sync are implicitly deleted, using the directory clock.
+
+	oursPrev := ""
+	oursEOF := false
 	for {
 		dirents, err := recv()
 		if err == io.EOF {
@@ -811,6 +818,8 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClock
 
 			bucket := d.fs.bucket(tx)
 
+			var c *db.DirsCursor
+
 		loop:
 			for _, wde := range dirents {
 				var theirs clock.Clock
@@ -819,6 +828,40 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClock
 				}
 				if err := theirs.RewritePeers(peerMap); err != nil {
 					return fmt.Errorf("error while converting clock ids: %v", err)
+				}
+
+				if !oursEOF {
+					// Handle implicit delete of entries in the
+					// directory that are before the current entry in
+					// the sync.
+					for {
+						var ours *db.DirEntry
+						if c == nil {
+							// first one in this transaction
+							c = bucket.Dirs().List(d.inode)
+							ours = c.Seek(oursPrev)
+						} else {
+							ours = c.Next()
+						}
+						if ours == nil {
+							// ran out of our directory
+							oursEOF = true
+							break
+						}
+						oursPrev = ours.Name()
+						if oursPrev > wde.Name {
+							break
+						}
+						if oursPrev < wde.Name {
+							tomb := &wirepeer.Dirent{
+								Name:      oursPrev,
+								Tombstone: &wirepeer.Tombstone{},
+							}
+							if err := d.syncToNode(ctx, tx, bucket, nil, tomb, tombstoneClock); err != nil {
+								return err
+							}
+						}
+					}
 				}
 
 				ref, err := d.lookup(wde.Name)
@@ -869,9 +912,30 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClock
 		}
 	}
 
-	// TODO sync time for dir itself
+	if !oursEOF {
+		// Handle implicit delete of all entries in the directory that
+		// are after the last entry in the sync.
+		syncImpliedTombs := func(tx *db.Tx) error {
+			bucket := d.fs.bucket(tx)
+			c := bucket.Dirs().List(d.inode)
+			for ours := c.Seek(oursPrev); ours != nil; ours = c.Next() {
+				name := ours.Name()
+				tomb := &wirepeer.Dirent{
+					Name:      name,
+					Tombstone: &wirepeer.Tombstone{},
+				}
+				if err := d.syncToNode(ctx, tx, bucket, nil, tomb, tombstoneClock); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		if err := d.fs.db.Update(syncImpliedTombs); err != nil {
+			return err
+		}
+	}
 
-	//TODO implied deletes?
+	// TODO sync time for dir itself
 
 	// TODO who keeps track of where to recurse
 	return nil
