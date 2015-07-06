@@ -126,6 +126,17 @@ func (c *DirsCursor) Next() *DirEntry {
 	return c.item(c.c.Next())
 }
 
+// Seek to first name equal to name, or the next one if exact match is
+// not found.
+//
+// Passing an empty name seeks to the beginning of the directory.
+func (c *DirsCursor) Seek(name string) *DirEntry {
+	k := make([]byte, 0, len(c.prefix)+len(name))
+	k = append(k, c.prefix...)
+	k = append(k, name...)
+	return c.item(c.c.Seek(k))
+}
+
 func (c *DirsCursor) item(k, v []byte) *DirEntry {
 	if !bytes.HasPrefix(k, c.prefix) {
 		// past the end of the directory
