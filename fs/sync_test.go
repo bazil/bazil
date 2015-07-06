@@ -2,6 +2,7 @@ package fs_test
 
 import (
 	"io/ioutil"
+	"net"
 	"path"
 	"path/filepath"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"bazil.org/bazil/db"
 	bazfstestutil "bazil.org/bazil/fs/fstestutil"
 	"bazil.org/bazil/peer"
+	"bazil.org/bazil/server"
 	"bazil.org/bazil/server/control/controltest"
 	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/server/http/httptest"
@@ -19,28 +21,15 @@ import (
 	"bazil.org/bazil/util/tempdir"
 )
 
-func TestSyncSimple(t *testing.T) {
-	tmp := tempdir.New(t)
-	defer tmp.Cleanup()
-	app1 := bazfstestutil.NewApp(t, tmp.Subdir("app1"))
-	defer app1.Close()
-	app2 := bazfstestutil.NewApp(t, tmp.Subdir("app2"))
-	defer app2.Close()
-
-	var wg sync.WaitGroup
-	defer wg.Wait()
-	web1 := httptest.ServeHTTP(t, &wg, app1)
-	defer web1.Close()
-
+// connectVolume creates a volume on app1 and connects app2 to it. It
+// does all the necessary setup to authorize client to use resources
+// on the server.
+func connectVolume(t testing.TB, app1 *server.App, volumeName1 string, app2 *server.App, volumeName2 string) {
 	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
 	pub2 := (*peer.PublicKey)(app2.Keys.Sign.Pub)
 
 	sharingKey := [32]byte{1, 2, 3, 4, 5}
 
-	const (
-		volumeName1 = "testvol1"
-		volumeName2 = "testvol2"
-	)
 	var volID db.VolumeID
 	setup1 := func(tx *db.Tx) error {
 		peer, err := tx.Peers().Make(pub2)
@@ -69,11 +58,7 @@ func TestSyncSimple(t *testing.T) {
 	}
 
 	setup2 := func(tx *db.Tx) error {
-		p, err := tx.Peers().Make(pub1)
-		if err != nil {
-			return err
-		}
-		if err := p.Locations().Set(web1.Addr().String()); err != nil {
+		if _, err := tx.Peers().Make(pub1); err != nil {
 			return err
 		}
 		sharingKey, err := tx.SharingKeys().Add("friends", &sharingKey)
@@ -92,6 +77,46 @@ func TestSyncSimple(t *testing.T) {
 	if err := app2.DB.Update(setup2); err != nil {
 		t.Fatalf("app2 setup location: %v", err)
 	}
+}
+
+// setLocation sets the location of peer identified by pub in app to loc.
+func setLocation(t testing.TB, app *server.App, pub *[32]byte, loc net.Addr) {
+	setLoc := func(tx *db.Tx) error {
+		p, err := tx.Peers().Get((*peer.PublicKey)(pub))
+		if err != nil {
+			return err
+		}
+		if err := p.Locations().Set(loc.String()); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := app.DB.Update(setLoc); err != nil {
+		t.Fatalf("setup location: %v", err)
+	}
+}
+
+func TestSyncSimple(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app1 := bazfstestutil.NewApp(t, tmp.Subdir("app1"))
+	defer app1.Close()
+	app2 := bazfstestutil.NewApp(t, tmp.Subdir("app2"))
+	defer app2.Close()
+
+	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
+
+	const (
+		volumeName1 = "testvol1"
+		volumeName2 = "testvol2"
+	)
+	connectVolume(t, app1, volumeName1, app2, volumeName2)
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	web1 := httptest.ServeHTTP(t, &wg, app1)
+	defer web1.Close()
+	setLocation(t, app2, app1.Keys.Sign.Pub, web1.Addr())
 
 	const (
 		filename = "greeting"
