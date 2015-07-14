@@ -114,7 +114,7 @@ func TestHello(t *testing.T) {
 
 	filesys := setup_fs(t)
 
-	mnt, err := fstestutil.MountedT(t, filesys)
+	mnt, err := fstestutil.MountedT(t, filesys, nil)
 	if err != nil {
 		t.Fatalf("Mount fail: %v\n", err)
 	}
@@ -248,7 +248,7 @@ func TestTwoLevels(t *testing.T) {
 	}
 	filesys := setup_fs()
 
-	mnt, err := fstestutil.MountedT(t, filesys)
+	mnt, err := fstestutil.MountedT(t, filesys, nil)
 	if err != nil {
 		t.Fatalf("Mount fail: %v\n", err)
 	}
@@ -291,7 +291,7 @@ func TestJunkType(t *testing.T) {
 	}
 	filesys := setup_fs()
 
-	mnt, err := fstestutil.MountedT(t, filesys)
+	mnt, err := fstestutil.MountedT(t, filesys, nil)
 	if err != nil {
 		t.Fatalf("Mount fail: %v\n", err)
 	}
