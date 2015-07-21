@@ -1,7 +1,3 @@
-// Package edtls defines a TLS extension that embeds an Ed25519
-// signature of the TLS public key. This allows using an Ed25519
-// public key as the trust anchor, as there is no standardized way of
-// doing that currently.
 package edtls
 
 import (
