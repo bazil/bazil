@@ -390,6 +390,21 @@ func (v *Volume) SetFUSE(srv *fs.Server) {
 	v.fuse.Store(srv)
 }
 
+func (v *Volume) invalidateEntry(d node, name string) error {
+	i := v.fuse.Load()
+	if i == nil {
+		return fuse.ErrNotCached
+	}
+	srv := i.(*fs.Server)
+	if srv == nil {
+		return fuse.ErrNotCached
+	}
+	if err := srv.InvalidateEntry(d, name); err != nil {
+		return err
+	}
+	return nil
+}
+
 type node interface {
 	fs.Node
 
