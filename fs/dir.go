@@ -778,6 +778,9 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 		if err := d.saveInternal(tx, wde.Name, child); err != nil {
 			return err
 		}
+		// sync never changes files that are open, and we don't let
+		// the kernel cache data across opens, so there's no need for
+		// InvalidateNodeData here.
 	default:
 		return fmt.Errorf("unknown clock action: %v", action)
 	}
