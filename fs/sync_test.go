@@ -1,6 +1,7 @@
 package fs_test
 
 import (
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -158,6 +160,116 @@ func TestSyncSimple(t *testing.T) {
 	if g, e := string(buf), input; g != e {
 		t.Fatalf("wrong content: %q != %q", g, e)
 	}
+}
+
+func TestSyncOpen(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app1 := bazfstestutil.NewApp(t, tmp.Subdir("app1"))
+	defer app1.Close()
+	app2 := bazfstestutil.NewApp(t, tmp.Subdir("app2"))
+	defer app2.Close()
+
+	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
+
+	const (
+		volumeName1 = "testvol1"
+		volumeName2 = "testvol2"
+	)
+	connectVolume(t, app1, volumeName1, app2, volumeName2)
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	web1 := httptest.ServeHTTP(t, &wg, app1)
+	defer web1.Close()
+	setLocation(t, app2, app1.Keys.Sign.Pub, web1.Addr())
+
+	mnt1 := bazfstestutil.Mounted(t, app1, volumeName1)
+	defer mnt1.Close()
+
+	mnt2 := bazfstestutil.Mounted(t, app2, volumeName2)
+	defer mnt2.Close()
+
+	const (
+		filename = "greeting"
+		input    = "hello, world"
+	)
+	if err := ioutil.WriteFile(path.Join(mnt1.Dir, filename), []byte(input), 0644); err != nil {
+		t.Fatalf("cannot create file: %v", err)
+	}
+
+	// trigger sync
+	ctrl := controltest.ListenAndServe(t, &wg, app2)
+	defer ctrl.Close()
+	rpcConn, err := grpcunix.Dial(filepath.Join(app2.DataDir, "control"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rpcConn.Close()
+	rpcClient := wire.NewControlClient(rpcConn)
+	ctx := context.Background()
+	req := &wire.VolumeSyncRequest{
+		VolumeName: volumeName2,
+		Pub:        pub1[:],
+	}
+	if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+		t.Fatalf("error while syncing: %v", err)
+	}
+
+	f, err := os.Open(path.Join(mnt2.Dir, filename))
+	if err != nil {
+		t.Fatalf("cannot open file: %v", err)
+	}
+	defer f.Close()
+
+	{
+		var buf [1000]byte
+		n, err := f.ReadAt(buf[:], 0)
+		if err != nil && err != io.EOF {
+			t.Fatalf("cannot read file: %v", err)
+		}
+		if g, e := string(buf[:n]), input; g != e {
+			t.Fatalf("wrong content: %q != %q", g, e)
+		}
+	}
+
+	const input2 = "goodbye, world"
+	if err := ioutil.WriteFile(path.Join(mnt1.Dir, filename), []byte(input2), 0644); err != nil {
+		t.Fatalf("cannot update file: %v", err)
+	}
+
+	// sync again
+	if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+		t.Fatalf("error while syncing: %v", err)
+	}
+
+	{
+		// still the original content
+		var buf [1000]byte
+		n, err := f.ReadAt(buf[:], 0)
+		if err != nil && err != io.EOF {
+			t.Fatalf("cannot read file: %v", err)
+		}
+		if g, e := string(buf[:n]), input; g != e {
+			t.Fatalf("wrong content: %q != %q", g, e)
+		}
+	}
+
+	f.Close()
+
+	// after the close, new content should be merged in
+	//
+	// TODO observing the results is racy :(
+	time.Sleep(500 * time.Millisecond)
+
+	buf, err := ioutil.ReadFile(path.Join(mnt2.Dir, filename))
+	if err != nil {
+		t.Fatalf("cannot read file: %v", err)
+	}
+	if g, e := string(buf), input2; g != e {
+		t.Fatalf("wrong content: %q != %q", g, e)
+	}
+
 }
 
 func TestSyncDelete(t *testing.T) {

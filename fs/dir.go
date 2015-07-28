@@ -954,3 +954,77 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClock
 	// TODO who keeps track of where to recurse
 	return nil
 }
+
+// Resolve as many of the postponed syncs as we can.
+func (d *dir) tryResolveConflicts(name string) {
+	ctx := context.Background()
+	resolve := func(tx *db.Tx) error {
+		bucket := d.fs.bucket(tx)
+
+		d.mu.Lock()
+		defer d.mu.Unlock()
+
+		cursor := bucket.Conflicts().List(d.inode, name)
+	loop:
+		for item := cursor.First(); item != nil; item = cursor.Next() {
+			var wde wirepeer.Dirent
+			theirs, err := item.Clock()
+			if err != nil {
+				return err
+			}
+			if err := item.Dirent(&wde); err != nil {
+				return err
+			}
+			// dirents stored in conflicts don't have Name or Clock set;
+			// TODO push this into db?
+			wde.Name = name
+
+			// syncToNode/syncToMissing will add it back if it still conflicts
+			if err := cursor.Delete(); err != nil {
+				return err
+			}
+
+			// do this lookup on every round because the node may get
+			// created/deleted as we see postponed syncs
+			ref, err := d.lookup(name)
+			if err != nil && err != fuse.ENOENT {
+				return err
+			}
+
+			// TODO this duplicates syncReceive too much
+
+			if err == fuse.ENOENT {
+				// holding d.mu guarantees it stays non-existent
+				if err := d.syncToMissing(ctx, tx, bucket, &wde, theirs); err != nil {
+					return err
+				}
+				// TODO is there a negative dentry cache that needs to be invalidated
+
+				continue loop
+			}
+
+			if f, ok := ref.node.(*file); ok {
+				f.mu.Lock()
+				busy := f.handles > 0
+				f.mu.Unlock()
+				if busy {
+					// clocks strictly greater than local are also stored as
+					// conflicts if the file is currently open.
+					if err := bucket.Conflicts().Add(d.inode, theirs, &wde); err != nil {
+						return err
+					}
+					continue loop
+				}
+			}
+			if err := d.syncToNode(ctx, tx, bucket, ref.node, &wde, theirs); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+	if err := d.fs.db.Update(resolve); err != nil {
+		// ignore errors, but log for debugging
+		log.Printf("resolving postponed sync:: %v", err)
+	}
+}

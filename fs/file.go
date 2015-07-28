@@ -226,8 +226,17 @@ func (f *file) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
 }
 
 func (f *file) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
+	// name will be set to filename if this was the last open handle;
+	// this also neatly ignores deleted files
+	name := ""
 	f.mu.Lock()
 	f.handles--
+	if f.handles == 0 {
+		name = f.name
+	}
 	f.mu.Unlock()
+	if name != "" {
+		f.parent.tryResolveConflicts(name)
+	}
 	return nil
 }
