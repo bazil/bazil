@@ -708,6 +708,8 @@ func (d *dir) syncToMissing(ctx context.Context, tx *db.Tx, volume *db.Volume, w
 	return nil
 }
 
+// child can be nil iff wde is a Tombstone.
+//
 // caller must hold d.mu
 func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, child node, wde *wirepeer.Dirent, theirs *clock.Clock) error {
 	clocks := volume.Clock()
@@ -728,6 +730,17 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 		mine.ResolveTheirs(theirs)
 		// TODO add node.update method? with a defined error to
 		// trigger a conflict instead?
+
+		if wde.Tombstone != nil {
+			if err := clocks.Put(d.inode, wde.Name, mine); err != nil {
+				return err
+			}
+			if err := d.fs.bucket(tx).Dirs().Delete(d.inode, wde.Name); err != nil {
+				return err
+			}
+			break
+		}
+
 		switch child := child.(type) {
 		case *file:
 			if wde.File == nil {
