@@ -459,7 +459,18 @@ func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 		if err := bucket.Dirs().Delete(d.inode, req.Name); err != nil {
 			return err
 		}
-		if err := bucket.Clock().Tombstone(d.inode, req.Name); err != nil {
+		vc := bucket.Clock()
+		c, err := vc.Get(d.inode, req.Name)
+		if err != nil {
+			return err
+		}
+		now := d.fs.dirtyEpoch()
+		c.Update(0, now)
+		if err := d.updateParents(vc, c); err != nil {
+			return err
+		}
+		c.Tombstone()
+		if err := vc.Put(d.inode, req.Name, c); err != nil {
 			return err
 		}
 
