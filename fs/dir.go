@@ -768,6 +768,7 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 			child.blob = blob
 			// TODO executable, xattr, acl
 			// TODO mtime
+
 		default:
 			return fmt.Errorf("TODO not handling non-files yet: %T", child)
 		}
