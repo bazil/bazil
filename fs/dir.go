@@ -738,6 +738,16 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 			if err := d.fs.bucket(tx).Dirs().Delete(d.inode, wde.Name); err != nil {
 				return err
 			}
+			if a, ok := d.active[wde.Name]; ok {
+				// Delete the entry from active so we don't have to
+				// worry about Forget losing a race to a Lookup.
+				delete(d.active, wde.Name)
+				a.node.setName("")
+			}
+			if err := d.fs.invalidateEntry(d, wde.Name); err != nil && err != fuse.ErrNotCached {
+				// TODO no good way to handle this
+				log.Printf("FUSE invalidate error: %v", err)
+			}
 			break
 		}
 
