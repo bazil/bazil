@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"bazil.org/bazil/cas/chunks"
@@ -28,6 +29,9 @@ type Volume struct {
 	pubKey     peer.PublicKey
 	chunkStore chunks.Store
 	root       *dir
+
+	// Only set while the Volume is mounted.
+	fuse atomic.Value
 
 	epoch struct {
 		mu sync.Mutex
@@ -380,6 +384,10 @@ func (v *Volume) SyncReceive(ctx context.Context, dirPath string, peers map[uint
 	}
 
 	return nil
+}
+
+func (v *Volume) SetFUSE(srv *fs.Server) {
+	v.fuse.Store(srv)
 }
 
 type node interface {

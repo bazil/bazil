@@ -305,6 +305,10 @@ func (ref *VolumeRef) Mount(mountpoint string) error {
 			ref.Close()
 		}()
 		defer conn.Close()
+		ref.fs.SetFUSE(srv)
+		defer func() {
+			ref.fs.SetFUSE(nil)
+		}()
 		serveErr <- srv.Serve(ref.fs)
 	}()
 
