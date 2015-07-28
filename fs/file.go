@@ -25,8 +25,6 @@ const (
 )
 
 type file struct {
-	fs.NodeRef
-
 	inode  uint64
 	parent *dir
 

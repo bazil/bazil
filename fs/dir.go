@@ -27,8 +27,6 @@ import (
 )
 
 type dir struct {
-	fs.NodeRef
-
 	inode  uint64
 	parent *dir
 	fs     *Volume
