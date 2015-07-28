@@ -87,7 +87,7 @@ func (c controlRPC) VolumeSync(ctx context.Context, req *wire.VolumeSyncRequest)
 	}
 	defer ref.Close()
 
-	if err := ref.FS().SyncReceive(ctx, req.Path, first.Peers, recv); err != nil {
+	if err := ref.FS().SyncReceive(ctx, req.Path, first.Peers, first.DirClock, recv); err != nil {
 		return nil, err
 	}
 

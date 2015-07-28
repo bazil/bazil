@@ -761,7 +761,7 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 	return nil
 }
 
-func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, recv func() ([]*wirepeer.Dirent, error)) error {
+func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClockBuf []byte, recv func() ([]*wirepeer.Dirent, error)) error {
 	var peerMap map[clock.Peer]clock.Peer
 	peerMapFn := func(tx *db.Tx) error {
 		m, err := makePeerMap(tx, peers)
@@ -773,6 +773,14 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, recv fun
 	}
 	if err := d.fs.db.Update(peerMapFn); err != nil {
 		return err
+	}
+
+	var dirClock clock.Clock
+	if err := dirClock.UnmarshalBinary(dirClockBuf); err != nil {
+		return fmt.Errorf("corrupt dir vector clock: %v", err)
+	}
+	if err := dirClock.RewritePeers(peerMap); err != nil {
+		return fmt.Errorf("error while converting dir clock ids: %v", err)
 	}
 
 	for {

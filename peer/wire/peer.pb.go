@@ -147,6 +147,10 @@ type VolumeSyncPullItem struct {
 	//
 	// This can only be present in the first streamed message.
 	Peers map[uint32][]byte `protobuf:"bytes,2,rep,name=peers" json:"peers,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Logical clock for the directory itself.
+	//
+	// This can only be present in the first streamed message.
+	DirClock []byte `protobuf:"bytes,4,opt,name=dirClock,proto3" json:"dirClock,omitempty"`
 	// Directory entries. More entries may follow in later streamed
 	// messages. The entries are required to be in lexicographical
 	// (bytewise) order, across all messages.

@@ -188,18 +188,24 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 		clocks := bucket.Clock()
 
 		dirInode := v.root.inode
+		// Keep track of the parent of the directory, to access the
+		// clock for the directory itself. Starts off as 0:"", as is
+		// the convention for storing data about the root directory
+		// itself.
+		parentDirInode := uint64(0)
+		dirName := ""
 		var dirDE *wire.Dirent
 
 		for dirPath != "" {
-			var seg string
-			seg, dirPath = splitPath(dirPath)
+			dirName, dirPath = splitPath(dirPath)
 
-			de, err := dirs.Get(dirInode, seg)
+			de, err := dirs.Get(dirInode, dirName)
 			if err != nil {
 				return err
 			}
 			// Might not be a dir anymore but that'll just trigger
 			// ENOENT on the next round.
+			parentDirInode = dirInode
 			dirInode = de.Inode
 			dirDE = de
 		}
@@ -215,11 +221,22 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 			return nil
 		}
 
+		// TODO more complex db api would avoid unmarshal-marshal
+		dirClock, err := clocks.Get(parentDirInode, dirName)
+		if err != nil {
+			return err
+		}
+		dirClockBuf, err := dirClock.MarshalBinary()
+		if err != nil {
+			return err
+		}
+
 		msg := &wirepeer.VolumeSyncPullItem{
 			Peers: map[uint32][]byte{
 				// PeerID 0 always refers to myself.
 				0: v.pubKey[:],
 			},
+			DirClock: dirClockBuf,
 		}
 
 		cursor := tx.Peers().Cursor()
@@ -346,7 +363,7 @@ func (v *Volume) lookupPath(dirPath string) (n node, drop func(), err error) {
 	}
 }
 
-func (v *Volume) SyncReceive(ctx context.Context, dirPath string, peers map[uint32][]byte, recv func() ([]*wirepeer.Dirent, error)) error {
+func (v *Volume) SyncReceive(ctx context.Context, dirPath string, peers map[uint32][]byte, dirClockBuf []byte, recv func() ([]*wirepeer.Dirent, error)) error {
 	n, drop, err := v.lookupPath(dirPath)
 	if err != nil {
 		return err
@@ -358,7 +375,7 @@ func (v *Volume) SyncReceive(ctx context.Context, dirPath string, peers map[uint
 		return fuse.Errno(syscall.ENOTDIR)
 	}
 
-	if err := d.syncReceive(ctx, peers, recv); err != nil {
+	if err := d.syncReceive(ctx, peers, dirClockBuf, recv); err != nil {
 		return err
 	}
 
