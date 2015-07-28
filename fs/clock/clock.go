@@ -182,6 +182,15 @@ func (c *Clock) RewritePeers(m map[Peer]Peer) error {
 	return nil
 }
 
+// TombstoneFromParent returns a new tombstone clock based on the parent.
+func TombstoneFromParent(parent *Clock) *Clock {
+	c := &Clock{}
+	c.sync.list = append(c.sync.list, parent.mod.list...)
+	c.mod.list = append(c.mod.list, parent.mod.list...)
+	c.create.list = append(c.create.list, parent.mod.list...)
+	return c
+}
+
 // Action is a suggested action to take to combine two data items.
 //
 // The zero value of Action is not valid.
