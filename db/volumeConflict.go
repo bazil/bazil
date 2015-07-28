@@ -35,6 +35,7 @@ func (vc *VolumeConflicts) Add(parentInode uint64, c *clock.Clock, de *wirepeer.
 
 	tmp := *de
 	tmp.Name = ""
+	tmp.Clock = nil
 	buf, err := proto.Marshal(&tmp)
 	if err != nil {
 		return fmt.Errorf("error marshaling dirent: %v", err)
