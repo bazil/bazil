@@ -22,6 +22,7 @@ It has these top-level messages:
 	Dirent
 	File
 	Dir
+	Tombstone
 */
 package wire
 
@@ -147,7 +148,8 @@ type VolumeSyncPullItem struct {
 	// This can only be present in the first streamed message.
 	Peers map[uint32][]byte `protobuf:"bytes,2,rep,name=peers" json:"peers,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Directory entries. More entries may follow in later streamed
-	// messages.
+	// messages. The entries are required to be in lexicographical
+	// (bytewise) order, across all messages.
 	Children []*Dirent `protobuf:"bytes,3,rep,name=children" json:"children,omitempty"`
 }
 
@@ -170,10 +172,11 @@ func (m *VolumeSyncPullItem) GetChildren() []*Dirent {
 }
 
 type Dirent struct {
-	Name  string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	File  *File  `protobuf:"bytes,2,opt,name=file" json:"file,omitempty"`
-	Dir   *Dir   `protobuf:"bytes,3,opt,name=dir" json:"dir,omitempty"`
-	Clock []byte `protobuf:"bytes,4,opt,name=clock,proto3" json:"clock,omitempty"`
+	Name      string     `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	File      *File      `protobuf:"bytes,2,opt,name=file" json:"file,omitempty"`
+	Dir       *Dir       `protobuf:"bytes,3,opt,name=dir" json:"dir,omitempty"`
+	Tombstone *Tombstone `protobuf:"bytes,5,opt,name=tombstone" json:"tombstone,omitempty"`
+	Clock     []byte     `protobuf:"bytes,4,opt,name=clock,proto3" json:"clock,omitempty"`
 }
 
 func (m *Dirent) Reset()         { *m = Dirent{} }
@@ -190,6 +193,13 @@ func (m *Dirent) GetFile() *File {
 func (m *Dirent) GetDir() *Dir {
 	if m != nil {
 		return m.Dir
+	}
+	return nil
+}
+
+func (m *Dirent) GetTombstone() *Tombstone {
+	if m != nil {
+		return m.Tombstone
 	}
 	return nil
 }
@@ -215,6 +225,13 @@ type Dir struct {
 func (m *Dir) Reset()         { *m = Dir{} }
 func (m *Dir) String() string { return proto.CompactTextString(m) }
 func (*Dir) ProtoMessage()    {}
+
+type Tombstone struct {
+}
+
+func (m *Tombstone) Reset()         { *m = Tombstone{} }
+func (m *Tombstone) String() string { return proto.CompactTextString(m) }
+func (*Tombstone) ProtoMessage()    {}
 
 func init() {
 	proto.RegisterEnum("bazil.peer.VolumeSyncPullItem_Error", VolumeSyncPullItem_Error_name, VolumeSyncPullItem_Error_value)

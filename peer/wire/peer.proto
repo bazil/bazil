@@ -81,6 +81,7 @@ message Dirent {
   oneof type {
     File file = 2;
     Dir dir = 3;
+    Tombstone tombstone = 5;
   }
 
   bytes clock = 4;
@@ -93,4 +94,7 @@ message File {
 }
 
 message Dir {
+}
+
+message Tombstone {
 }
