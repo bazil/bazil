@@ -83,9 +83,9 @@ func Create(id Peer, now Epoch) *Clock {
 //     - now is greater than any old value seen for peer id
 //     - now is equal to an earlier value for this peer id, and no
 //       other peer ids have been updated since that Update
-func (s *Clock) Update(id Peer, now Epoch) {
-	s.mod.updateSimplify(id, now)
-	s.sync.update(id, now)
+func (c *Clock) Update(id Peer, now Epoch) {
+	c.mod.updateSimplify(id, now)
+	c.sync.update(id, now)
 }
 
 // UpdateParent is like Update, but does not simplify the modification
@@ -94,68 +94,68 @@ func (s *Clock) Update(id Peer, now Epoch) {
 //
 // Caller guarantees if an entry exists for id already, now is greater
 // than or equal to the old value.
-func (s *Clock) UpdateParent(id Peer, now Epoch) {
-	s.mod.update(id, now)
-	s.sync.update(id, now)
+func (c *Clock) UpdateParent(id Peer, now Epoch) {
+	c.mod.update(id, now)
+	c.sync.update(id, now)
 }
 
 // UpdateSync updates the sync time only for id to point to time now.
 //
 // Caller guarantees if an entry exists for id already, now is greater
 // than or equal to the old value.
-func (s *Clock) UpdateSync(id Peer, now Epoch) {
-	s.sync.update(id, now)
+func (c *Clock) UpdateSync(id Peer, now Epoch) {
+	c.sync.update(id, now)
 }
 
 // UpdateFromChild tracks child modification times in the parent.
 //
 // Return value reports whether s changed.
-func (s *Clock) UpdateFromChild(child *Clock) bool {
-	changed := s.mod.merge(child.mod)
+func (c *Clock) UpdateFromChild(child *Clock) bool {
+	changed := c.mod.merge(child.mod)
 	return changed
 }
 
 // UpdateFromParent simplifies child sync times based on the parent.
-func (s *Clock) UpdateFromParent(parent *Clock) {
-	s.sync.rebase(parent.sync)
+func (c *Clock) UpdateFromParent(parent *Clock) {
+	c.sync.rebase(parent.sync)
 }
 
 // Tombstone changes clock into a tombstone.
-func (s *Clock) Tombstone() {
+func (c *Clock) Tombstone() {
 	// vpair paper section 3.3.2
-	s.mod = vector{}
-	s.create = vector{}
+	c.mod = vector{}
+	c.create = vector{}
 }
 
 // ResolveTheirs records a conflict resolution in favor of other.
-func (s *Clock) ResolveTheirs(other *Clock) {
-	s.mod = vector{}
-	s.mod.merge(other.mod)
-	s.sync.merge(other.sync)
+func (c *Clock) ResolveTheirs(other *Clock) {
+	c.mod = vector{}
+	c.mod.merge(other.mod)
+	c.sync.merge(other.sync)
 	// vpair paper is silent on what to do with create times; if we
-	// don't do this, s.create can remain empty
-	if len(s.create.list) == 0 {
-		s.create.merge(other.create)
+	// don't do this, c.create can remain empty
+	if len(c.create.list) == 0 {
+		c.create.merge(other.create)
 	}
 }
 
 // ResolveOurs records a conflict resolution in favor of us.
-func (s *Clock) ResolveOurs(other *Clock) {
-	// no change to s.mod
-	s.sync.merge(other.sync)
-	// no change to s.create
+func (c *Clock) ResolveOurs(other *Clock) {
+	// no change to c.mod
+	c.sync.merge(other.sync)
+	// no change to c.create
 }
 
 // ResolveNew records a conflict resolution in favor of newly created
 // content.
-func (s *Clock) ResolveNew(other *Clock) {
-	s.mod.merge(other.mod)
-	s.sync.merge(other.sync)
-	// no change to s.create
+func (c *Clock) ResolveNew(other *Clock) {
+	c.mod.merge(other.mod)
+	c.sync.merge(other.sync)
+	// no change to c.create
 }
 
-func (s Clock) String() string {
-	return fmt.Sprintf("{sync%s mod%s create%s}", s.sync, s.mod, s.create)
+func (c Clock) String() string {
+	return fmt.Sprintf("{sync%s mod%s create%s}", c.sync, c.mod, c.create)
 }
 
 var (
