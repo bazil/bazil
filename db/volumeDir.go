@@ -74,28 +74,28 @@ func (b *Dirs) Delete(parentInode uint64, name string) error {
 //
 // Returns the overwritten entry, or nil.
 func (b *Dirs) Rename(parentInode uint64, oldName string, newName string) (*DirEntry, error) {
-	kOld := dirKey(parentInode, oldName)
-	kNew := dirKey(parentInode, newName)
+	keyOld := dirKey(parentInode, oldName)
+	keyNew := dirKey(parentInode, newName)
 
-	bufOld := b.b.Get(kOld)
+	bufOld := b.b.Get(keyOld)
 	if bufOld == nil {
 		return nil, fuse.ENOENT
 	}
 
 	// the file getting overwritten
 	var loser *DirEntry
-	if buf := b.b.Get(kNew); buf != nil {
+	if buf := b.b.Get(keyNew); buf != nil {
 		// overwriting
 		loser = &DirEntry{
-			name: basename(kNew),
+			name: basename(keyNew),
 			data: buf,
 		}
 	}
 
-	if err := b.b.Put(kNew, bufOld); err != nil {
+	if err := b.b.Put(keyNew, bufOld); err != nil {
 		return nil, err
 	}
-	if err := b.b.Delete(kOld); err != nil {
+	if err := b.b.Delete(keyOld); err != nil {
 		return nil, err
 	}
 
