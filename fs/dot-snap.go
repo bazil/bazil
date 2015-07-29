@@ -109,7 +109,7 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 			return nil, fmt.Errorf("cannot marshal snapshot: %v", err)
 		}
 		if len(buf) == 0 {
-			return nil, errors.New("marshaled snapshot become empty; this is a bug!")
+			return nil, errors.New("marshaled snapshot become empty; this is a bug")
 		}
 
 		// store the snapshot as a chunk, for disaster recovery
