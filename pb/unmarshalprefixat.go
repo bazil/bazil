@@ -31,7 +31,7 @@ func UnmarshalPrefixAt(rat io.ReaderAt, off int64, msg proto.Message) (n int, er
 
 	// signal zero message to caller, so they can ignore
 	if length == 0 {
-		return n, EmptyMessage
+		return n, ErrEmptyMessage
 	}
 
 	buf := make([]byte, length)

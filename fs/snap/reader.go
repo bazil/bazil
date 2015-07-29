@@ -55,7 +55,7 @@ func (i *Iterator) Next() (*wire.Dirent, error) {
 	var de wire.Dirent
 	for {
 		n, err := pb.UnmarshalPrefixAt(i.r.rat, i.off, &de)
-		if err == pb.EmptyMessage {
+		if err == pb.ErrEmptyMessage {
 			i.off += int64(n)
 			continue
 		}
