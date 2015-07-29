@@ -53,6 +53,7 @@ func (mnt *Mount) Close() {
 	if mnt.closed {
 		return
 	}
+	mnt.ref.Close()
 	mnt.closed = true
 	for tries := 0; tries < 1000; tries++ {
 		err := fuse.Unmount(mnt.Dir)
@@ -80,7 +81,11 @@ func Mounted(t testing.TB, app *server.App, volumeName string) *Mount {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ref.Close()
+	defer func() {
+		if ref != nil {
+			ref.Close()
+		}
+	}()
 	// TODO make it log debug if `go test ./fs -fuse.debug`
 	if err := ref.Mount(mountpoint); err != nil {
 		t.Fatal(err)
@@ -90,5 +95,7 @@ func Mounted(t testing.TB, app *server.App, volumeName string) *Mount {
 		Dir: mountpoint,
 		ref: ref,
 	}
+	// success -> tell the defer to not close the ref
+	ref = nil
 	return mnt
 }
