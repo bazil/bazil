@@ -31,15 +31,15 @@ func (p *PublicKey) UnmarshalBinary(data []byte) error {
 
 var _ flag.Value = (*PublicKey)(nil)
 
-func (k *PublicKey) String() string {
-	return hex.EncodeToString(k[:])
+func (p *PublicKey) String() string {
+	return hex.EncodeToString(p[:])
 }
 
-func (k *PublicKey) Set(value string) error {
+func (p *PublicKey) Set(value string) error {
 	if hex.DecodedLen(len(value)) != ed25519.PublicKeySize {
 		return fmt.Errorf("not a valid public key: wrong size")
 	}
-	if _, err := hex.Decode(k[:], []byte(value)); err != nil {
+	if _, err := hex.Decode(p[:], []byte(value)); err != nil {
 		return fmt.Errorf("not a valid public key: %v", err)
 	}
 	return nil
