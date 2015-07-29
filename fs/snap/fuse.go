@@ -75,8 +75,6 @@ func (d fuseDir) Attr(ctx context.Context, a *fuse.Attr) error {
 	return nil
 }
 
-const _MAX_INT64 = 9223372036854775807
-
 func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 	de, err := d.reader.Lookup(name)
 	if err != nil {
