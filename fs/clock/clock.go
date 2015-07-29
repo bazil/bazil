@@ -199,7 +199,7 @@ type Action int
 //go:generate stringer -type=Action
 
 const (
-	InvalidAction Action = iota
+	invalidAction Action = iota
 	// Copy means that the incoming version is newer, and its data
 	// should be used.
 	Copy

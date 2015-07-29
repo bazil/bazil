@@ -4,7 +4,7 @@ package clock
 
 import "fmt"
 
-const _Action_name = "InvalidActionCopyNothingConflict"
+const _Action_name = "invalidActionCopyNothingConflict"
 
 var _Action_index = [...]uint8{13, 17, 24, 32}
 
