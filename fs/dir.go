@@ -514,6 +514,19 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 
 	rename := func(tx *db.Tx) error {
 		bucket := d.fs.bucket(tx)
+
+		{
+			wde, err := bucket.Dirs().Get(d.inode, req.OldName)
+			if err != nil {
+				return err
+			}
+			if wde.Dir != nil {
+				// TODO prevent renaming of directories, for now
+				// https://github.com/bazil/bazil/issues/5
+				return fuse.Errno(syscall.EXDEV)
+			}
+		}
+
 		// TODO don't need to load from db if req.OldName is in active.
 		// instead, save active state if we have it; call .save() not this
 		// kludge
