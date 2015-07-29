@@ -28,7 +28,7 @@ func TestOpenNoType(t *testing.T) {
 		ChunkSize: blobs.MinChunkSize,
 		Fanout:    2,
 	})
-	if g, e := err, blobs.MissingType; g != e {
+	if g, e := err, blobs.ErrMissingType; g != e {
 		t.Fatalf("bad error: %v != %v", g, e)
 	}
 }

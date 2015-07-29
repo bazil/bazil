@@ -71,7 +71,7 @@ type Blob struct {
 var _ io.ReaderAt = &Blob{}
 var _ io.WriterAt = &Blob{}
 
-var MissingType = errors.New("Manifest is missing Type")
+var ErrMissingType = errors.New("Manifest is missing Type")
 
 // Minimum valid chunk size.
 const MinChunkSize = 4096
@@ -132,7 +132,7 @@ func Open(chunkStore chunks.Store, manifest *Manifest) (*Blob, error) {
 	// make a copy so caller can't mutate it
 	m := *manifest
 	if m.Type == "" {
-		return nil, MissingType
+		return nil, ErrMissingType
 	}
 	if m.ChunkSize < MinChunkSize {
 		return nil, SmallChunkSizeError{m.ChunkSize}
