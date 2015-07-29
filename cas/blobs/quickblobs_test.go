@@ -79,7 +79,7 @@ func TestCompareRead(t *testing.T) {
 func testCompareBoth(t *testing.T, saveEvery int) {
 	f, err := ioutil.TempFile("", "baziltest-")
 	if err != nil {
-		t.Fatalf("tempfile error: %v")
+		t.Fatalf("tempfile error: %v", err)
 	}
 	defer f.Close()
 

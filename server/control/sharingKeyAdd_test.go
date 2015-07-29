@@ -23,7 +23,7 @@ func checkNoSharingKey(name string) func(tx *db.Tx) error {
 		case db.ErrSharingKeyNotFound:
 			// nothing
 		case nil:
-			return fmt.Errorf("secret stored even on error: %x", key)
+			return fmt.Errorf("secret stored even on error: %+v", key)
 		default:
 			return fmt.Errorf("error checking sharing key: %v", err)
 		}
