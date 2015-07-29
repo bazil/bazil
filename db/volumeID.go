@@ -13,31 +13,31 @@ type VolumeID [VolumeIDLen]byte
 
 var _ encoding.BinaryMarshaler = (*VolumeID)(nil)
 
-func (p *VolumeID) MarshalBinary() (data []byte, err error) {
-	return p[:], nil
+func (v *VolumeID) MarshalBinary() (data []byte, err error) {
+	return v[:], nil
 }
 
 var _ encoding.BinaryUnmarshaler = (*VolumeID)(nil)
 
-func (p *VolumeID) UnmarshalBinary(data []byte) error {
-	if len(data) != len(p) {
+func (v *VolumeID) UnmarshalBinary(data []byte) error {
+	if len(data) != len(v) {
 		return fmt.Errorf("volume id must be exactly %d bytes", VolumeIDLen)
 	}
-	copy(p[:], data)
+	copy(v[:], data)
 	return nil
 }
 
 var _ flag.Value = (*VolumeID)(nil)
 
-func (k *VolumeID) String() string {
-	return hex.EncodeToString(k[:])
+func (v *VolumeID) String() string {
+	return hex.EncodeToString(v[:])
 }
 
-func (k *VolumeID) Set(value string) error {
+func (v *VolumeID) Set(value string) error {
 	if hex.DecodedLen(len(value)) != VolumeIDLen {
 		return fmt.Errorf("not a valid public key: wrong size")
 	}
-	if _, err := hex.Decode(k[:], []byte(value)); err != nil {
+	if _, err := hex.Decode(v[:], []byte(value)); err != nil {
 		return fmt.Errorf("not a valid public key: %v", err)
 	}
 	return nil

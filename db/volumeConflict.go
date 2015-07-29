@@ -47,9 +47,9 @@ func (vc *VolumeConflicts) Add(parentInode uint64, c *clock.Clock, de *wirepeer.
 	return nil
 }
 
-func (vs *VolumeConflicts) List(parentInode uint64, name string) *VolumeConflictsCursor {
-	c := vs.b.Cursor()
-	prefix := vs.pathToKey(parentInode, name, nil)
+func (vc *VolumeConflicts) List(parentInode uint64, name string) *VolumeConflictsCursor {
+	c := vc.b.Cursor()
+	prefix := vc.pathToKey(parentInode, name, nil)
 	return &VolumeConflictsCursor{
 		prefix: prefix,
 		c:      c,
