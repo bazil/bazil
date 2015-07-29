@@ -29,7 +29,7 @@ func (e fuseFile) Attr(ctx context.Context, a *fuse.Attr) error {
 	// a.Mtime = e.Meta.Written.UTC()
 	// a.Ctime = e.Meta.Written.UTC()
 	// a.Crtime = e.Meta.Written.UTC()
-	a.Blocks = stat_blocks(e.de.File.Manifest.Size) // TODO .Space?
+	a.Blocks = statBlocks(e.de.File.Manifest.Size) // TODO .Space?
 	return nil
 }
 

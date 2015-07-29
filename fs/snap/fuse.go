@@ -116,7 +116,7 @@ func (d fuseDir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse
 	return nil, nil, fuse.Errno(syscall.EROFS)
 }
 
-func stat_blocks(size uint64) uint64 {
+func statBlocks(size uint64) uint64 {
 	r := size / 512
 	if size%512 > 0 {
 		r++
