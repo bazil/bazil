@@ -287,7 +287,7 @@ func (blob *Blob) grow(level uint8) error {
 
 		copy(chunk.Buf, blob.m.Root.Bytes())
 		blob.m.Root = key
-		blob.depth += 1
+		blob.depth++
 	}
 	return nil
 }
@@ -341,7 +341,7 @@ func (blob *Blob) shrink(level uint8) error {
 		keybuf := safeSlice(chunk.Buf, 0, cas.KeySize)
 		key := cas.NewKeyPrivate(keybuf)
 		blob.m.Root = key
-		blob.depth -= 1
+		blob.depth--
 	}
 	return nil
 }
