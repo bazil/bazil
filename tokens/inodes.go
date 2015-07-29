@@ -1,5 +1,6 @@
 package tokens
 
+// Reserved inode numbers.
 const (
 	InodeRoot        uint64 = 1
 	InodeSnap        uint64 = 2
