@@ -449,6 +449,16 @@ func TestSyncDeleteActive(t *testing.T) {
 	mnt2 := bazfstestutil.Mounted(t, app2, volumeName2)
 	defer mnt2.Close()
 
+	{
+		proto, err := mnt2.Protocol()
+		if err != nil {
+			t.Errorf("error getting FUSE protocol version: %v", err)
+		}
+		if !proto.HasInvalidate() {
+			t.Skip("Old FUSE protocol")
+		}
+	}
+
 	// trigger sync
 	ctrl := controltest.ListenAndServe(t, &wg, app2)
 	defer ctrl.Close()
