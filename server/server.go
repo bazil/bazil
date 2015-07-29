@@ -252,6 +252,7 @@ type VolumeRef struct {
 
 	refs    uint32
 	mounted bool
+	conn    *fuse.Conn
 }
 
 func (ref *VolumeRef) Close() {
@@ -270,6 +271,19 @@ func (ref *VolumeRef) Close() {
 // Caller must keep a reference to VolumeRef for the duration
 func (ref *VolumeRef) FS() *fs.Volume {
 	return ref.fs
+}
+
+// Protocol returns the underlying FUSE protocol version.
+//
+// Caller must keep a reference to VolumeRef for the duration
+func (ref *VolumeRef) Protocol() (*fuse.Protocol, error) {
+	ref.app.volumes.Lock()
+	defer ref.app.volumes.Unlock()
+	if !ref.mounted {
+		return nil, errors.New("not mounted")
+	}
+	p := ref.conn.Protocol()
+	return &p, nil
 }
 
 // Mount makes the contents of the volume visible at the given
@@ -300,6 +314,7 @@ func (ref *VolumeRef) Mount(mountpoint string) error {
 			// remove map entry on unmount or failed mount
 			ref.app.volumes.Lock()
 			ref.mounted = false
+			ref.conn = nil
 			ref.app.volumes.Unlock()
 			ref.app.volumes.Broadcast()
 			ref.Close()
@@ -319,6 +334,7 @@ func (ref *VolumeRef) Mount(mountpoint string) error {
 		}
 		ref.refs++
 		ref.mounted = true
+		ref.conn = conn
 		ref.app.volumes.Broadcast()
 		return nil
 	case err := <-serveErr:
