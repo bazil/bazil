@@ -24,7 +24,7 @@ func (p *Pool) Get() uint64 {
 	}
 
 	r := p.next
-	p.next += 1
+	p.next++
 	// TODO panic somewhere around here if wraparound!!
 	return r
 }
