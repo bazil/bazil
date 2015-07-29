@@ -70,6 +70,10 @@ func (mnt *Mount) Close() {
 	os.Remove(mnt.Dir)
 }
 
+func (mnt *Mount) Protocol() (*fuse.Protocol, error) {
+	return mnt.ref.Protocol()
+}
+
 // TODO this vs. bazil.org/fuse/fs/fstestutil#Mounted
 func Mounted(t testing.TB, app *server.App, volumeName string) *Mount {
 	mountpoint, err := ioutil.TempDir("", "bazil-test-")
