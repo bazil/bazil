@@ -23,68 +23,75 @@ type Authenticator struct {
 
 var _ credentials.TransportAuthenticator = (*Authenticator)(nil)
 
-func (a *Authenticator) GetRequestMetadata(ctx context.Context) (map[string]string, error) {
+func (a *Authenticator) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
 	return nil, nil
 }
 
-type peerKeyT int
-
-const peerKey = peerKeyT(0)
-
-func (a *Authenticator) NewServerConn(ctx context.Context, conn net.Conn) context.Context {
-	return context.WithValue(ctx, peerKey, conn)
+func (a *Authenticator) RequireTransportSecurity() bool {
+	return true
 }
 
-func FromContext(ctx context.Context) (pub *[ed25519.PublicKeySize]byte, ok bool) {
-	v := ctx.Value(peerKey)
-	if v == nil {
-		return nil, false
-	}
-	tconn, ok := v.(*tls.Conn)
-	if !ok {
-		return nil, false
-	}
-	if err := tconn.Handshake(); err != nil {
-		return nil, false
-	}
-	state := tconn.ConnectionState()
-	if !state.HandshakeComplete {
-		return nil, false
-	}
-	if len(state.PeerCertificates) == 0 {
-		return nil, false
-	}
-	return edtls.Verify(state.PeerCertificates[0])
+type Auth struct {
+	PeerPub *[ed25519.PublicKeySize]byte
 }
 
-func (a *Authenticator) ClientHandshake(addr string, rawConn net.Conn, timeout time.Duration) (net.Conn, error) {
+var _ credentials.AuthInfo = (*Auth)(nil)
+
+func (*Auth) AuthType() string { return "edtls" }
+
+func (a *Authenticator) ClientHandshake(addr string, rawConn net.Conn, timeout time.Duration) (net.Conn, credentials.AuthInfo, error) {
 	if a.Config == nil {
-		return nil, errMissingTLSConfig
+		return nil, nil, errMissingTLSConfig
 	}
 	conf, err := a.Config()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// We do our own verification, with edtls.
 	conf.InsecureSkipVerify = true
-	return edtls.NewClient(rawConn, conf, a.PeerPub)
+	tconn, err := edtls.NewClient(rawConn, conf, a.PeerPub)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	authInfo := &Auth{
+		PeerPub: a.PeerPub,
+	}
+	return tconn, authInfo, nil
 }
 
-func (a *Authenticator) ServerHandshake(conn net.Conn) (net.Conn, error) {
+func (a *Authenticator) ServerHandshake(conn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	if a.Config == nil {
-		return nil, errMissingTLSConfig
+		return nil, nil, errMissingTLSConfig
 	}
 	tlsConf, err := a.Config()
 	if err != nil {
 		conn.Close()
-		return nil, err
+		return nil, nil, err
 	}
 	tconn := tls.Server(conn, tlsConf)
 	if err := tconn.Handshake(); err != nil {
 		conn.Close()
-		return nil, err
+		return nil, nil, err
 	}
-	return tconn, nil
+	state := tconn.ConnectionState()
+	if !state.HandshakeComplete {
+		conn.Close()
+		return nil, nil, errors.New("TLS handshake did not complete")
+	}
+	if len(state.PeerCertificates) == 0 {
+		conn.Close()
+		return nil, nil, errors.New("no TLS peer certificates")
+	}
+	pub, ok := edtls.Verify(state.PeerCertificates[0])
+	if !ok {
+		conn.Close()
+		return nil, nil, errors.New("edtls verification failed")
+	}
+	authInfo := &Auth{
+		PeerPub: pub,
+	}
+	return tconn, authInfo, nil
 }
 
 func (a *Authenticator) Info() credentials.ProtocolInfo {
