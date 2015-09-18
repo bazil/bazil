@@ -12,6 +12,10 @@ func dial(addr string, timeout time.Duration) (net.Conn, error) {
 }
 
 func Dial(path string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	opts = append(opts, grpc.WithDialer(dial))
+	opts = append(opts,
+		grpc.WithDialer(dial),
+		// UNIX access controls are our security
+		grpc.WithInsecure(),
+	)
 	return grpc.Dial(path, opts...)
 }
