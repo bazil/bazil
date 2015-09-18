@@ -24,10 +24,7 @@ type listSnaps struct {
 }
 
 var _ = fs.Node(&listSnaps{})
-var _ = fs.NodeMkdirer(&listSnaps{})
-var _ = fs.NodeStringLookuper(&listSnaps{})
 var _ = fs.Handle(&listSnaps{})
-var _ = fs.HandleReadDirAller(&listSnaps{})
 
 func (d *listSnaps) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = tokens.InodeSnap
