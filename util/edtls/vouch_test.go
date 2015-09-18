@@ -1,6 +1,7 @@
 package edtls_test
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/x509"
@@ -8,8 +9,6 @@ import (
 	"encoding/asn1"
 	"testing"
 	"time"
-
-	"bytes"
 
 	"bazil.org/bazil/util/edtls"
 	"github.com/agl/ed25519"
