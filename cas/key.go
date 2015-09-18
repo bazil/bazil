@@ -27,7 +27,7 @@ type BadKeySizeError struct {
 	Key []byte
 }
 
-var _ = error(&BadKeySizeError{})
+var _ error = (*BadKeySizeError)(nil)
 
 func (b *BadKeySizeError) Error() string {
 	return fmt.Sprintf("Key is bad length %d: %x", len(b.Key), b.Key)

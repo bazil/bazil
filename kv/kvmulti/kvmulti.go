@@ -14,7 +14,7 @@ func New(k ...kv.KV) *Multi {
 	return &Multi{list: k}
 }
 
-var _ = kv.KV(&Multi{})
+var _ kv.KV = (*Multi)(nil)
 
 func (m *Multi) Get(key []byte) ([]byte, error) {
 	// TODO this needs to be a lot smarter

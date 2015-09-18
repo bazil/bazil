@@ -13,7 +13,7 @@ type KVFiles struct {
 	path string
 }
 
-var _ = kv.KV(&KVFiles{})
+var _ kv.KV = (*KVFiles)(nil)
 
 func (k *KVFiles) Put(key, value []byte) error {
 	tmp, err := ioutil.TempFile(k.path, "put-")

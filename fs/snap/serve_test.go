@@ -23,7 +23,7 @@ type FS struct {
 	root fs.Node
 }
 
-var _ = fs.FS(&FS{})
+var _ fs.FS = (*FS)(nil)
 
 func (f *FS) Root() (fs.Node, error) {
 	return f.root, nil

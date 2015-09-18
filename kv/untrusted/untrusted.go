@@ -17,7 +17,7 @@ type Convergent struct {
 	secret    *[32]byte
 }
 
-var _ = kv.KV(&Convergent{})
+var _ kv.KV = (*Convergent)(nil)
 
 var personalizeKey = []byte(tokens.Blake2bPersonalizationConvergentKey)
 
@@ -92,4 +92,4 @@ func (c CorruptError) Error() string {
 	return fmt.Sprintf("corrupt encrypted chunk: %x", c.Key)
 }
 
-var _ = error(CorruptError{})
+var _ error = CorruptError{}

@@ -10,7 +10,7 @@ import (
 // it to an absolute path.
 type AbsPath string
 
-var _ = flag.Value(new(AbsPath))
+var _ flag.Value = (*AbsPath)(nil)
 
 func (a AbsPath) String() string {
 	return string(a)

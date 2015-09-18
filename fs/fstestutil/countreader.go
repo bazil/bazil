@@ -43,4 +43,4 @@ func (c *CountReader) Read(p []byte) (n int, err error) {
 	return n, nil
 }
 
-var _ = io.Reader(&CountReader{})
+var _ io.Reader = (*CountReader)(nil)

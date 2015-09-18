@@ -12,7 +12,7 @@ type NotFoundError struct {
 	Key   Key
 }
 
-var _ = error(NotFoundError{})
+var _ error = NotFoundError{}
 
 func (n NotFoundError) Error() string {
 	return fmt.Sprintf("Not found: %q@%d %s", n.Type, n.Level, n.Key)

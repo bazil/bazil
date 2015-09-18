@@ -29,7 +29,7 @@ type casCommand struct {
 	}
 }
 
-var _ = cli.Service(&casCommand{})
+var _ cli.Service = (*casCommand)(nil)
 
 func (c *casCommand) getSharingKey(name string, out *[32]byte) error {
 	app, err := server.New(cli.Bazil.Config.DataDir.String())

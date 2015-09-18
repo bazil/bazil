@@ -14,7 +14,7 @@ type storeInKV struct {
 	kv kv.KV
 }
 
-var _ = chunks.Store(&storeInKV{})
+var _ chunks.Store = (*storeInKV)(nil)
 
 func makeKey(key cas.Key, typ string, level uint8) []byte {
 	k := make([]byte, 0, cas.KeySize+len(typ)+1)

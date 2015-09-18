@@ -24,8 +24,8 @@ func bytesToInode(buf []byte) uint64 {
 
 type outOfInodesError struct{}
 
-var _ = error(outOfInodesError{})
-var _ = fuse.ErrorNumber(outOfInodesError{})
+var _ error = outOfInodesError{}
+var _ fuse.ErrorNumber = outOfInodesError{}
 
 func (outOfInodesError) Error() string {
 	return "out of inodes"

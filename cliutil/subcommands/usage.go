@@ -4,7 +4,7 @@ package subcommands
 // embedded in.
 type Description string
 
-var _ = DescriptionGetter(Description(""))
+var _ DescriptionGetter = Description("")
 
 // GetDescription returns the description. See DescriptionGetter.
 func (d Description) GetDescription() string {
@@ -17,7 +17,7 @@ func (d Description) GetDescription() string {
 // If you have just one synopsis, use Synopsis instead.
 type Synopses []string
 
-var _ = SynopsesGetter(Synopses{})
+var _ SynopsesGetter = Synopses{}
 
 // GetSynopses returns the list of synopses. See SynopsesGetter.
 func (s Synopses) GetSynopses() []string {
@@ -30,7 +30,7 @@ func (s Synopses) GetSynopses() []string {
 // To show multiple alternative calling conventions, use Synopses.
 type Synopsis string
 
-var _ = SynopsesGetter(Synopsis(""))
+var _ SynopsesGetter = Synopsis("")
 
 // GetSynopses returns the list of synopses. See SynopsesGetter.
 func (s Synopsis) GetSynopses() []string {

@@ -15,7 +15,7 @@ type KVPeer struct {
 	peer wire.PeerClient
 }
 
-var _ = kv.KV(&KVPeer{})
+var _ kv.KV = (*KVPeer)(nil)
 
 func (k *KVPeer) Put(key, value []byte) error {
 	ctx := context.TODO()

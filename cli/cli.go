@@ -37,7 +37,7 @@ type bazil struct {
 	}
 }
 
-var _ = Service(&bazil{})
+var _ Service = (*bazil)(nil)
 
 func (b *bazil) Setup() (ok bool) {
 	if b.Config.Debug {

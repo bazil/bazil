@@ -9,7 +9,7 @@ import (
 // the CAS, but where the API requires one.
 type NeverUsed struct{}
 
-var _ = chunks.Store(NeverUsed{})
+var _ chunks.Store = NeverUsed{}
 
 // Get fetches a Chunk. See chunks.Store.Get.
 func (NeverUsed) Get(key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {

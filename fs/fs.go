@@ -43,7 +43,7 @@ type Volume struct {
 	}
 }
 
-var _ = fs.FS(&Volume{})
+var _ fs.FS = (*Volume)(nil)
 
 var bucketVolume = []byte(tokens.BucketVolume)
 var bucketVolName = []byte(tokens.BucketVolName)
@@ -98,7 +98,7 @@ func (*Volume) GenerateInode(parent uint64, name string) uint64 {
 	return inodes.Dynamic(parent, name)
 }
 
-var _ = fs.FSInodeGenerator(&Volume{})
+var _ fs.FSInodeGenerator = (*Volume)(nil)
 
 // Snapshot records a snapshot of the volume. The Snapshot message
 // itself has not been persisted yet.

@@ -86,7 +86,7 @@ type SmallChunkSizeError struct {
 	Given uint32
 }
 
-var _ = error(SmallChunkSizeError{})
+var _ error = SmallChunkSizeError{}
 
 func (s SmallChunkSizeError) Error() string {
 	return fmt.Sprintf("ChunkSize is too small: %d < %d", s.Given, MinChunkSize)
@@ -98,7 +98,7 @@ type SmallFanoutError struct {
 	Given uint32
 }
 
-var _ = error(SmallFanoutError{})
+var _ error = SmallFanoutError{}
 
 func (s SmallFanoutError) Error() string {
 	return fmt.Sprintf("Fanout is too small: %d", s.Given)

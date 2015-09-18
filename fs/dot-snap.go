@@ -23,8 +23,8 @@ type listSnaps struct {
 	fs *Volume
 }
 
-var _ = fs.Node(&listSnaps{})
-var _ = fs.Handle(&listSnaps{})
+var _ fs.Node = (*listSnaps)(nil)
+var _ fs.Handle = (*listSnaps)(nil)
 
 func (d *listSnaps) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Inode = tokens.InodeSnap
@@ -34,7 +34,7 @@ func (d *listSnaps) Attr(ctx context.Context, a *fuse.Attr) error {
 	return nil
 }
 
-var _ = fs.NodeStringLookuper(&listSnaps{})
+var _ fs.NodeStringLookuper = (*listSnaps)(nil)
 
 func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	var ref wire.SnapshotRef
@@ -79,7 +79,7 @@ func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	return n, nil
 }
 
-var _ = fs.NodeMkdirer(&listSnaps{})
+var _ fs.NodeMkdirer = (*listSnaps)(nil)
 
 // Mkdir takes a snapshot of this volume and records it under the
 // given name.
@@ -146,7 +146,7 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 	return n, nil
 }
 
-var _ = fs.HandleReadDirAller(&listSnaps{})
+var _ fs.HandleReadDirAller = (*listSnaps)(nil)
 
 func (d *listSnaps) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	// NOT HOLDING LOCKS, accessing database snapshot ONLY

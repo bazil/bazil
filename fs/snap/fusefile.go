@@ -16,10 +16,10 @@ type fuseFile struct {
 	rat io.ReaderAt
 }
 
-var _ = fusefs.Node(fuseFile{})
-var _ = fusefs.NodeOpener(fuseFile{})
-var _ = fusefs.Handle(fuseFile{})
-var _ = fusefs.HandleReader(fuseFile{})
+var _ fusefs.Node = fuseFile{}
+var _ fusefs.NodeOpener = fuseFile{}
+var _ fusefs.Handle = fuseFile{}
+var _ fusefs.HandleReader = fuseFile{}
 
 func (e fuseFile) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Mode = 0444

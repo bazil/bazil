@@ -26,7 +26,7 @@ func (v vector) Swap(i, j int) {
 	v.list[i], v.list[j] = v.list[j], v.list[i]
 }
 
-var _ = sort.Interface(&vector{})
+var _ sort.Interface = (*vector)(nil)
 
 func (v vector) String() string {
 	buf := []byte{'{'}

@@ -15,7 +15,7 @@ type KeyParam struct {
 	key cas.Key
 }
 
-var _ = flag.Value(&KeyParam{})
+var _ flag.Value = (*KeyParam)(nil)
 
 // String returns a hex representation of the key.
 //

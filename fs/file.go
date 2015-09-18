@@ -40,16 +40,16 @@ type file struct {
 	// TODO: written time.Time
 }
 
-var _ = node(&file{})
-var _ = fs.Node(&file{})
-var _ = fs.NodeForgetter(&file{})
-var _ = fs.NodeOpener(&file{})
-var _ = fs.NodeSetattrer(&file{})
-var _ = fs.NodeFsyncer(&file{})
-var _ = fs.HandleFlusher(&file{})
-var _ = fs.HandleReader(&file{})
-var _ = fs.HandleWriter(&file{})
-var _ = fs.HandleReleaser(&file{})
+var _ node = (*file)(nil)
+var _ fs.Node = (*file)(nil)
+var _ fs.NodeForgetter = (*file)(nil)
+var _ fs.NodeOpener = (*file)(nil)
+var _ fs.NodeSetattrer = (*file)(nil)
+var _ fs.NodeFsyncer = (*file)(nil)
+var _ fs.HandleFlusher = (*file)(nil)
+var _ fs.HandleReader = (*file)(nil)
+var _ fs.HandleWriter = (*file)(nil)
+var _ fs.HandleReleaser = (*file)(nil)
 
 func (f *file) setName(name string) {
 	f.mu.Lock()

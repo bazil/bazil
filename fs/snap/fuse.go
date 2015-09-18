@@ -62,11 +62,11 @@ type fuseDir struct {
 	reader     *Reader
 }
 
-var _ = fusefs.Node(fuseDir{})
-var _ = fusefs.NodeStringLookuper(fuseDir{})
-var _ = fusefs.NodeCreater(fuseDir{})
-var _ = fusefs.Handle(fuseDir{})
-var _ = fusefs.HandleReadDirAller(fuseDir{})
+var _ fusefs.Node = fuseDir{}
+var _ fusefs.NodeStringLookuper = fuseDir{}
+var _ fusefs.NodeCreater = fuseDir{}
+var _ fusefs.Handle = fuseDir{}
+var _ fusefs.HandleReadDirAller = fuseDir{}
 
 func (d fuseDir) Attr(ctx context.Context, a *fuse.Attr) error {
 	a.Mode = os.ModeDir | 0555

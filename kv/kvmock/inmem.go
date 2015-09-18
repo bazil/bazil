@@ -6,7 +6,7 @@ type InMemory struct {
 	Data map[string]string
 }
 
-var _ = kv.KV(&InMemory{})
+var _ kv.KV = (*InMemory)(nil)
 
 func (m *InMemory) Get(key []byte) ([]byte, error) {
 	s, found := m.Data[string(key)]

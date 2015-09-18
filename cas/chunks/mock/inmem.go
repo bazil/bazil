@@ -18,7 +18,7 @@ type InMemory struct {
 	m map[mapkey][]byte
 }
 
-var _ = chunks.Store(&InMemory{})
+var _ chunks.Store = (*InMemory)(nil)
 
 func (c *InMemory) get(key cas.Key, typ string, level uint8) ([]byte, error) {
 	data := c.m[mapkey{key, typ, level}]
