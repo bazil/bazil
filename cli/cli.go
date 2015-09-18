@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"path/filepath"
 	"runtime/pprof"
@@ -15,6 +14,7 @@ import (
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/defaults"
 	"bazil.org/bazil/server/control/wire"
+	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/fuse"
 	"github.com/tv42/jog"
 	"google.golang.org/grpc"
@@ -81,12 +81,9 @@ func (b *bazil) Control() (wire.ControlClient, error) {
 }
 
 func (b *bazil) controlDial() {
-	b.control.conn, b.control.err = grpc.Dial(
+	b.control.conn, b.control.err = grpcunix.Dial(
 		filepath.Join(b.Config.DataDir.String(), "control"),
 		grpc.WithTimeout(500*time.Millisecond),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}),
 	)
 	b.control.client = wire.NewControlClient(b.control.conn)
 }
