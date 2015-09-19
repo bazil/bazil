@@ -58,9 +58,6 @@ type Clock struct {
 	create vector
 }
 
-var _ = encoding.BinaryMarshaler(&Clock{})
-var _ = encoding.BinaryUnmarshaler(&Clock{})
-
 // Create returns a new Vector Pair that knows it was created by id at
 // time now.
 func Create(id Peer, now Epoch) *Clock {
