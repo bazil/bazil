@@ -72,6 +72,19 @@ func (vc *VolumeConflicts) ListAll(parentInode uint64) *VolumeConflictsCursor {
 	}
 }
 
+func (vc *VolumeConflicts) Get(parentInode uint64, name string, clockBuf []byte) *VolumeConflictsItem {
+	k := vc.pathToKey(parentInode, name, clockBuf)
+	v := vc.b.Get(k)
+	if v == nil {
+		return nil
+	}
+	return &VolumeConflictsItem{
+		name:  k[8 : 8+len(name)],
+		clock: k[8+len(name)+1:],
+		data:  v,
+	}
+}
+
 type VolumeConflictsCursor struct {
 	prefix []byte
 	c      *bolt.Cursor
