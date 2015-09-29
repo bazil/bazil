@@ -26,6 +26,12 @@ func (VolumeConflicts) pathToKey(parentInode uint64, name string, clock []byte) 
 	return buf
 }
 
+func (VolumeConflicts) dirToKeyPrefix(parentInode uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, parentInode)
+	return buf
+}
+
 func (vc *VolumeConflicts) Add(parentInode uint64, c *clock.Clock, de *wirepeer.Dirent) error {
 	clockBuf, err := c.MarshalBinary()
 	if err != nil {
@@ -56,6 +62,16 @@ func (vc *VolumeConflicts) List(parentInode uint64, name string) *VolumeConflict
 	}
 }
 
+// ListAll iterates over all of the conflict entries for this directory.
+func (vc *VolumeConflicts) ListAll(parentInode uint64) *VolumeConflictsCursor {
+	c := vc.b.Cursor()
+	prefix := vc.dirToKeyPrefix(parentInode)
+	return &VolumeConflictsCursor{
+		prefix: prefix,
+		c:      c,
+	}
+}
+
 type VolumeConflictsCursor struct {
 	prefix []byte
 	c      *bolt.Cursor
@@ -76,20 +92,37 @@ func (c *VolumeConflictsCursor) Delete() error {
 
 func (c *VolumeConflictsCursor) item(k, v []byte) *VolumeConflictsItem {
 	if !bytes.HasPrefix(k, c.prefix) {
-		// past the end of the dirent
+		// past the end of the dirent for List, or dir for ListAll
 		return nil
 	}
+	name := k[8:]
+	idx := bytes.IndexByte(name, '\x00')
+	if idx == -1 {
+		// corrupt entry?
+		return nil
+	}
+	name = name[:idx]
+	clock := k[8+idx+1:]
 	return &VolumeConflictsItem{
-		prefixLen: len(c.prefix),
-		key:       k,
-		data:      v,
+		name:  name,
+		clock: clock,
+		data:  v,
 	}
 }
 
 type VolumeConflictsItem struct {
-	prefixLen int
-	key       []byte
-	data      []byte
+	name  []byte
+	clock []byte
+	data  []byte
+}
+
+// Name returns the file name for this item.
+//
+// This is mostly useful when used with ListAll.
+//
+// Returned value is valid after the transaction.
+func (item *VolumeConflictsItem) Name() string {
+	return string(item.name)
 }
 
 // Clock returns the clock for this item.
@@ -97,8 +130,7 @@ type VolumeConflictsItem struct {
 // Returned value is valid after the transaction.
 func (item *VolumeConflictsItem) Clock() (*clock.Clock, error) {
 	var c clock.Clock
-	clockBuf := item.key[item.prefixLen:]
-	if err := c.UnmarshalBinary(clockBuf); err != nil {
+	if err := c.UnmarshalBinary(item.clock); err != nil {
 		return nil, fmt.Errorf("error unmarshaling clock: %v", err)
 	}
 	return &c, nil
