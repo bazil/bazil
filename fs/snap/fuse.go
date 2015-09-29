@@ -8,6 +8,7 @@ import (
 
 	"bazil.org/bazil/cas/blobs"
 	"bazil.org/bazil/cas/chunks"
+	"bazil.org/bazil/fs/readonly"
 	"bazil.org/bazil/fs/snap/wire"
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
@@ -23,13 +24,9 @@ func Open(chunkStore chunks.Store, de *wire.Dirent) (fusefs.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		blob, err := blobs.Open(chunkStore, manifest)
+		child, err := readonly.NewFile(chunkStore, manifest)
 		if err != nil {
-			return nil, fmt.Errorf("snap file blob open error: %v", err)
-		}
-		child := fuseFile{
-			rat: blob,
-			de:  de,
+			return nil, fmt.Errorf("snap file open error: %v", err)
 		}
 		return child, nil
 
@@ -114,12 +111,4 @@ func (d fuseDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 func (d fuseDir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fusefs.Node, fusefs.Handle, error) {
 	return nil, nil, fuse.Errno(syscall.EROFS)
-}
-
-func statBlocks(size uint64) uint64 {
-	r := size / 512
-	if size%512 > 0 {
-		r++
-	}
-	return r
 }
