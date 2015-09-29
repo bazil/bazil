@@ -28,7 +28,10 @@ var _ = fs.NodeStringLookuper(&dotBazil{})
 func (d *dotBazil) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	switch name {
 	case "pending":
-		return &pendingList{}, nil
+		child := &pendingList{
+			dir: d.parent,
+		}
+		return child, nil
 	default:
 		return nil, fuse.ENOENT
 	}
