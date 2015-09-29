@@ -33,3 +33,12 @@ func (d *dotBazil) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 }
+
+var _ fs.HandleReadDirAller = (*dotBazil)(nil)
+
+func (d *dotBazil) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
+	r := []fuse.Dirent{
+		{Name: "pending", Type: fuse.DT_Dir},
+	}
+	return r, nil
+}

@@ -1,6 +1,7 @@
 package fs_test
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"testing"
@@ -28,7 +29,15 @@ func TestDotBazilContents(t *testing.T) {
 		t.Errorf("wrong mode: %v != %v", g, e)
 	}
 
-	if err := bazfstestutil.CheckDir(p, nil); err != nil {
+	checkers := map[string]bazfstestutil.FileInfoCheck{
+		"pending": func(fi os.FileInfo) error {
+			if g, e := fi.Mode(), os.ModeDir|0500; g != e {
+				return fmt.Errorf("wrong mode: %v != %v", g, e)
+			}
+			return nil
+		},
+	}
+	if err := bazfstestutil.CheckDir(p, checkers); err != nil {
 		t.Error(err)
 	}
 }
