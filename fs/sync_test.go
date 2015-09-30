@@ -24,10 +24,10 @@ import (
 	"bazil.org/bazil/util/tempdir"
 )
 
-// connectVolume creates a volume on app1 and connects app2 to it. It
-// does all the necessary setup to authorize client to use resources
-// on the server.
-func connectVolume(t testing.TB, app1 *server.App, volumeName1 string, app2 *server.App, volumeName2 string) {
+// createAndConnectVolume creates a volume on app1 and connects app2
+// to it. It does all the necessary setup to authorize client to use
+// resources on the server.
+func createAndConnectVolume(t testing.TB, app1 *server.App, volumeName1 string, app2 *server.App, volumeName2 string) {
 	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
 	pub2 := (*peer.PublicKey)(app2.Keys.Sign.Pub)
 
@@ -113,7 +113,7 @@ func TestSyncSimple(t *testing.T) {
 		volumeName1 = "testvol1"
 		volumeName2 = "testvol2"
 	)
-	connectVolume(t, app1, volumeName1, app2, volumeName2)
+	createAndConnectVolume(t, app1, volumeName1, app2, volumeName2)
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -176,7 +176,7 @@ func TestSyncOpen(t *testing.T) {
 		volumeName1 = "testvol1"
 		volumeName2 = "testvol2"
 	)
-	connectVolume(t, app1, volumeName1, app2, volumeName2)
+	createAndConnectVolume(t, app1, volumeName1, app2, volumeName2)
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -286,7 +286,7 @@ func TestSyncDelete(t *testing.T) {
 		volumeName1 = "testvol1"
 		volumeName2 = "testvol2"
 	)
-	connectVolume(t, app1, volumeName1, app2, volumeName2)
+	createAndConnectVolume(t, app1, volumeName1, app2, volumeName2)
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -352,7 +352,7 @@ func TestSyncDeleteLater(t *testing.T) {
 		volumeName1 = "testvol1"
 		volumeName2 = "testvol2"
 	)
-	connectVolume(t, app1, volumeName1, app2, volumeName2)
+	createAndConnectVolume(t, app1, volumeName1, app2, volumeName2)
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -428,7 +428,7 @@ func TestSyncDeleteActive(t *testing.T) {
 		volumeName1 = "testvol1"
 		volumeName2 = "testvol2"
 	)
-	connectVolume(t, app1, volumeName1, app2, volumeName2)
+	createAndConnectVolume(t, app1, volumeName1, app2, volumeName2)
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
