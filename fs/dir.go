@@ -643,7 +643,7 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dirent, error)
 
 // makePeerMap returns a mapping from the peerids in peers to the ones
 // in the local database.
-func makePeerMap(tx *db.Tx, peers map[uint32][]byte) (map[clock.Peer]clock.Peer, error) {
+func makePeerMap(tx *db.Tx, me peer.PublicKey, peers map[uint32][]byte) (map[clock.Peer]clock.Peer, error) {
 	m := make(map[clock.Peer]clock.Peer, len(peers))
 	pb := tx.Peers()
 	var pub peer.PublicKey
@@ -651,11 +651,17 @@ func makePeerMap(tx *db.Tx, peers map[uint32][]byte) (map[clock.Peer]clock.Peer,
 		if err := pub.UnmarshalBinary(buf); err != nil {
 			return nil, err
 		}
-		p, err := pb.Make(&pub)
-		if err != nil {
-			return nil, err
+		var newID clock.Peer
+		if pub == me {
+			newID = 0
+		} else {
+			p, err := pb.Make(&pub)
+			if err != nil {
+				return nil, err
+			}
+			newID = clock.Peer(p.ID())
 		}
-		m[clock.Peer(id)] = clock.Peer(p.ID())
+		m[clock.Peer(id)] = newID
 	}
 	return m, nil
 }
@@ -804,7 +810,7 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClockBuf []byte, recv func() ([]*wirepeer.Dirent, error)) error {
 	var peerMap map[clock.Peer]clock.Peer
 	peerMapFn := func(tx *db.Tx) error {
-		m, err := makePeerMap(tx, peers)
+		m, err := makePeerMap(tx, d.fs.pubKey, peers)
 		if err != nil {
 			return err
 		}

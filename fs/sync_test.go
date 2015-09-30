@@ -82,6 +82,54 @@ func createAndConnectVolume(t testing.TB, app1 *server.App, volumeName1 string, 
 	}
 }
 
+// connectVolumeOnly connects a volume.
+func connectVolume(t testing.TB, app1 *server.App, volumeName1 string, app2 *server.App, volumeName2 string) {
+	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
+	pub2 := (*peer.PublicKey)(app2.Keys.Sign.Pub)
+
+	setup1 := func(tx *db.Tx) error {
+		peer, err := tx.Peers().Make(pub2)
+		if err != nil {
+			return err
+		}
+		if err := peer.Storage().Allow("local"); err != nil {
+			return err
+		}
+		v, err := tx.Volumes().GetByName(volumeName1)
+		if err != nil {
+			return err
+		}
+		if err := peer.Volumes().Allow(v); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := app1.DB.Update(setup1); err != nil {
+		t.Fatalf("app1 setup: %v", err)
+	}
+
+	setup2 := func(tx *db.Tx) error {
+		if _, err := tx.Peers().Make(pub1); err != nil {
+			return err
+		}
+		v, err := tx.Volumes().GetByName(volumeName2)
+		if err != nil {
+			return err
+		}
+		sharingKey, err := tx.SharingKeys().Get("friends")
+		if err != nil {
+			return err
+		}
+		if err := v.Storage().Add("jdoe", "peerkey:"+pub1.String(), sharingKey); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := app2.DB.Update(setup2); err != nil {
+		t.Fatalf("app2 setup location: %v", err)
+	}
+}
+
 // setLocation sets the location of peer identified by pub in app to loc.
 func setLocation(t testing.TB, app *server.App, pub *[32]byte, loc net.Addr) {
 	setLoc := func(tx *db.Tx) error {
@@ -496,5 +544,108 @@ func TestSyncDeleteActive(t *testing.T) {
 
 	if _, err := os.Stat(path.Join(mnt2.Dir, filename)); !os.IsNotExist(err) {
 		t.Fatalf("file should have been removed")
+	}
+}
+
+func TestSyncRoundtrip(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app1 := bazfstestutil.NewAppWithName(t, tmp.Subdir("app1"), "1")
+	defer app1.Close()
+	app2 := bazfstestutil.NewAppWithName(t, tmp.Subdir("app2"), "2")
+	defer app2.Close()
+
+	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
+	pub2 := (*peer.PublicKey)(app2.Keys.Sign.Pub)
+
+	const (
+		volumeName1 = "testvol1"
+		volumeName2 = "testvol2"
+	)
+	createAndConnectVolume(t, app1, volumeName1, app2, volumeName2)
+	connectVolume(t, app2, volumeName2, app1, volumeName1)
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
+	web1 := httptest.ServeHTTP(t, &wg, app1)
+	defer web1.Close()
+	setLocation(t, app2, app1.Keys.Sign.Pub, web1.Addr())
+
+	web2 := httptest.ServeHTTP(t, &wg, app2)
+	defer web2.Close()
+	setLocation(t, app1, app2.Keys.Sign.Pub, web2.Addr())
+
+	const (
+		filename = "greeting"
+		input1   = "hello, world"
+		input2   = "goodbye"
+	)
+	mnt1 := bazfstestutil.Mounted(t, app1, volumeName1)
+	defer mnt1.Close()
+	mnt2 := bazfstestutil.Mounted(t, app2, volumeName2)
+	defer mnt2.Close()
+
+	if err := ioutil.WriteFile(path.Join(mnt1.Dir, filename), []byte(input1), 0644); err != nil {
+		t.Fatalf("cannot create file: %v", err)
+	}
+
+	// trigger sync
+	ctrl2 := controltest.ListenAndServe(t, &wg, app2)
+	defer ctrl2.Close()
+	rpcConn2, err := grpcunix.Dial(filepath.Join(app2.DataDir, "control"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rpcConn2.Close()
+	rpcClient2 := wire.NewControlClient(rpcConn2)
+	{
+		ctx := context.Background()
+		req := &wire.VolumeSyncRequest{
+			VolumeName: volumeName2,
+			Pub:        pub1[:],
+		}
+		if _, err := rpcClient2.VolumeSync(ctx, req); err != nil {
+			t.Fatalf("error while syncing: %v", err)
+		}
+	}
+
+	buf, err := ioutil.ReadFile(path.Join(mnt2.Dir, filename))
+	if err != nil {
+		t.Fatalf("cannot read file after sync: %v", err)
+	}
+	if g, e := string(buf), input1; g != e {
+		t.Errorf("wrong contents after sync: %q != %q", g, e)
+	}
+	if err := ioutil.WriteFile(path.Join(mnt2.Dir, filename), []byte(input2), 0644); err != nil {
+		t.Fatalf("cannot update file: %v", err)
+	}
+
+	// trigger sync the other way
+	ctrl1 := controltest.ListenAndServe(t, &wg, app1)
+	defer ctrl1.Close()
+	rpcConn1, err := grpcunix.Dial(filepath.Join(app1.DataDir, "control"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rpcConn1.Close()
+	rpcClient1 := wire.NewControlClient(rpcConn1)
+	{
+		ctx := context.Background()
+		req := &wire.VolumeSyncRequest{
+			VolumeName: volumeName1,
+			Pub:        pub2[:],
+		}
+		if _, err := rpcClient1.VolumeSync(ctx, req); err != nil {
+			t.Fatalf("error while syncing: %v", err)
+		}
+	}
+
+	buf, err = ioutil.ReadFile(path.Join(mnt1.Dir, filename))
+	if err != nil {
+		t.Fatalf("cannot read pending entry: %v", err)
+	}
+	if g, e := string(buf), input2; g != e {
+		t.Errorf("wrong contents after second sync: %q != %q", g, e)
 	}
 }
