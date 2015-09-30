@@ -3,8 +3,10 @@ package fs
 import (
 	"fmt"
 	"os"
+	"syscall"
 
 	"bazil.org/bazil/db"
+	"bazil.org/bazil/fs/clock"
 	"bazil.org/bazil/fs/readonly"
 	wirepeer "bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/util/env"
@@ -167,4 +169,47 @@ func (e *pendingEntry) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		return nil, err
 	}
 	return entries, nil
+}
+
+var _ fs.NodeRemover = (*pendingEntry)(nil)
+
+func (e *pendingEntry) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
+	if req.Dir {
+		return fuse.Errno(syscall.ENOTDIR)
+	}
+
+	clockBuf, err := zbase32.DecodeString(req.Name)
+	if err != nil {
+		return fuse.ENOENT
+	}
+	var loser clock.Clock
+	if err := loser.UnmarshalBinary(clockBuf); err != nil {
+		return fuse.ENOENT
+	}
+
+	// TODO we're assuming the main entry is not deleted (or that it
+	// still has a tombstone)?
+
+	update := func(tx *db.Tx) error {
+		bucket := e.list.dir.fs.bucket(tx)
+		if err := bucket.Conflicts().Delete(e.list.dir.inode, e.name, clockBuf); err != nil {
+			return err
+		}
+
+		clocks := bucket.Clock()
+		c, err := clocks.Get(e.list.dir.inode, e.name)
+		if err != nil {
+			return err
+		}
+		c.ResolveOurs(&loser)
+		if err := clocks.Put(e.list.dir.inode, e.name, c); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := e.list.dir.fs.db.Update(update); err != nil {
+		return err
+	}
+
+	return nil
 }
