@@ -649,3 +649,116 @@ func TestSyncRoundtrip(t *testing.T) {
 		t.Errorf("wrong contents after second sync: %q != %q", g, e)
 	}
 }
+
+func TestSyncRename(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app1 := bazfstestutil.NewAppWithName(t, tmp.Subdir("app1"), "1")
+	defer app1.Close()
+	app2 := bazfstestutil.NewAppWithName(t, tmp.Subdir("app2"), "2")
+	defer app2.Close()
+
+	pub1 := (*peer.PublicKey)(app1.Keys.Sign.Pub)
+
+	const (
+		volumeName1 = "testvol1"
+		volumeName2 = "testvol2"
+	)
+	createAndConnectVolume(t, app1, volumeName1, app2, volumeName2)
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	web1 := httptest.ServeHTTP(t, &wg, app1)
+	defer web1.Close()
+	setLocation(t, app2, app1.Keys.Sign.Pub, web1.Addr())
+
+	mnt1 := bazfstestutil.Mounted(t, app1, volumeName1)
+	defer mnt1.Close()
+	mnt2 := bazfstestutil.Mounted(t, app2, volumeName2)
+	defer mnt2.Close()
+
+	const (
+		filename1 = "greeting"
+		filename2 = "cheers"
+		input     = "hello, world"
+	)
+
+	if err := ioutil.WriteFile(path.Join(mnt1.Dir, filename1), []byte(input), 0644); err != nil {
+		t.Fatalf("cannot create file: %v", err)
+	}
+
+	// trigger sync
+	ctrl := controltest.ListenAndServe(t, &wg, app2)
+	defer ctrl.Close()
+	rpcConn, err := grpcunix.Dial(filepath.Join(app2.DataDir, "control"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rpcConn.Close()
+	rpcClient := wire.NewControlClient(rpcConn)
+	{
+		ctx := context.Background()
+		req := &wire.VolumeSyncRequest{
+			VolumeName: volumeName2,
+			Pub:        pub1[:],
+		}
+		if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+			t.Fatalf("error while syncing: %v", err)
+		}
+	}
+
+	{
+		buf, err := ioutil.ReadFile(path.Join(mnt2.Dir, filename1))
+		if err != nil {
+			t.Fatalf("cannot read file: %v", err)
+		}
+		if g, e := string(buf), input; g != e {
+			t.Fatalf("wrong content: %q != %q", g, e)
+		}
+	}
+
+	{
+		check := map[string]bazfstestutil.FileInfoCheck{
+			filename1: nil,
+		}
+		if err := bazfstestutil.CheckDir(mnt2.Dir, check); err != nil {
+			t.Error(err)
+		}
+	}
+
+	// rename the original
+	if err := os.Rename(path.Join(mnt1.Dir, filename1), path.Join(mnt1.Dir, filename2)); err != nil {
+		t.Fatal(err)
+	}
+
+	// sync again
+	{
+		ctx := context.Background()
+		req := &wire.VolumeSyncRequest{
+			VolumeName: volumeName2,
+			Pub:        pub1[:],
+		}
+		if _, err := rpcClient.VolumeSync(ctx, req); err != nil {
+			t.Fatalf("error while syncing: %v", err)
+		}
+	}
+
+	{
+		check := map[string]bazfstestutil.FileInfoCheck{
+			filename2: nil,
+		}
+		if err := bazfstestutil.CheckDir(mnt2.Dir, check); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		buf, err := ioutil.ReadFile(path.Join(mnt2.Dir, filename2))
+		if err != nil {
+			t.Fatalf("cannot read file: %v", err)
+		}
+		if g, e := string(buf), input; g != e {
+			t.Fatalf("wrong content: %q != %q", g, e)
+		}
+	}
+}
