@@ -12,7 +12,7 @@ import (
 //
 //     <syncEntries uvarint><sync vector>
 //     <modEntries uvarint><mod vector>
-//     <modEntries uvarint><create vector>
+//     <createEntries uvarint><create vector>
 //
 // where vector is a sequence of
 //
