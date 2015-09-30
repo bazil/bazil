@@ -129,7 +129,7 @@ func TestRewritePeersSimple(t *testing.T) {
 	if err := c.RewritePeers(m); err != nil {
 		t.Fatalf("rewrite error: %v", err)
 	}
-	if g, e := c.String(), `{sync{20:1 12:2 10:3} mod{10:3} create{20:1}}`; g != e {
+	if g, e := c.String(), `{sync{10:3 12:2 20:1} mod{10:3} create{20:1}}`; g != e {
 		t.Errorf("bad state: %v != %v", g, e)
 	}
 }

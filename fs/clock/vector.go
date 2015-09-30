@@ -125,6 +125,7 @@ func (v *vector) rewritePeers(m map[Peer]Peer) error {
 		}
 		v.list[i].id = id
 	}
+	sort.Sort(v)
 	return nil
 }
 
