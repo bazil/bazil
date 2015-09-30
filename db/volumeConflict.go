@@ -7,6 +7,7 @@ import (
 
 	"bazil.org/bazil/fs/clock"
 	wirepeer "bazil.org/bazil/peer/wire"
+	"bazil.org/fuse"
 	"github.com/boltdb/bolt"
 	"github.com/golang/protobuf/proto"
 )
@@ -83,6 +84,18 @@ func (vc *VolumeConflicts) Get(parentInode uint64, name string, clockBuf []byte)
 		clock: k[8+len(name)+1:],
 		data:  v,
 	}
+}
+
+func (vc *VolumeConflicts) Delete(parentInode uint64, name string, clockBuf []byte) error {
+	k := vc.pathToKey(parentInode, name, clockBuf)
+	v := vc.b.Get(k)
+	if v == nil {
+		return fuse.ENOENT
+	}
+	if err := vc.b.Delete(k); err != nil {
+		return err
+	}
+	return nil
 }
 
 type VolumeConflictsCursor struct {
