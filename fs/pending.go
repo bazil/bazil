@@ -133,6 +133,9 @@ func (e *pendingEntry) Lookup(ctx context.Context, name string) (fs.Node, error)
 		}
 		child = f
 
+	case de.Tombstone != nil:
+		return pendingTombstone{}, nil
+
 	default:
 		return nil, fmt.Errorf("unsupported pending direntry type: %#v", de)
 	}
@@ -212,4 +215,23 @@ func (e *pendingEntry) Remove(ctx context.Context, req *fuse.RemoveRequest) erro
 	}
 
 	return nil
+}
+
+type pendingTombstone struct{}
+
+var _ fs.Node = pendingTombstone{}
+
+func (pendingTombstone) Attr(ctx context.Context, a *fuse.Attr) error {
+	a.Mode = os.ModeSymlink | 0500
+	a.Uid = env.MyUID
+	a.Gid = env.MyGID
+	return nil
+}
+
+var _ fs.NodeReadlinker = pendingTombstone{}
+
+func (pendingTombstone) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+	// leading dot is there to avoid it being a valid zbase32 encoded
+	// string
+	return ".deleted", nil
 }
