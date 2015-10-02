@@ -13,6 +13,7 @@ It has these top-level messages:
 	Dirent
 	File
 	Dir
+	Tombstone
 */
 package wire
 
@@ -23,9 +24,10 @@ import bazil_cas "bazil.org/bazil/cas/wire"
 var _ = proto.Marshal
 
 type Dirent struct {
-	Inode uint64 `protobuf:"varint,1,opt,name=inode" json:"inode,omitempty"`
-	File  *File  `protobuf:"bytes,2,opt,name=file" json:"file,omitempty"`
-	Dir   *Dir   `protobuf:"bytes,3,opt,name=dir" json:"dir,omitempty"`
+	Inode     uint64     `protobuf:"varint,1,opt,name=inode" json:"inode,omitempty"`
+	File      *File      `protobuf:"bytes,2,opt,name=file" json:"file,omitempty"`
+	Dir       *Dir       `protobuf:"bytes,3,opt,name=dir" json:"dir,omitempty"`
+	Tombstone *Tombstone `protobuf:"bytes,4,opt,name=tombstone" json:"tombstone,omitempty"`
 }
 
 func (m *Dirent) Reset()         { *m = Dirent{} }
@@ -42,6 +44,13 @@ func (m *Dirent) GetFile() *File {
 func (m *Dirent) GetDir() *Dir {
 	if m != nil {
 		return m.Dir
+	}
+	return nil
+}
+
+func (m *Dirent) GetTombstone() *Tombstone {
+	if m != nil {
+		return m.Tombstone
 	}
 	return nil
 }
@@ -69,6 +78,13 @@ type Dir struct {
 func (m *Dir) Reset()         { *m = Dir{} }
 func (m *Dir) String() string { return proto.CompactTextString(m) }
 func (*Dir) ProtoMessage()    {}
+
+type Tombstone struct {
+}
+
+func (m *Tombstone) Reset()         { *m = Tombstone{} }
+func (m *Tombstone) String() string { return proto.CompactTextString(m) }
+func (*Tombstone) ProtoMessage()    {}
 
 func init() {
 }

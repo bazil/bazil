@@ -11,6 +11,7 @@ message Dirent {
   oneof type {
     File file = 2;
     Dir dir = 3;
+    Tombstone tombstone = 4;
   }
 
   // TODO executable, xattr, acl
@@ -24,4 +25,7 @@ message File {
 // Dir is a directory stored fully in the database, not persisted
 // in objects.
 message Dir {
+}
+
+message Tombstone {
 }

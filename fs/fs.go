@@ -275,6 +275,8 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 				}
 			case tmp.Dir != nil:
 				de.Dir = &wirepeer.Dir{}
+			case tmp.Tombstone != nil:
+				de.Tombstone = &wirepeer.Tombstone{}
 			default:
 				return fmt.Errorf("unknown dirent type: %v", tmp)
 			}

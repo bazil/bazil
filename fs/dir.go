@@ -119,6 +119,9 @@ func (d *dir) lookup(name string) (*refcount, error) {
 		if err != nil {
 			return err
 		}
+		if de.Tombstone != nil {
+			return fuse.ENOENT
+		}
 		return nil
 	}
 	if err := d.fs.db.View(lookup); err != nil {
@@ -211,6 +214,9 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			var de wire.Dirent
 			if err := item.Unmarshal(&de); err != nil {
 				return fmt.Errorf("readdir error: %v", err)
+			}
+			if de.Tombstone != nil {
+				continue
 			}
 			fde := de.GetFUSEDirent(item.Name())
 			entries = append(entries, fde)
@@ -527,6 +533,9 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 			if err != nil {
 				return err
 			}
+			if wde.Tombstone != nil {
+				return fuse.ENOENT
+			}
 			if wde.Dir != nil {
 				// TODO prevent renaming of directories, for now
 				// https://github.com/bazil/bazil/issues/5
@@ -601,6 +610,7 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dirent, error)
 	w := snap.NewWriter(blob)
 
 	c := bucket.Dirs().List(d.inode)
+loop:
 	for item := c.First(); item != nil; item = c.Next() {
 		var de wire.Dirent
 		if err := item.Unmarshal(&de); err != nil {
@@ -625,6 +635,8 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dirent, error)
 			if err != nil {
 				return nil, err
 			}
+		case de.Tombstone != nil:
+			continue loop
 		default:
 			return nil, errors.New("TODO")
 		}
