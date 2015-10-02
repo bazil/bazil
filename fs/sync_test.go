@@ -381,8 +381,14 @@ func TestSyncDelete(t *testing.T) {
 
 	mnt := bazfstestutil.Mounted(t, app2, volumeName2)
 	defer mnt.Close()
-	if _, err := os.Stat(path.Join(mnt.Dir, filename)); !os.IsNotExist(err) {
-		t.Fatalf("file should have been removed")
+	fi, err := os.Stat(path.Join(mnt.Dir, filename))
+	switch {
+	case os.IsNotExist(err):
+		// nothing
+	case err == nil:
+		t.Fatalf("file should have been removed: mode=%v size=%v", fi.Mode(), fi.Size())
+	default:
+		t.Fatalf("wrong error statting deleted file: %v", err)
 	}
 }
 
