@@ -210,7 +210,13 @@ const (
 // Sync returns what action receiving state from A to B should cause
 // us to take.
 func Sync(a, b *Clock) Action {
-	if compareLE(a.mod, b.sync) {
+	mod := a.mod
+	if len(mod.list) == 0 {
+		// it's a tombstone optimized clock, pretend mod is same as
+		// sync
+		mod = a.sync
+	}
+	if compareLE(mod, b.sync) {
 		return Nothing
 	}
 
