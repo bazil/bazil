@@ -717,26 +717,32 @@ func (d *dir) syncToMissing(ctx context.Context, tx *db.Tx, volume *db.Volume, w
 		if err := clocks.Put(d.inode, wde.Name, theirs); err != nil {
 			return err
 		}
-		inode, err := inodes.Allocate(volume.InodeBucket())
-		if err != nil {
-			return err
-		}
-		// TODO share this logic
-		de := &wire.Dirent{
-			Inode: inode,
-		}
-		switch {
-		case wde.File != nil:
-			de.File = &wire.File{
-				Manifest: wde.File.Manifest,
+		if wde.Tombstone != nil {
+			if err := volume.Dirs().TombstoneCreate(d.inode, wde.Name); err != nil {
+				return fmt.Errorf("dirent tombstone save error: %v", err)
 			}
-		case wde.Dir != nil:
-			de.Dir = &wire.Dir{}
-		default:
-			return fmt.Errorf("unknown direntry type: %v", wde)
-		}
-		if err := volume.Dirs().Put(d.inode, wde.Name, de); err != nil {
-			return fmt.Errorf("dirent save error: %v", err)
+		} else {
+			inode, err := inodes.Allocate(volume.InodeBucket())
+			if err != nil {
+				return err
+			}
+			// TODO share this logic
+			de := &wire.Dirent{
+				Inode: inode,
+			}
+			switch {
+			case wde.File != nil:
+				de.File = &wire.File{
+					Manifest: wde.File.Manifest,
+				}
+			case wde.Dir != nil:
+				de.Dir = &wire.Dir{}
+			default:
+				return fmt.Errorf("unknown direntry type: %v", wde)
+			}
+			if err := volume.Dirs().Put(d.inode, wde.Name, de); err != nil {
+				return fmt.Errorf("dirent save error: %v", err)
+			}
 		}
 		return nil
 
