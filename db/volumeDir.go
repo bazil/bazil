@@ -69,6 +69,17 @@ func (b *Dirs) Delete(parentInode uint64, name string) error {
 	return nil
 }
 
+// TombstoneCreate marks the entry in parent directory with the given
+// name as removed, but leaves a hint of its existence. It creates a
+// new entry if one does not exist yet.
+func (b *Dirs) TombstoneCreate(parentInode uint64, name string) error {
+	de := &wirefs.Dirent{Tombstone: &wirefs.Tombstone{}}
+	if err := b.Put(parentInode, name, de); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Rename renames an entry in the parent directory from oldName to
 // newName.
 //
