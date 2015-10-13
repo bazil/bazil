@@ -11,7 +11,6 @@ import (
 
 	bazfstestutil "bazil.org/bazil/fs/fstestutil"
 	"bazil.org/bazil/util/tempdir"
-	_ "bazil.org/fuse/fs/fstestutil"
 )
 
 func init() {
