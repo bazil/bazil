@@ -106,7 +106,12 @@ func (b *Dirs) Rename(parentInode uint64, oldName string, newName string) (*DirE
 	if err := b.b.Put(keyNew, bufOld); err != nil {
 		return nil, err
 	}
-	if err := b.b.Delete(keyOld); err != nil {
+	tombDE := &wirefs.Dirent{Tombstone: &wirefs.Tombstone{}}
+	tombBuf, err := proto.Marshal(tombDE)
+	if err != nil {
+		return nil, err
+	}
+	if err := b.b.Put(keyOld, tombBuf); err != nil {
 		return nil, err
 	}
 
