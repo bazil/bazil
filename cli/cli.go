@@ -28,6 +28,7 @@ type bazil struct {
 		DataDir    flagx.AbsPath
 		CPUProfile string
 	}
+	Log *jog.Logger
 
 	control struct {
 		setup  sync.Once
@@ -40,9 +41,12 @@ type bazil struct {
 var _ Service = (*bazil)(nil)
 
 func (b *bazil) Setup() (ok bool) {
+	b.Log = jog.New(nil)
 	if b.Config.Debug {
-		log := jog.New(nil)
-		fuse.Debug = log.Event
+		// regular FUSE debug happens through VolumeRef.debug, but (in
+		// theory) this might see some events not related to an
+		// bazil.org/fuse/fs Serve loop, so keep it around
+		fuse.Debug = b.Log.Event
 	}
 
 	if b.Config.CPUProfile != "" {

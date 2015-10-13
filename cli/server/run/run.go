@@ -18,7 +18,11 @@ type runCommand struct {
 
 func (cmd *runCommand) Run() error {
 	gomaxprocs.SetToNumCPU()
-	app, err := server.New(clibazil.Bazil.Config.DataDir.String())
+	var options []server.AppOption
+	if clibazil.Bazil.Config.Debug {
+		options = append(options, server.Debug(clibazil.Bazil.Log.Event))
+	}
+	app, err := server.New(clibazil.Bazil.Config.DataDir.String(), options...)
 	if err != nil {
 		return err
 	}
