@@ -28,6 +28,7 @@ type App struct {
 	DataDir  string
 	lockFile *os.File
 	DB       *db.DB
+	debug    func(data interface{})
 	volumes  struct {
 		sync.Mutex
 		// This Broadcasts whenever open volumes, or their mounted
@@ -42,7 +43,14 @@ type App struct {
 	}
 }
 
-func New(dataDir string) (app *App, err error) {
+func New(dataDir string, options ...AppOption) (app *App, err error) {
+	config := &appConfig{}
+	for _, option := range options {
+		if err := option(config); err != nil {
+			return nil, err
+		}
+	}
+
 	err = os.Mkdir(dataDir, 0700)
 	if err != nil && !os.IsExist(err) {
 		return nil, err
@@ -92,6 +100,7 @@ func New(dataDir string) (app *App, err error) {
 		DataDir:  dataDir,
 		lockFile: lockFile,
 		DB:       database,
+		debug:    config.debug,
 		Keys:     keys,
 	}
 	app.volumes.Cond.L = &app.volumes.Mutex
@@ -109,6 +118,13 @@ func (app *App) Close() {
 
 	app.DB.Close()
 	app.lockFile.Close()
+}
+
+func (app *App) Debug(msg interface{}) {
+	if app.debug == nil {
+		return
+	}
+	app.debug(msg)
 }
 
 func (app *App) GetVolume(id *db.VolumeID) (*VolumeRef, error) {
@@ -293,8 +309,6 @@ func (ref *VolumeRef) Mount(mountpoint string) error {
 	ref.app.volumes.Lock()
 	defer ref.app.volumes.Unlock()
 
-	// TODO obey `bazil -debug server run`
-
 	if ref.mounted {
 		return errors.New("volume already mounted")
 	}
@@ -307,7 +321,9 @@ func (ref *VolumeRef) Mount(mountpoint string) error {
 		return fmt.Errorf("mount fail: %v", err)
 	}
 
-	srv := fusefs.New(conn, nil)
+	srv := fusefs.New(conn, &fusefs.Config{
+		Debug: ref.debug,
+	})
 	serveErr := make(chan error, 1)
 	go func() {
 		defer func() {
@@ -344,6 +360,25 @@ func (ref *VolumeRef) Mount(mountpoint string) error {
 		}
 		return errors.New("Serve exited early")
 	}
+}
+
+type fuseDebug struct {
+	VolumeID db.VolumeID
+	Msg      interface{}
+}
+
+func (f *fuseDebug) String() string {
+	// short prefix should be enough to identify which volume it is
+	// when eyeballing logs
+	vol := f.VolumeID.String()[:4]
+	return fmt.Sprintf("%s %v", vol, f.Msg)
+}
+
+func (ref *VolumeRef) debug(msg interface{}) {
+	ref.app.Debug(&fuseDebug{
+		VolumeID: ref.volID,
+		Msg:      msg,
+	})
 }
 
 var ErrNotMounted = errors.New("not currently mounted")
