@@ -154,7 +154,7 @@ func (vc *VolumeClock) UpdateFromChild(parentInode uint64, name string, child *c
 	return true, nil
 }
 
-func (vc *VolumeClock) Tombstone(parentInode uint64, name string) error {
+func (vc *VolumeClock) Tombstone(parentInode uint64, name string, now clock.Epoch) error {
 	key := vc.pathToKey(parentInode, name)
 	val := vc.b.Get(key)
 	if val == nil {
@@ -164,6 +164,7 @@ func (vc *VolumeClock) Tombstone(parentInode uint64, name string) error {
 	if err := c.UnmarshalBinary(val); err != nil {
 		return err
 	}
+	c.Update(0, now)
 	c.Tombstone()
 	buf, err := c.MarshalBinary()
 	if err != nil {

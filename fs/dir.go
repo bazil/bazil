@@ -544,11 +544,11 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 			return err
 		}
 
+		now := d.fs.dirtyEpoch()
 		vc := bucket.Clock()
-		if err := vc.Tombstone(d.inode, req.OldName); err != nil {
+		if err := vc.Tombstone(d.inode, req.OldName, now); err != nil {
 			return err
 		}
-		now := d.fs.dirtyEpoch()
 		clock, changed, err := vc.UpdateOrCreate(d.inode, req.NewName, now)
 		if err != nil {
 			return err
