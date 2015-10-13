@@ -27,6 +27,18 @@ func (v *VolumeID) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+var _ encoding.TextMarshaler = (*VolumeID)(nil)
+
+func (v *VolumeID) MarshalText() ([]byte, error) {
+	return []byte(v.String()), nil
+}
+
+var _ encoding.TextUnmarshaler = (*VolumeID)(nil)
+
+func (v *VolumeID) UnmarshalText(text []byte) error {
+	return v.Set(string(text))
+}
+
 var _ flag.Value = (*VolumeID)(nil)
 
 func (v *VolumeID) String() string {
