@@ -13,7 +13,23 @@ import (
 )
 
 func NewApp(t testing.TB, dataDir string) *server.App {
-	app, err := server.New(dataDir)
+	log := func(msg interface{}) {
+		// TODO i wish i could control the file+line prefix
+		t.Logf("FUSE %v", msg)
+	}
+	return newApp(t, dataDir, log)
+}
+
+func NewAppWithName(t testing.TB, dataDir string, name string) *server.App {
+	log := func(msg interface{}) {
+		// TODO i wish i could control the file+line prefix
+		t.Logf("FUSE %s %v", name, msg)
+	}
+	return newApp(t, dataDir, log)
+}
+
+func newApp(t testing.TB, dataDir string, log func(msg interface{})) *server.App {
+	app, err := server.New(dataDir, server.Debug(log))
 	if err != nil {
 		t.Fatal(err)
 	}
