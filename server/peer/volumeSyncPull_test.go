@@ -25,9 +25,9 @@ import (
 func TestSyncPull(t *testing.T) {
 	tmp := tempdir.New(t)
 	defer tmp.Cleanup()
-	app1 := bazfstestutil.NewApp(t, tmp.Subdir("app1"))
+	app1 := bazfstestutil.NewAppWithName(t, tmp.Subdir("app1"), "1")
 	defer app1.Close()
-	app2 := bazfstestutil.NewApp(t, tmp.Subdir("app2"))
+	app2 := bazfstestutil.NewAppWithName(t, tmp.Subdir("app2"), "2")
 	defer app2.Close()
 
 	var wg sync.WaitGroup
