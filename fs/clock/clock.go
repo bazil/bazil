@@ -182,9 +182,9 @@ func (c *Clock) RewritePeers(m map[Peer]Peer) error {
 // TombstoneFromParent returns a new tombstone clock based on the parent.
 func TombstoneFromParent(parent *Clock) *Clock {
 	c := &Clock{}
-	c.sync.list = append(c.sync.list, parent.mod.list...)
-	c.mod.list = append(c.mod.list, parent.mod.list...)
-	c.create.list = append(c.create.list, parent.mod.list...)
+	c.sync.list = append(c.sync.list, parent.sync.list...)
+	c.mod.list = make([]item, 0)
+	c.create.list = make([]item, 0)
 	return c
 }
 
