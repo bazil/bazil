@@ -469,7 +469,7 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 func (d *dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 	remove := func(tx *db.Tx) error {
 		bucket := d.fs.bucket(tx)
-		if err := bucket.Dirs().Delete(d.inode, req.Name); err != nil {
+		if err := bucket.Dirs().Tombstone(d.inode, req.Name); err != nil {
 			return err
 		}
 		vc := bucket.Clock()
