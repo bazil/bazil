@@ -779,7 +779,7 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 			if err := clocks.Put(d.inode, wde.Name, mine); err != nil {
 				return err
 			}
-			if err := d.fs.bucket(tx).Dirs().Delete(d.inode, wde.Name); err != nil {
+			if err := d.fs.bucket(tx).Dirs().Tombstone(d.inode, wde.Name); err != nil {
 				return err
 			}
 			if a, ok := d.active[wde.Name]; ok {
