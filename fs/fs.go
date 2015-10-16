@@ -320,7 +320,7 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 	return nil
 }
 
-func (v *Volume) lookupPath(dirPath string) (n node, drop func(), err error) {
+func (v *Volume) lookupPath(tx *db.Tx, dirPath string) (n node, drop func(), err error) {
 	dirPath = path.Clean("/" + dirPath)[1:]
 
 	if dirPath == "" {
@@ -335,7 +335,7 @@ func (v *Volume) lookupPath(dirPath string) (n node, drop func(), err error) {
 		var seg string
 		seg, dirPath = splitPath(dirPath)
 
-		ref, err := d.lookup(seg)
+		ref, err := d.lookup(txViewer{tx}, seg)
 		if err != nil {
 			d.mu.Unlock()
 			return nil, nil, err
@@ -369,8 +369,14 @@ func (v *Volume) lookupPath(dirPath string) (n node, drop func(), err error) {
 }
 
 func (v *Volume) SyncReceive(ctx context.Context, dirPath string, peers map[uint32][]byte, dirClockBuf []byte, recv func() ([]*wirepeer.Dirent, error)) error {
-	n, drop, err := v.lookupPath(dirPath)
-	if err != nil {
+	var n node
+	var drop func()
+	lookupPath := func(tx *db.Tx) error {
+		var err error
+		n, drop, err = v.lookupPath(tx, dirPath)
+		return err
+	}
+	if err := v.db.View(lookupPath); err != nil {
 		return err
 	}
 	defer drop()

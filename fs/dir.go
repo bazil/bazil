@@ -102,12 +102,26 @@ func (d *dir) Attr(ctx context.Context, a *fuse.Attr) error {
 	return nil
 }
 
+type viewer interface {
+	// View calls the function inside a database transaction.
+	View(func(tx *db.Tx) error) error
+}
+
+// txViewer implements viewer for an already-open transaction.
+type txViewer struct {
+	*db.Tx
+}
+
+func (v txViewer) View(fn func(tx *db.Tx) error) error {
+	return fn(v.Tx)
+}
+
 // Lookup name in active children, adding one if necessary, and return
 // the refcount data for it. Caller is responsible for increasing the
 // refcount.
 //
 // Caller must hold dir.mu.
-func (d *dir) lookup(name string) (*refcount, error) {
+func (d *dir) lookup(v viewer, name string) (*refcount, error) {
 	if a, ok := d.active[name]; ok {
 		return a, nil
 	}
@@ -124,7 +138,7 @@ func (d *dir) lookup(name string) (*refcount, error) {
 		}
 		return nil
 	}
-	if err := d.fs.db.View(lookup); err != nil {
+	if err := v.View(lookup); err != nil {
 		return nil, err
 	}
 	child, err := d.reviveNode(de, name)
@@ -153,7 +167,7 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	a, err := d.lookup(name)
+	a, err := d.lookup(d.fs.db, name)
 	if err != nil {
 		return nil, err
 	}
@@ -922,7 +936,7 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClock
 					}
 				}
 
-				ref, err := d.lookup(wde.Name)
+				ref, err := d.lookup(txViewer{tx}, wde.Name)
 				if err != nil && err != fuse.ENOENT {
 					return err
 				}
@@ -1030,7 +1044,7 @@ func (d *dir) tryResolveConflicts(name string) {
 
 			// do this lookup on every round because the node may get
 			// created/deleted as we see postponed syncs
-			ref, err := d.lookup(name)
+			ref, err := d.lookup(txViewer{tx}, name)
 			if err != nil && err != fuse.ENOENT {
 				return err
 			}
