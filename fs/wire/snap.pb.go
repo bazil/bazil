@@ -17,6 +17,3 @@ type SnapshotRef struct {
 func (m *SnapshotRef) Reset()         { *m = SnapshotRef{} }
 func (m *SnapshotRef) String() string { return proto.CompactTextString(m) }
 func (*SnapshotRef) ProtoMessage()    {}
-
-func init() {
-}

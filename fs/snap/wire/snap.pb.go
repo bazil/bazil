@@ -97,6 +97,3 @@ func (m *Snapshot) GetContents() *Dirent {
 	}
 	return nil
 }
-
-func init() {
-}

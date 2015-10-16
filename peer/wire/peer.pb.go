@@ -35,10 +35,6 @@ import (
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConn
-
-// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 
 type VolumeSyncPullItem_Error int32
@@ -240,6 +236,10 @@ func (*Tombstone) ProtoMessage()    {}
 func init() {
 	proto.RegisterEnum("bazil.peer.VolumeSyncPullItem_Error", VolumeSyncPullItem_Error_name, VolumeSyncPullItem_Error_value)
 }
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
 
 // Client API for Peer service
 

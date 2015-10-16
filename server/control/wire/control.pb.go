@@ -8,6 +8,7 @@ Package wire is a generated protocol buffer package.
 It is generated from these files:
 	bazil.org/bazil/server/control/wire/control.proto
 	bazil.org/bazil/server/control/wire/peer.proto
+	bazil.org/bazil/server/control/wire/publickey.proto
 	bazil.org/bazil/server/control/wire/sharing.proto
 	bazil.org/bazil/server/control/wire/volume.proto
 
@@ -23,10 +24,6 @@ import (
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 )
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConn
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -45,13 +42,15 @@ func (m *PingResponse) Reset()         { *m = PingResponse{} }
 func (m *PingResponse) String() string { return proto.CompactTextString(m) }
 func (*PingResponse) ProtoMessage()    {}
 
-func init() {
-}
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
 
 // Client API for Control service
 
 type ControlClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	PublicKeyGet(ctx context.Context, in *PublicKeyGetRequest, opts ...grpc.CallOption) (*PublicKeyGetResponse, error)
 	VolumeCreate(ctx context.Context, in *VolumeCreateRequest, opts ...grpc.CallOption) (*VolumeCreateResponse, error)
 	VolumeConnect(ctx context.Context, in *VolumeConnectRequest, opts ...grpc.CallOption) (*VolumeConnectResponse, error)
 	VolumeMount(ctx context.Context, in *VolumeMountRequest, opts ...grpc.CallOption) (*VolumeMountResponse, error)
@@ -75,6 +74,15 @@ func NewControlClient(cc *grpc.ClientConn) ControlClient {
 func (c *controlClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error) {
 	out := new(PingResponse)
 	err := grpc.Invoke(ctx, "/bazil.control.Control/Ping", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *controlClient) PublicKeyGet(ctx context.Context, in *PublicKeyGetRequest, opts ...grpc.CallOption) (*PublicKeyGetResponse, error) {
+	out := new(PublicKeyGetResponse)
+	err := grpc.Invoke(ctx, "/bazil.control.Control/PublicKeyGet", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -175,6 +183,7 @@ func (c *controlClient) PeerVolumeAllow(ctx context.Context, in *PeerVolumeAllow
 
 type ControlServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	PublicKeyGet(context.Context, *PublicKeyGetRequest) (*PublicKeyGetResponse, error)
 	VolumeCreate(context.Context, *VolumeCreateRequest) (*VolumeCreateResponse, error)
 	VolumeConnect(context.Context, *VolumeConnectRequest) (*VolumeConnectResponse, error)
 	VolumeMount(context.Context, *VolumeMountRequest) (*VolumeMountResponse, error)
@@ -197,6 +206,18 @@ func _Control_Ping_Handler(srv interface{}, ctx context.Context, codec grpc.Code
 		return nil, err
 	}
 	out, err := srv.(ControlServer).Ping(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Control_PublicKeyGet_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(PublicKeyGetRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(ControlServer).PublicKeyGet(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -330,6 +351,10 @@ var _Control_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _Control_Ping_Handler,
+		},
+		{
+			MethodName: "PublicKeyGet",
+			Handler:    _Control_PublicKeyGet_Handler,
 		},
 		{
 			MethodName: "VolumeCreate",

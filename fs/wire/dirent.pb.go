@@ -85,6 +85,3 @@ type Tombstone struct {
 func (m *Tombstone) Reset()         { *m = Tombstone{} }
 func (m *Tombstone) String() string { return proto.CompactTextString(m) }
 func (*Tombstone) ProtoMessage()    {}
-
-func init() {
-}

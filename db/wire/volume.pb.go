@@ -26,6 +26,3 @@ type VolumeStorage struct {
 func (m *VolumeStorage) Reset()         { *m = VolumeStorage{} }
 func (m *VolumeStorage) String() string { return proto.CompactTextString(m) }
 func (*VolumeStorage) ProtoMessage()    {}
-
-func init() {
-}

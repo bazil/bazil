@@ -75,6 +75,3 @@ type PeerVolumeAllowResponse struct {
 func (m *PeerVolumeAllowResponse) Reset()         { *m = PeerVolumeAllowResponse{} }
 func (m *PeerVolumeAllowResponse) String() string { return proto.CompactTextString(m) }
 func (*PeerVolumeAllowResponse) ProtoMessage()    {}
-
-func init() {
-}

@@ -5,11 +5,13 @@ package bazil.control;
 import "bazil.org/bazil/server/control/wire/volume.proto";
 import "bazil.org/bazil/server/control/wire/sharing.proto";
 import "bazil.org/bazil/server/control/wire/peer.proto";
+import "bazil.org/bazil/server/control/wire/publickey.proto";
 
 option go_package = "wire";
 
 service Control {
   rpc Ping(PingRequest) returns (PingResponse) {}
+  rpc PublicKeyGet(PublicKeyGetRequest) returns (PublicKeyGetResponse) {}
   rpc VolumeCreate(VolumeCreateRequest) returns (VolumeCreateResponse) {}
   rpc VolumeConnect(VolumeConnectRequest) returns (VolumeConnectResponse) {}
   rpc VolumeMount(VolumeMountRequest) returns (VolumeMountResponse) {}

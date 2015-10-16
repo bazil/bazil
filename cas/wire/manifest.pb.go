@@ -28,6 +28,3 @@ type Manifest struct {
 func (m *Manifest) Reset()         { *m = Manifest{} }
 func (m *Manifest) String() string { return proto.CompactTextString(m) }
 func (*Manifest) ProtoMessage()    {}
-
-func init() {
-}

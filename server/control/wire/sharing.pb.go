@@ -25,6 +25,3 @@ type SharingKeyAddResponse struct {
 func (m *SharingKeyAddResponse) Reset()         { *m = SharingKeyAddResponse{} }
 func (m *SharingKeyAddResponse) String() string { return proto.CompactTextString(m) }
 func (*SharingKeyAddResponse) ProtoMessage()    {}
-
-func init() {
-}

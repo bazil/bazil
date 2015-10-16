@@ -97,6 +97,3 @@ type VolumeSyncResponse struct {
 func (m *VolumeSyncResponse) Reset()         { *m = VolumeSyncResponse{} }
 func (m *VolumeSyncResponse) String() string { return proto.CompactTextString(m) }
 func (*VolumeSyncResponse) ProtoMessage()    {}
-
-func init() {
-}
