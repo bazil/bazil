@@ -14,9 +14,14 @@ import (
 
 	"golang.org/x/net/context"
 
+	"bazil.org/bazil/cas"
+	wirecas "bazil.org/bazil/cas/wire"
 	"bazil.org/bazil/db"
+	"bazil.org/bazil/fs/clock"
 	bazfstestutil "bazil.org/bazil/fs/fstestutil"
+	wirefs "bazil.org/bazil/fs/wire"
 	"bazil.org/bazil/peer"
+	wirepeer "bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server"
 	"bazil.org/bazil/server/control/controltest"
 	"bazil.org/bazil/server/control/wire"
@@ -948,6 +953,127 @@ func TestSyncRenameWithResolvedConflict(t *testing.T) {
 		}
 		if g, e := string(buf), input2; g != e {
 			t.Fatalf("wrong content: %q != %q", g, e)
+		}
+	}
+}
+
+func TestSyncSendPending(t *testing.T) {
+	tmp := tempdir.New(t)
+	defer tmp.Cleanup()
+	app := bazfstestutil.NewApp(t, tmp.Subdir("app"))
+	defer app.Close()
+
+	const (
+		volumeName = "testvol"
+	)
+	var volID db.VolumeID
+	setup := func(tx *db.Tx) error {
+		sharingKey, err := tx.SharingKeys().Get("default")
+		if err != nil {
+			return err
+		}
+		v, err := tx.Volumes().Create(volumeName, "local", sharingKey)
+		if err != nil {
+			return err
+		}
+		v.VolumeID(&volID)
+		de := &wirefs.Dirent{
+			Inode: 1000,
+			File: &wirefs.File{
+				Manifest: &wirecas.Manifest{
+					Root:      cas.Empty.Bytes(),
+					Size:      0,
+					ChunkSize: 4096 * 1024,
+					Fanout:    256,
+				},
+			},
+		}
+		if err := v.Dirs().Put(1, "one", de); err != nil {
+			return err
+		}
+		c := clock.Create(0, 10)
+		if err := v.Clock().Put(1, "one", c); err != nil {
+			return err
+		}
+
+		c2 := clock.Create(1, 11)
+		de2 := &wirepeer.Dirent{
+			Name:      "one",
+			Tombstone: &wirepeer.Tombstone{},
+		}
+		if err := v.Conflicts().Add(1, c2, de2); err != nil {
+			return err
+		}
+
+		c3 := clock.Create(2, 12)
+		de3 := &wirepeer.Dirent{
+			Name:      "one",
+			Tombstone: &wirepeer.Tombstone{},
+		}
+		if err := v.Conflicts().Add(1, c3, de3); err != nil {
+			return err
+		}
+
+		return nil
+	}
+	if err := app.DB.Update(setup); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	vref, err := app.GetVolume(&volID)
+	if err != nil {
+		t.Fatalf("cannot get volume: %v", err)
+	}
+	defer vref.Close()
+
+	var results []*wirepeer.VolumeSyncPullItem
+	send := func(item *wirepeer.VolumeSyncPullItem) error {
+		results = append(results, item)
+		return nil
+	}
+	ctx := context.Background()
+	if err := vref.FS().SyncSend(ctx, "", send); err != nil {
+		t.Errorf("sync send error: %v", err)
+	}
+
+	if g, e := len(results), 1; g != e {
+		t.Fatalf("wrong number of results: %d != %d", g, e)
+	}
+	if g, e := results[0].Error, wirepeer.VolumeSyncPullItem_SUCCESS; g != e {
+		t.Errorf("unexpected error: %v != %v", g, e)
+	}
+	children := results[0].Children
+	if g, e := len(children), 3; g != e {
+		t.Fatalf("wrong number of children: %d != %d", g, e)
+	}
+	for i, child := range children {
+		if g, e := child.Name, "one"; g != e {
+			t.Errorf("wrong name for child #%d: %q != %q", i, g, e)
+		}
+	}
+
+	if children[0].File == nil {
+		t.Errorf("child 0 should have been a file: %#v", children[0])
+	}
+	if children[1].Tombstone == nil {
+		t.Errorf("child 1 should have been a tombstone: %#v", children[0])
+	}
+	if children[2].Tombstone == nil {
+		t.Errorf("child 2 should have been a tombstone: %#v", children[0])
+	}
+
+	for i, want := range []string{
+		`{sync{0:10} mod{0:10} create{0:10}}`,
+		`{sync{1:11} mod{1:11} create{1:11}}`,
+		`{sync{2:12} mod{2:12} create{2:12}}`,
+	} {
+		var c clock.Clock
+		buf := children[i].Clock
+		if err := c.UnmarshalBinary(buf); err != nil {
+			t.Errorf("cannot unmarshal clock #%d: %v: %x", i, err, buf)
+		}
+		if g, e := c.String(), want; g != e {
+			t.Errorf("child %d bad clock: %q != %q", i, g, e)
 		}
 	}
 }

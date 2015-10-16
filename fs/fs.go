@@ -189,6 +189,7 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 		bucket := v.bucket(tx)
 		dirs := bucket.Dirs()
 		clocks := bucket.Clock()
+		conflicts := bucket.Conflicts()
 
 		dirInode := v.root.inode
 		// Keep track of the parent of the directory, to access the
@@ -303,6 +304,35 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 					return err
 				}
 				msg.Reset()
+			}
+
+			pending := conflicts.List(dirInode, name)
+			for p := pending.First(); p != nil; p = pending.Next() {
+				de := new(wirepeer.Dirent)
+				if err := p.Dirent(de); err != nil {
+					return err
+				}
+				de.Name = name
+				c, err := p.Clock()
+				if err != nil {
+					return err
+				}
+				// TODO more complex db api would avoid
+				// unmarshal-marshal hoops
+				clockBuf, err := c.MarshalBinary()
+				if err != nil {
+					return err
+				}
+				de.Clock = clockBuf
+
+				msg.Children = append(msg.Children, de)
+
+				if len(msg.Children) > maxBatch {
+					if err := send(msg); err != nil {
+						return err
+					}
+					msg.Reset()
+				}
 			}
 		}
 
