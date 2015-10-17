@@ -1,19 +1,41 @@
 package run
 
 import (
+	"flag"
 	"log"
+	"net"
 	"sync"
 
 	clibazil "bazil.org/bazil/cli"
+	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/server"
 	"bazil.org/bazil/server/control"
 	"bazil.org/bazil/server/http"
+	"bazil.org/bazil/tokens"
+	"bazil.org/bazil/util/trylisten"
 	"github.com/cespare/gomaxprocs"
 )
 
+type tcpAddr struct {
+	flagx.TCPAddr
+}
+
+func (a *tcpAddr) Set(value string) error {
+	if err := a.TCPAddr.Set(value); err != nil {
+		return err
+	}
+	run.Config.AnyPort = false
+	return nil
+}
+
 type runCommand struct {
 	subcommands.Description
+	flag.FlagSet
+	Config struct {
+		Addr    tcpAddr
+		AnyPort bool
+	}
 }
 
 func (cmd *runCommand) Run() error {
@@ -31,7 +53,16 @@ func (cmd *runCommand) Run() error {
 	errCh := make(chan error)
 	var wg sync.WaitGroup
 
-	w, err := http.New(app)
+	listenTCP := net.ListenTCP
+	if cmd.Config.AnyPort {
+		listenTCP = trylisten.ListenTCP
+	}
+	l, err := listenTCP("tcp", cmd.Config.Addr.Addr)
+	if err != nil {
+		return err
+	}
+
+	w, err := http.New(app, l)
 	if err != nil {
 		return err
 	}
@@ -66,5 +97,10 @@ var run = runCommand{
 }
 
 func init() {
+	run.Config.Addr.Addr = &net.TCPAddr{
+		Port: tokens.TCPPortHTTP,
+	}
+	run.Var(&run.Config.Addr, "addr", "TCP address to listen on, also sets -any-port=false")
+	run.BoolVar(&run.Config.AnyPort, "any-port", true, "find a free port if port was taken")
 	subcommands.Register(&run)
 }

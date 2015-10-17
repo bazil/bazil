@@ -5,29 +5,18 @@ import (
 
 	"bazil.org/bazil/server"
 	"bazil.org/bazil/server/peer"
-	"bazil.org/bazil/tokens"
-	"bazil.org/bazil/util/trylisten"
 )
 
 type Web struct {
 	app      *server.App
-	listener *net.TCPListener
+	listener net.Listener
 }
 
-func New(app *server.App) (*Web, error) {
+func New(app *server.App, listener net.Listener) (*Web, error) {
 	w := &Web{
-		app: app,
+		app:      app,
+		listener: listener,
 	}
-
-	addr := &net.TCPAddr{
-		Port: tokens.TCPPortHTTP,
-	}
-	l, err := trylisten.ListenTCP("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	w.listener = l
-
 	return w, nil
 }
 

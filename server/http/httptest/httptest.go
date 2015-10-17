@@ -1,6 +1,7 @@
 package httptest
 
 import (
+	"net"
 	"sync"
 	"testing"
 
@@ -9,7 +10,11 @@ import (
 )
 
 func ServeHTTP(t testing.TB, wg *sync.WaitGroup, app *server.App) *http.Web {
-	web, err := http.New(app)
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("cannot listen: %v", err)
+	}
+	web, err := http.New(app, l)
 	if err != nil {
 		t.Fatalf("cannot listen: %v", err)
 	}
