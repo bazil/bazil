@@ -13,6 +13,7 @@ import (
 	"bazil.org/bazil/cas/blobs"
 	"bazil.org/bazil/cas/chunks/mock"
 	entropy "github.com/tv42/seed"
+	"golang.org/x/net/context"
 )
 
 var seed uint64
@@ -102,6 +103,7 @@ func testCompareBoth(t *testing.T, saveEvery int) {
 		Rand: rand.New(rand.NewSource(int64(seed))),
 	}
 
+	ctx := context.Background()
 	count := 0
 	got := func(isWrite bool, off int64, size int, writeSeed int64) (num int, read []byte, err error) {
 		if off < 0 {
@@ -117,7 +119,7 @@ func testCompareBoth(t *testing.T, saveEvery int) {
 		if isWrite {
 			count++
 			if saveEvery > 0 && count%saveEvery == 0 {
-				_, err := blob.Save()
+				_, err := blob.Save(ctx)
 				if err != nil {
 					return 0, nil, err
 				}

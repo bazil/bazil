@@ -61,7 +61,7 @@ func (d *listSnaps) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fmt.Errorf("corrupt snapshot reference: %q: %v", name, err)
 	}
 
-	chunk, err := d.fs.chunkStore.Get(k, "snap", 0)
+	chunk, err := d.fs.chunkStore.Get(ctx, k, "snap", 0)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch snapshot: %v", err)
 	}
@@ -110,7 +110,7 @@ func (d *listSnaps) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node,
 		}
 
 		// store the snapshot as a chunk, for disaster recovery
-		key, err = d.fs.chunkStore.Add(&chunks.Chunk{
+		key, err = d.fs.chunkStore.Add(ctx, &chunks.Chunk{
 			Type:  "snap",
 			Level: 0,
 			Buf:   buf,

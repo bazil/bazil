@@ -9,6 +9,7 @@ import (
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/cas/chunks/stash"
+	"golang.org/x/net/context"
 )
 
 const debugLookup = true
@@ -191,7 +192,7 @@ func safeSlice(buf []byte, low int, high int) []byte {
 //
 // It may be a Private or a normal chunk. For writable Chunks, call
 // lookupForWrite instead.
-func (blob *Blob) lookup(off uint64) (*chunks.Chunk, error) {
+func (blob *Blob) lookup(ctx context.Context, off uint64) (*chunks.Chunk, error) {
 	gidx := uint32(off / uint64(blob.m.ChunkSize))
 	lidxs := localChunkIndexes(blob.m.Fanout, gidx)
 	level := blob.depth
@@ -205,7 +206,7 @@ func (blob *Blob) lookup(off uint64) (*chunks.Chunk, error) {
 			idx = lidxs[level-1]
 		}
 
-		chunk, err := blob.stash.Get(ptrKey, blob.m.Type, level)
+		chunk, err := blob.stash.Get(ctx, ptrKey, blob.m.Type, level)
 		if err != nil {
 			return nil, err
 		}
@@ -217,12 +218,13 @@ func (blob *Blob) lookup(off uint64) (*chunks.Chunk, error) {
 		ptrKey = cas.NewKeyPrivate(keybuf)
 	}
 
-	chunk, err := blob.stash.Get(ptrKey, blob.m.Type, 0)
+	chunk, err := blob.stash.Get(ctx, ptrKey, blob.m.Type, 0)
 	return chunk, err
 }
 
 // ReadAt reads data from the given offset. See io.ReaderAt.
 func (blob *Blob) ReadAt(p []byte, off int64) (n int, err error) {
+	ctx := context.TODO()
 	if off < 0 {
 		return 0, errors.New("negative offset is not possible")
 	}
@@ -242,7 +244,7 @@ func (blob *Blob) ReadAt(p []byte, off int64) (n int, err error) {
 				break
 			}
 
-			chunk, err := blob.lookup(off)
+			chunk, err := blob.lookup(ctx, off)
 			if err != nil {
 				return n, err
 			}
@@ -276,11 +278,11 @@ func (blob *Blob) chunkSizeForLevel(level uint8) uint32 {
 	}
 }
 
-func (blob *Blob) grow(level uint8) error {
+func (blob *Blob) grow(ctx context.Context, level uint8) error {
 	// grow hash tree upward if needed
 
 	for blob.depth < level {
-		key, chunk, err := blob.stash.Clone(cas.Empty, blob.m.Type, blob.depth+1, blob.m.Fanout*cas.KeySize)
+		key, chunk, err := blob.stash.Clone(ctx, cas.Empty, blob.m.Type, blob.depth+1, blob.m.Fanout*cas.KeySize)
 		if err != nil {
 			return err
 		}
@@ -293,7 +295,7 @@ func (blob *Blob) grow(level uint8) error {
 }
 
 // chunk must be a Private chunk
-func (blob *Blob) discardAfter(chunk *chunks.Chunk, lidx uint32, level uint8) error {
+func (blob *Blob) discardAfter(ctx context.Context, chunk *chunks.Chunk, lidx uint32, level uint8) error {
 	if level == 0 {
 		return nil
 	}
@@ -303,11 +305,11 @@ func (blob *Blob) discardAfter(chunk *chunks.Chunk, lidx uint32, level uint8) er
 		key := cas.NewKeyPrivate(keybuf)
 		if key.IsPrivate() {
 			// there can't be any Private chunks if they key wasn't Private
-			chunk, err := blob.stash.Get(key, blob.m.Type, level-1)
+			chunk, err := blob.stash.Get(ctx, key, blob.m.Type, level-1)
 			if err != nil {
 				return err
 			}
-			err = blob.discardAfter(chunk, 0, level-1)
+			err = blob.discardAfter(ctx, chunk, 0, level-1)
 			if err != nil {
 				return err
 			}
@@ -320,9 +322,9 @@ func (blob *Blob) discardAfter(chunk *chunks.Chunk, lidx uint32, level uint8) er
 
 // Decreases depth, always selecting only the leftmost tree,
 // and dropping all Private chunks in the rest.
-func (blob *Blob) shrink(level uint8) error {
+func (blob *Blob) shrink(ctx context.Context, level uint8) error {
 	for blob.depth > level {
-		chunk, err := blob.stash.Get(blob.m.Root, blob.m.Type, blob.depth)
+		chunk, err := blob.stash.Get(ctx, blob.m.Root, blob.m.Type, blob.depth)
 		if err != nil {
 			return err
 		}
@@ -331,7 +333,7 @@ func (blob *Blob) shrink(level uint8) error {
 			// blob.depth must be >0 if we're here, so it's always a
 			// pointer chunk; iterate all non-first keys and drop
 			// Private chunks
-			err = blob.discardAfter(chunk, 1, blob.depth)
+			err = blob.discardAfter(ctx, chunk, 1, blob.depth)
 			if err != nil {
 				return err
 			}
@@ -348,11 +350,11 @@ func (blob *Blob) shrink(level uint8) error {
 
 // lookupForWrite fetches the data chunk for the given offset and
 // ensures it is Private and reinflated, and thus writable.
-func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
+func (blob *Blob) lookupForWrite(ctx context.Context, off uint64) (*chunks.Chunk, error) {
 	gidx := uint32(off / uint64(blob.m.ChunkSize))
 	lidxs := localChunkIndexes(blob.m.Fanout, gidx)
 
-	err := blob.grow(uint8(len(lidxs)))
+	err := blob.grow(ctx, uint8(len(lidxs)))
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +367,7 @@ func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
 		var k cas.Key
 		var err error
 		size := blob.chunkSizeForLevel(level)
-		k, parentChunk, err = blob.stash.Clone(blob.m.Root, blob.m.Type, level, size)
+		k, parentChunk, err = blob.stash.Clone(ctx, blob.m.Root, blob.m.Type, level, size)
 		if err != nil {
 			return nil, err
 		}
@@ -392,7 +394,7 @@ func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
 
 		// clone it (nop if already cloned)
 		size := blob.chunkSizeForLevel(level - 1)
-		ptrKey, child, err := blob.stash.Clone(ptrKey, blob.m.Type, level-1, size)
+		ptrKey, child, err := blob.stash.Clone(ctx, ptrKey, blob.m.Type, level-1, size)
 		if err != nil {
 			return nil, err
 		}
@@ -427,6 +429,7 @@ func (blob *Blob) lookupForWrite(off uint64) (*chunks.Chunk, error) {
 
 // WriteAt writes data to the given offset. See io.WriterAt.
 func (blob *Blob) WriteAt(p []byte, off int64) (n int, err error) {
+	ctx := context.TODO()
 	if off < 0 {
 		return 0, errors.New("negative offset is not possible")
 	}
@@ -434,7 +437,7 @@ func (blob *Blob) WriteAt(p []byte, off int64) (n int, err error) {
 		off := uint64(off)
 		for len(p) > 0 {
 
-			chunk, err := blob.lookupForWrite(off)
+			chunk, err := blob.lookupForWrite(ctx, off)
 			if err != nil {
 				return n, err
 			}
@@ -481,7 +484,7 @@ const debugTruncate = true
 // Truncate adjusts the size of the blob. If the new size is less than
 // the old size, data past that point is lost. If the new size is
 // greater than the old size, the new part is full of zeroes.
-func (blob *Blob) Truncate(size uint64) error {
+func (blob *Blob) Truncate(ctx context.Context, size uint64) error {
 	switch {
 	case size == 0:
 		// special case shrink to nothing
@@ -502,7 +505,7 @@ func (blob *Blob) Truncate(size uint64) error {
 		off := size - 1
 		gidx := uint32(off / uint64(blob.m.ChunkSize))
 		lidxs := localChunkIndexes(blob.m.Fanout, gidx)
-		err := blob.shrink(uint8(len(lidxs)))
+		err := blob.shrink(ctx, uint8(len(lidxs)))
 		if err != nil {
 			return err
 		}
@@ -518,7 +521,7 @@ func (blob *Blob) Truncate(size uint64) error {
 			// abusing lookupForWrite for now
 
 			// we know size > 0 from above
-			_, err := blob.lookupForWrite(size - 1)
+			_, err := blob.lookupForWrite(ctx, size-1)
 			if err != nil {
 				return err
 			}
@@ -532,11 +535,11 @@ func (blob *Blob) Truncate(size uint64) error {
 			}
 		}
 		for level := blob.depth; level > 0; level-- {
-			chunk, err := blob.stash.Get(key, blob.m.Type, level)
+			chunk, err := blob.stash.Get(ctx, key, blob.m.Type, level)
 			if err != nil {
 				return err
 			}
-			err = blob.discardAfter(chunk, lidxs[level-1]+1, level)
+			err = blob.discardAfter(ctx, chunk, lidxs[level-1]+1, level)
 			if err != nil {
 				return err
 			}
@@ -551,7 +554,7 @@ func (blob *Blob) Truncate(size uint64) error {
 		}
 
 		// and finally the leaf chunk
-		chunk, err := blob.stash.Get(key, blob.m.Type, 0)
+		chunk, err := blob.stash.Get(ctx, key, blob.m.Type, 0)
 		if err != nil {
 			return err
 		}
@@ -573,7 +576,7 @@ func (blob *Blob) Truncate(size uint64) error {
 		off := size - 1
 		gidx := uint32(off / uint64(blob.m.ChunkSize))
 		lidxs := localChunkIndexes(blob.m.Fanout, gidx)
-		err := blob.grow(uint8(len(lidxs)))
+		err := blob.grow(ctx, uint8(len(lidxs)))
 		if err != nil {
 			return err
 		}
@@ -582,13 +585,13 @@ func (blob *Blob) Truncate(size uint64) error {
 	return nil
 }
 
-func (blob *Blob) saveChunk(key cas.Key, level uint8) (cas.Key, error) {
+func (blob *Blob) saveChunk(ctx context.Context, key cas.Key, level uint8) (cas.Key, error) {
 	if !key.IsPrivate() {
 		// already saved
 		return key, nil
 	}
 
-	chunk, err := blob.stash.Get(key, blob.m.Type, level)
+	chunk, err := blob.stash.Get(ctx, key, blob.m.Type, level)
 	if err != nil {
 		return key, err
 	}
@@ -600,7 +603,7 @@ func (blob *Blob) saveChunk(key cas.Key, level uint8) (cas.Key, error) {
 				return key, fmt.Errorf("invalid stored key: key @%d in %v is %v", off, key, chunk.Buf[off:off+cas.KeySize])
 			}
 			// recurses at most `level` deep
-			saved, err := blob.saveChunk(cur, level-1)
+			saved, err := blob.saveChunk(ctx, cur, level-1)
 			if err != nil {
 				return key, err
 			}
@@ -609,29 +612,29 @@ func (blob *Blob) saveChunk(key cas.Key, level uint8) (cas.Key, error) {
 	}
 
 	chunk.Buf = trim(chunk.Buf)
-	return blob.stash.Save(key)
+	return blob.stash.Save(ctx, key)
 }
 
 // Save persists the Blob into the Store and returns a new Manifest
 // that can be passed to Open later.
-func (blob *Blob) Save() (*Manifest, error) {
+func (blob *Blob) Save(ctx context.Context) (*Manifest, error) {
 	// make sure the tree is optimal depth, as later we rely purely on
 	// size to compute depth; this might happen because of errors on a
 	// write/truncate path
 	level := blob.computeLevel(blob.m.Size)
 	switch {
 	case blob.depth > level:
-		err := blob.shrink(level)
+		err := blob.shrink(ctx, level)
 		if err != nil {
 			return nil, err
 		}
 	case blob.depth < level:
-		err := blob.grow(level)
+		err := blob.grow(ctx, level)
 		if err != nil {
 			return nil, err
 		}
 	}
-	k, err := blob.saveChunk(blob.m.Root, blob.depth)
+	k, err := blob.saveChunk(ctx, blob.m.Root, blob.depth)
 	if err != nil {
 		return nil, err
 	}

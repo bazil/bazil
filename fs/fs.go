@@ -445,6 +445,6 @@ func (v *Volume) invalidateEntry(d node, name string) error {
 type node interface {
 	fs.Node
 
-	marshal() (*wire.Dirent, error)
+	marshal(ctx context.Context) (*wire.Dirent, error)
 	setName(name string)
 }

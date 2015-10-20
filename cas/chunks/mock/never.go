@@ -3,6 +3,7 @@ package mock
 import (
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
+	"golang.org/x/net/context"
 )
 
 // NeverUsed is a chunks.Store meant for unit tests that don't touch
@@ -12,11 +13,11 @@ type NeverUsed struct{}
 var _ chunks.Store = NeverUsed{}
 
 // Get fetches a Chunk. See chunks.Store.Get.
-func (NeverUsed) Get(key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
+func (NeverUsed) Get(ctx context.Context, key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
 	panic("NeverUsed.Get was called")
 }
 
 // Add adds a Chunk to the Store. See chunks.Store.Add.
-func (NeverUsed) Add(chunk *chunks.Chunk) (key cas.Key, err error) {
+func (NeverUsed) Add(ctx context.Context, chunk *chunks.Chunk) (key cas.Key, err error) {
 	panic("NeverUsed.Add was called")
 }

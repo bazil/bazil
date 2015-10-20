@@ -4,6 +4,7 @@ import (
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/cas/chunks/chunkutil"
+	"golang.org/x/net/context"
 )
 
 type mapkey struct {
@@ -26,12 +27,12 @@ func (c *InMemory) get(key cas.Key, typ string, level uint8) ([]byte, error) {
 }
 
 // Get fetches a Chunk. See chunks.Store.Get.
-func (c *InMemory) Get(key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
+func (c *InMemory) Get(ctx context.Context, key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
 	return chunkutil.HandleGet(c.get, key, typ, level)
 }
 
 // Add adds a Chunk to the Store. See chunks.Store.Add.
-func (c *InMemory) Add(chunk *chunks.Chunk) (key cas.Key, err error) {
+func (c *InMemory) Add(ctx context.Context, chunk *chunks.Chunk) (key cas.Key, err error) {
 	key = chunkutil.Hash(chunk)
 	if c.m == nil {
 		c.m = make(map[mapkey][]byte)

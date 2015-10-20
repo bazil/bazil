@@ -8,6 +8,7 @@ import (
 	"bazil.org/bazil/cas/chunks/kvchunks"
 	"bazil.org/bazil/kv/kvmock"
 	"bazil.org/bazil/kv/untrusted"
+	"golang.org/x/net/context"
 )
 
 const GREETING = "Hello, world"
@@ -28,12 +29,13 @@ func TestSimple(t *testing.T) {
 		Level: 3,
 		Buf:   []byte(GREETING),
 	}
-	key, err := store.Add(orig)
+	ctx := context.Background()
+	key, err := store.Add(ctx, orig)
 	if err != nil {
 		t.Fatalf("store.Add failed: %v", err)
 	}
 
-	got, err := store.Get(key, "testchunk", 3)
+	got, err := store.Get(ctx, key, "testchunk", 3)
 	if err != nil {
 		t.Fatalf("store.Get failed: %v", err)
 	}
@@ -67,7 +69,8 @@ func TestWrongType(t *testing.T) {
 		Level: 3,
 		Buf:   []byte(GREETING),
 	}
-	_, err := store.Add(phony)
+	ctx := context.Background()
+	_, err := store.Add(ctx, phony)
 	if err != nil {
 		t.Fatalf("store.Add failed: %v", err)
 	}
@@ -82,7 +85,7 @@ func TestWrongType(t *testing.T) {
 		Level: 3,
 		Buf:   []byte(GREETING),
 	}
-	key, err := store.Add(orig)
+	key, err := store.Add(ctx, orig)
 	if err != nil {
 		t.Fatalf("store.Add failed: %v", err)
 	}
@@ -91,7 +94,7 @@ func TestWrongType(t *testing.T) {
 		remote.Data[k] = phonyData
 	}
 
-	_, err = store.Get(key, "testchunk", 3)
+	_, err = store.Get(ctx, key, "testchunk", 3)
 	if err == nil {
 		t.Fatalf("expected an error")
 	}
@@ -123,7 +126,8 @@ func TestWrongSecret(t *testing.T) {
 			Buf:   []byte(GREETING),
 		}
 		var err error
-		key, err = store.Add(orig)
+		ctx := context.Background()
+		key, err = store.Add(ctx, orig)
 		if err != nil {
 			t.Fatalf("store.Add failed: %v", err)
 		}
@@ -149,7 +153,8 @@ func TestWrongSecret(t *testing.T) {
 			Buf:   []byte(GREETING),
 		}
 		var err error
-		key, err = store.Add(orig)
+		ctx := context.Background()
+		key, err = store.Add(ctx, orig)
 		if err != nil {
 			t.Fatalf("store.Add failed: %v", err)
 		}
@@ -158,7 +163,7 @@ func TestWrongSecret(t *testing.T) {
 			remote.Data[k] = phonyData
 		}
 
-		got, err := store.Get(key, "testchunk", 3)
+		got, err := store.Get(ctx, key, "testchunk", 3)
 		if err == nil {
 			t.Fatalf("expected an error")
 		}

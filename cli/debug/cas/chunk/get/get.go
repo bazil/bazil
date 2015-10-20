@@ -6,6 +6,7 @@ import (
 	"bazil.org/bazil/cas/flagx"
 	clicas "bazil.org/bazil/cli/debug/cas"
 	"bazil.org/bazil/cliutil/subcommands"
+	"golang.org/x/net/context"
 )
 
 type getCommand struct {
@@ -18,7 +19,9 @@ type getCommand struct {
 }
 
 func (c *getCommand) Run() error {
+	ctx := context.Background()
 	chunk, err := clicas.CAS.State.Store.Get(
+		ctx,
 		c.Arguments.Key.Key(),
 		c.Arguments.Type,
 		c.Arguments.Level,

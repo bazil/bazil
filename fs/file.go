@@ -57,11 +57,11 @@ func (f *file) setName(name string) {
 	f.name = name
 }
 
-func (f *file) marshalInternal() (*wire.Dirent, error) {
+func (f *file) marshalInternal(ctx context.Context) (*wire.Dirent, error) {
 	de := &wire.Dirent{
 		Inode: f.inode,
 	}
-	manifest, err := f.blob.Save()
+	manifest, err := f.blob.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +71,11 @@ func (f *file) marshalInternal() (*wire.Dirent, error) {
 	return de, nil
 }
 
-func (f *file) marshal() (*wire.Dirent, error) {
+func (f *file) marshal(ctx context.Context) (*wire.Dirent, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	return f.marshalInternal()
+	return f.marshalInternal(ctx)
 }
 
 func (f *file) Attr(ctx context.Context, a *fuse.Attr) error {
@@ -141,7 +141,7 @@ func (f *file) flush(ctx context.Context) error {
 	}
 	f.dirty = writing
 
-	de, err := f.marshalInternal()
+	de, err := f.marshalInternal(ctx)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func (f *file) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse
 
 	valid := req.Valid
 	if valid.Size() {
-		err := f.blob.Truncate(req.Size)
+		err := f.blob.Truncate(ctx, req.Size)
 		if err != nil {
 			return err
 		}

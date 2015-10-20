@@ -17,6 +17,7 @@ import (
 	"bazil.org/bazil/util/tempdir"
 	"bazil.org/fuse/fs"
 	"bazil.org/fuse/fs/fstestutil"
+	"golang.org/x/net/context"
 )
 
 type FS struct {
@@ -53,7 +54,8 @@ func setup_greeting(t testing.TB, chunkStore chunks.Store) *blobs.Manifest {
 	if err != nil {
 		t.Fatalf("unexpected write error: %v", err)
 	}
-	manifest, err := blob.Save()
+	ctx := context.Background()
+	manifest, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected save error: %v", err)
 	}
@@ -75,7 +77,8 @@ func setup_dir(t testing.TB, chunkStore chunks.Store, dirents []*wire.Dirent) *w
 			t.Fatalf("unexpected add error: %v", err)
 		}
 	}
-	manifest, err := blob.Save()
+	ctx := context.Background()
+	manifest, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected save error: %v", err)
 	}

@@ -8,6 +8,7 @@ import (
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/cas/chunks/chunkutil"
 	"bazil.org/bazil/kv"
+	"golang.org/x/net/context"
 )
 
 type storeInKV struct {
@@ -33,11 +34,11 @@ func (s *storeInKV) get(key cas.Key, type_ string, level uint8) ([]byte, error) 
 	return data, nil
 }
 
-func (s *storeInKV) Get(key cas.Key, type_ string, level uint8) (*chunks.Chunk, error) {
+func (s *storeInKV) Get(ctx context.Context, key cas.Key, type_ string, level uint8) (*chunks.Chunk, error) {
 	return chunkutil.HandleGet(s.get, key, type_, level)
 }
 
-func (s *storeInKV) Add(chunk *chunks.Chunk) (key cas.Key, err error) {
+func (s *storeInKV) Add(ctx context.Context, chunk *chunks.Chunk) (key cas.Key, err error) {
 	key = chunkutil.Hash(chunk)
 	if key.IsSpecial() {
 		return key, nil

@@ -244,8 +244,8 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 // saveInternal persists entry name in dir to the database.
 //
 // uses no mutable state of d, and hence does not need to lock d.mu.
-func (d *dir) saveInternal(tx *db.Tx, name string, n node) error {
-	de, err := n.marshal()
+func (d *dir) saveInternal(ctx context.Context, tx *db.Tx, name string, n node) error {
+	de, err := n.marshal(ctx)
 	if err != nil {
 		return fmt.Errorf("node save error: %v", err)
 	}
@@ -298,7 +298,7 @@ func (d *dir) updateParents(vc *db.VolumeClock, c *clock.Clock) error {
 	return nil
 }
 
-func (d *dir) marshal() (*wire.Dirent, error) {
+func (d *dir) marshal(ctx context.Context) (*wire.Dirent, error) {
 	de := &wire.Dirent{
 		Inode: d.inode,
 	}
@@ -365,7 +365,7 @@ func (d *dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 			if err != nil {
 				return err
 			}
-			if err := d.saveInternal(tx, req.Name, child); err != nil {
+			if err := d.saveInternal(ctx, tx, req.Name, child); err != nil {
 				return err
 			}
 			if err := d.updateParents(vc, clock); err != nil {
@@ -453,7 +453,7 @@ func (d *dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 		if err != nil {
 			return err
 		}
-		if err := d.saveInternal(tx, req.Name, child); err != nil {
+		if err := d.saveInternal(ctx, tx, req.Name, child); err != nil {
 			return err
 		}
 		if err := d.updateParents(vc, clock); err != nil {
@@ -661,7 +661,7 @@ loop:
 		}
 	}
 
-	manifest, err = blob.Save()
+	manifest, err = blob.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -834,7 +834,7 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 		if err := clocks.Put(d.inode, wde.Name, mine); err != nil {
 			return err
 		}
-		if err := d.saveInternal(tx, wde.Name, child); err != nil {
+		if err := d.saveInternal(ctx, tx, wde.Name, child); err != nil {
 			return err
 		}
 		// sync never changes files that are open, and we don't let

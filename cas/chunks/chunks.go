@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"bazil.org/bazil/cas"
+	"golang.org/x/net/context"
 )
 
 // Chunk is a chunk of data, to be stored in a CAS. A Chunk is assumed
@@ -27,8 +28,8 @@ type Store interface {
 	//
 	// The returned Chunk is considered read-only and must not be
 	// modified.
-	Get(key cas.Key, type_ string, level uint8) (*Chunk, error)
+	Get(ctx context.Context, key cas.Key, type_ string, level uint8) (*Chunk, error)
 
 	// Add a chunk to the chunk store.
-	Add(chunk *Chunk) (key cas.Key, err error)
+	Add(ctx context.Context, chunk *Chunk) (key cas.Key, err error)
 }

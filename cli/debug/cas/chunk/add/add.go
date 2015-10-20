@@ -10,6 +10,7 @@ import (
 	"bazil.org/bazil/cas/chunks"
 	clicas "bazil.org/bazil/cli/debug/cas"
 	"bazil.org/bazil/cliutil/subcommands"
+	"golang.org/x/net/context"
 )
 
 type addCommand struct {
@@ -39,7 +40,8 @@ func (c *addCommand) Run() error {
 		Level: c.Arguments.Level,
 		Buf:   buf.Bytes(),
 	}
-	key, err := clicas.CAS.State.Store.Add(chunk)
+	ctx := context.Background()
+	key, err := clicas.CAS.State.Store.Add(ctx, chunk)
 	if err != nil {
 		return err
 	}

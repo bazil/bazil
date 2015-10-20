@@ -4,6 +4,7 @@ import (
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/idpool"
+	"golang.org/x/net/context"
 )
 
 // New creates a new Stash.
@@ -29,7 +30,7 @@ type Stash struct {
 // For Private keys, modifying the returned chunk *will* cause the
 // locally stored data to change. This is the intended usage of a
 // stash.
-func (s *Stash) Get(key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
+func (s *Stash) Get(ctx context.Context, key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
 	priv, ok := key.Private()
 	if ok {
 		chunk, ok := s.local[priv]
@@ -43,7 +44,7 @@ func (s *Stash) Get(key cas.Key, typ string, level uint8) (*chunks.Chunk, error)
 		return chunk, nil
 	}
 
-	chunk, err := s.chunks.Get(key, typ, level)
+	chunk, err := s.chunks.Get(ctx, key, typ, level)
 	return chunk, err
 }
 
@@ -70,7 +71,7 @@ func (s *Stash) Drop(key cas.Key) {
 //
 // Modifying the returned chunk *will* cause the locally stored data
 // to change. This is the intended usage of a stash.
-func (s *Stash) Clone(key cas.Key, typ string, level uint8, size uint32) (cas.Key, *chunks.Chunk, error) {
+func (s *Stash) Clone(ctx context.Context, key cas.Key, typ string, level uint8, size uint32) (cas.Key, *chunks.Chunk, error) {
 	priv, ok := key.Private()
 	if ok {
 		chunk, ok := s.local[priv]
@@ -84,7 +85,7 @@ func (s *Stash) Clone(key cas.Key, typ string, level uint8, size uint32) (cas.Ke
 		return key, chunk, nil
 	}
 
-	chunk, err := s.chunks.Get(key, typ, level)
+	chunk, err := s.chunks.Get(ctx, key, typ, level)
 	if err != nil {
 		return key, nil, err
 	}
@@ -103,7 +104,7 @@ func (s *Stash) Clone(key cas.Key, typ string, level uint8, size uint32) (cas.Ke
 // Save the local Chunk to the Store.
 //
 // On success, the old key becomes invalid.
-func (s *Stash) Save(key cas.Key) (cas.Key, error) {
+func (s *Stash) Save(ctx context.Context, key cas.Key) (cas.Key, error) {
 	priv, ok := key.Private()
 	if !ok {
 		return key, nil
@@ -116,7 +117,7 @@ func (s *Stash) Save(key cas.Key) (cas.Key, error) {
 		}
 	}
 
-	newkey, err := s.chunks.Add(chunk)
+	newkey, err := s.chunks.Add(ctx, chunk)
 	if err != nil {
 		return key, err
 	}

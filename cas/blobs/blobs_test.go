@@ -9,6 +9,7 @@ import (
 	"bazil.org/bazil/cas/blobs"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/cas/chunks/mock"
+	"golang.org/x/net/context"
 )
 
 func emptyBlob(t testing.TB, chunkStore chunks.Store) *blobs.Blob {
@@ -68,7 +69,8 @@ func TestSparseRead(t *testing.T) {
 
 func TestEmptySave(t *testing.T) {
 	blob := emptyBlob(t, mock.NeverUsed{})
-	saved, err := blob.Save()
+	ctx := context.Background()
+	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Errorf("unexpected error from Save: %v", err)
 	}
@@ -96,7 +98,8 @@ func TestEmptyDirtySave(t *testing.T) {
 		t.Errorf("unexpected manifest size: %v != %v", g, e)
 	}
 
-	saved, err := blob.Save()
+	ctx := context.Background()
+	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Errorf("unexpected error from Save: %v", err)
 	}
@@ -153,7 +156,8 @@ func TestWriteSaveAndRead(t *testing.T) {
 		if g, e := blob.Size(), uint64(len(GREETING)); g != e {
 			t.Errorf("unexpected manifest size: %v != %v", g, e)
 		}
-		saved, err = blob.Save()
+		ctx := context.Background()
+		saved, err = blob.Save(ctx)
 		if err != nil {
 			t.Fatalf("unexpected error from Save: %v", err)
 		}
@@ -205,7 +209,8 @@ func TestWriteSaveLoopAndRead(t *testing.T) {
 		if g, e := blob.Size(), uint64(len(greeting)); g != e {
 			t.Errorf("unexpected manifest size: %v != %v", g, e)
 		}
-		saved, err := blob.Save()
+		ctx := context.Background()
+		saved, err := blob.Save(ctx)
 		if err != nil {
 			t.Fatalf("unexpected error from Save: %v", err)
 		}
@@ -262,7 +267,8 @@ func TestWriteSaveAndReadLarge(t *testing.T) {
 		if g, e := blob.Size(), uint64(len(greeting)); g != e {
 			t.Errorf("unexpected manifest size: %v != %v", g, e)
 		}
-		saved, err = blob.Save()
+		ctx := context.Background()
+		saved, err = blob.Save(ctx)
 		if err != nil {
 			t.Fatalf("unexpected error from Save: %v", err)
 		}
@@ -377,7 +383,8 @@ func TestWriteAndSave(t *testing.T) {
 		t.Errorf("unexpected write length: %v != %v", g, e)
 	}
 
-	saved, err := blob.Save()
+	ctx := context.Background()
+	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
 	}
@@ -412,7 +419,8 @@ func TestWriteAndSaveLarge(t *testing.T) {
 		t.Errorf("unexpected write length: %v != %v", g, e)
 	}
 
-	saved, err := blob.Save()
+	ctx := context.Background()
+	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
 	}
@@ -447,12 +455,13 @@ func TestWriteTruncateZero(t *testing.T) {
 		t.Errorf("unexpected write length: %v != %v", g, e)
 	}
 
-	_, err = blob.Save()
+	ctx := context.Background()
+	_, err = blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
 	}
 
-	err = blob.Truncate(0)
+	err = blob.Truncate(ctx, 0)
 	if err != nil {
 		t.Fatalf("unexpected Truncate error: %v", err)
 	}
@@ -461,7 +470,7 @@ func TestWriteTruncateZero(t *testing.T) {
 		t.Errorf("unexpected manifest size: %v != %v", g, e)
 	}
 
-	saved, err := blob.Save()
+	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Errorf("unexpected error from Save: %v", err)
 	}
@@ -497,14 +506,15 @@ func TestWriteTruncateShrink(t *testing.T) {
 		t.Errorf("unexpected write length: %v != %v", g, e)
 	}
 
-	_, err = blob.Save()
+	ctx := context.Background()
+	_, err = blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
 	}
 
 	// shrink enough to need less depth in tree
 	const newSize = 5
-	err = blob.Truncate(newSize)
+	err = blob.Truncate(ctx, newSize)
 	if err != nil {
 		t.Fatalf("unexpected Truncate error: %v", err)
 	}
@@ -527,7 +537,7 @@ func TestWriteTruncateShrink(t *testing.T) {
 		t.Errorf("unexpected read data: %q != %q", g, e)
 	}
 
-	saved, err := blob.Save()
+	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
 	}
@@ -578,14 +588,15 @@ func TestWriteTruncateGrow(t *testing.T) {
 		t.Errorf("unexpected manifest size: %v != %v", g, e)
 	}
 
-	_, err = blob.Save()
+	ctx := context.Background()
+	_, err = blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
 	}
 
 	// grow enough to need a new chunk
 	const newSize = chunkSize + 3
-	err = blob.Truncate(newSize)
+	err = blob.Truncate(ctx, newSize)
 	if err != nil {
 		t.Fatalf("unexpected Truncate error: %v", err)
 	}
@@ -612,7 +623,7 @@ func TestWriteTruncateGrow(t *testing.T) {
 		t.Errorf("unexpected read data: %q != %q", g, e)
 	}
 
-	saved, err := blob.Save()
+	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
 	}
@@ -653,7 +664,8 @@ func BenchmarkWriteSmall(b *testing.B) {
 		if err != nil {
 			b.Fatalf("unexpected write error: %v", err)
 		}
-		_, err = blob.Save()
+		ctx := context.Background()
+		_, err = blob.Save(ctx)
 		if err != nil {
 			b.Fatalf("unexpected error from Save: %v", err)
 		}
@@ -671,7 +683,8 @@ func BenchmarkWriteBig(b *testing.B) {
 		if err != nil {
 			b.Fatalf("unexpected write error: %v", err)
 		}
-		_, err = blob.Save()
+		ctx := context.Background()
+		_, err = blob.Save(ctx)
 		if err != nil {
 			b.Fatalf("unexpected error from Save: %v", err)
 		}
