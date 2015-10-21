@@ -23,7 +23,7 @@ func (p *peers) ObjectGet(req *wire.ObjectGetRequest, stream wire.Peer_ObjectGet
 		return err
 	}
 
-	buf, err := store.Get(req.Key)
+	buf, err := store.Get(stream.Context(), req.Key)
 	if err != nil {
 		if _, ok := err.(kv.NotFoundError); ok {
 			return grpc.Errorf(codes.NotFound, err.Error())

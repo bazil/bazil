@@ -17,8 +17,7 @@ type KVPeer struct {
 
 var _ kv.KV = (*KVPeer)(nil)
 
-func (k *KVPeer) Put(key, value []byte) error {
-	ctx := context.TODO()
+func (k *KVPeer) Put(ctx context.Context, key, value []byte) error {
 	stream, err := k.peer.ObjectPut(ctx)
 	if err != nil {
 		return err
@@ -52,8 +51,7 @@ func (k *KVPeer) Put(key, value []byte) error {
 	return nil
 }
 
-func (k *KVPeer) Get(key []byte) ([]byte, error) {
-	ctx := context.TODO()
+func (k *KVPeer) Get(ctx context.Context, key []byte) ([]byte, error) {
 	stream, err := k.peer.ObjectGet(ctx, &wire.ObjectGetRequest{
 		Key: key,
 	})

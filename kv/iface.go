@@ -1,6 +1,10 @@
 package kv
 
+import (
+	"golang.org/x/net/context"
+)
+
 type KV interface {
-	Get(key []byte) ([]byte, error)
-	Put(key, value []byte) error
+	Get(ctx context.Context, key []byte) ([]byte, error)
+	Put(ctx context.Context, key, value []byte) error
 }

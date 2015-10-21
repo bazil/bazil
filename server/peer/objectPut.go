@@ -42,7 +42,7 @@ func (p *peers) ObjectPut(stream wire.Peer_ObjectPutServer) error {
 		data = append(data, req.Data...)
 	}
 
-	if err := store.Put(key, data); err != nil {
+	if err := store.Put(stream.Context(), key, data); err != nil {
 		return err
 	}
 	return stream.SendAndClose(&wire.ObjectPutResponse{})

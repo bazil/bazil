@@ -3,6 +3,7 @@ package chunkutil
 import (
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
+	"golang.org/x/net/context"
 )
 
 // MakeChunk makes a new Chunk of the given description, filling it
@@ -16,9 +17,9 @@ func MakeChunk(typ string, level uint8, data []byte) *chunks.Chunk {
 	return chunk
 }
 
-type Handler func(key cas.Key, typ string, level uint8) ([]byte, error)
+type Handler func(ctx context.Context, key cas.Key, typ string, level uint8) ([]byte, error)
 
-func HandleGet(fn Handler, key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
+func HandleGet(ctx context.Context, fn Handler, key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
 	if key.IsSpecial() {
 		if key == cas.Empty {
 			chunk := MakeChunk(typ, level, nil)
@@ -31,7 +32,7 @@ func HandleGet(fn Handler, key cas.Key, typ string, level uint8) (*chunks.Chunk,
 		}
 	}
 
-	data, err := fn(key, typ, level)
+	data, err := fn(ctx, key, typ, level)
 	if err != nil {
 		return nil, err
 	}

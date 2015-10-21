@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"bazil.org/bazil/kv"
+	"golang.org/x/net/context"
 )
 
 type KVFiles struct {
@@ -15,7 +16,7 @@ type KVFiles struct {
 
 var _ kv.KV = (*KVFiles)(nil)
 
-func (k *KVFiles) Put(key, value []byte) error {
+func (k *KVFiles) Put(ctx context.Context, key, value []byte) error {
 	tmp, err := ioutil.TempFile(k.path, "put-")
 	if err != nil {
 		return err
@@ -42,7 +43,7 @@ func (k *KVFiles) Put(key, value []byte) error {
 	return nil
 }
 
-func (k *KVFiles) Get(key []byte) ([]byte, error) {
+func (k *KVFiles) Get(ctx context.Context, key []byte) ([]byte, error) {
 	safe := hex.EncodeToString(key)
 	path := path.Join(k.path, safe+".data")
 	data, err := ioutil.ReadFile(path)

@@ -21,14 +21,14 @@ type InMemory struct {
 
 var _ chunks.Store = (*InMemory)(nil)
 
-func (c *InMemory) get(key cas.Key, typ string, level uint8) ([]byte, error) {
+func (c *InMemory) get(ctx context.Context, key cas.Key, typ string, level uint8) ([]byte, error) {
 	data := c.m[mapkey{key, typ, level}]
 	return data, nil
 }
 
 // Get fetches a Chunk. See chunks.Store.Get.
 func (c *InMemory) Get(ctx context.Context, key cas.Key, typ string, level uint8) (*chunks.Chunk, error) {
-	return chunkutil.HandleGet(c.get, key, typ, level)
+	return chunkutil.HandleGet(ctx, c.get, key, typ, level)
 }
 
 // Add adds a Chunk to the Store. See chunks.Store.Add.

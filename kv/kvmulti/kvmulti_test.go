@@ -6,16 +6,18 @@ import (
 
 	"bazil.org/bazil/kv/kvmock"
 	"bazil.org/bazil/kv/kvmulti"
+	"golang.org/x/net/context"
 )
 
 func TestGetFallback(t *testing.T) {
 	a := &kvmock.InMemory{}
 	b := &kvmock.InMemory{}
 	multi := kvmulti.New(a, b)
-	if err := b.Put([]byte("k1"), []byte("v1")); err != nil {
+	ctx := context.Background()
+	if err := b.Put(ctx, []byte("k1"), []byte("v1")); err != nil {
 		t.Fatal(err)
 	}
-	v, err := multi.Get([]byte("k1"))
+	v, err := multi.Get(ctx, []byte("k1"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -28,7 +30,8 @@ func TestPut(t *testing.T) {
 	a := &kvmock.InMemory{}
 	b := &kvmock.InMemory{}
 	multi := kvmulti.New(a, b)
-	if err := multi.Put([]byte("k1"), []byte("v1")); err != nil {
+	ctx := context.Background()
+	if err := multi.Put(ctx, []byte("k1"), []byte("v1")); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(a.Data, map[string]string{"k1": "v1"}) {

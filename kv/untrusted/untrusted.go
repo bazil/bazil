@@ -8,6 +8,7 @@ import (
 	"bazil.org/bazil/tokens"
 	"github.com/codahale/blake2"
 	"golang.org/x/crypto/nacl/secretbox"
+	"golang.org/x/net/context"
 )
 
 type Convergent struct {
@@ -53,9 +54,9 @@ func (s *Convergent) makeNonce(key []byte) *[nonceSize]byte {
 	return &ret
 }
 
-func (s *Convergent) Get(key []byte) ([]byte, error) {
+func (s *Convergent) Get(ctx context.Context, key []byte) ([]byte, error) {
 	boxedkey := s.computeBoxedKey(key)
-	box, err := s.untrusted.Get(boxedkey)
+	box, err := s.untrusted.Get(ctx, boxedkey)
 	if err != nil {
 		return nil, err
 	}
@@ -68,12 +69,12 @@ func (s *Convergent) Get(key []byte) ([]byte, error) {
 	return plain, nil
 }
 
-func (s *Convergent) Put(key []byte, value []byte) error {
+func (s *Convergent) Put(ctx context.Context, key []byte, value []byte) error {
 	nonce := s.makeNonce(key)
 	box := secretbox.Seal(nil, value, nonce, s.secret)
 
 	boxedkey := s.computeBoxedKey(key)
-	err := s.untrusted.Put(boxedkey, box)
+	err := s.untrusted.Put(ctx, boxedkey, box)
 	return err
 }
 

@@ -25,9 +25,9 @@ func makeKey(key cas.Key, typ string, level uint8) []byte {
 	return k
 }
 
-func (s *storeInKV) get(key cas.Key, type_ string, level uint8) ([]byte, error) {
+func (s *storeInKV) get(ctx context.Context, key cas.Key, type_ string, level uint8) ([]byte, error) {
 	k := makeKey(key, type_, level)
-	data, err := s.kv.Get(k)
+	data, err := s.kv.Get(ctx, k)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (s *storeInKV) get(key cas.Key, type_ string, level uint8) ([]byte, error) 
 }
 
 func (s *storeInKV) Get(ctx context.Context, key cas.Key, type_ string, level uint8) (*chunks.Chunk, error) {
-	return chunkutil.HandleGet(s.get, key, type_, level)
+	return chunkutil.HandleGet(ctx, s.get, key, type_, level)
 }
 
 func (s *storeInKV) Add(ctx context.Context, chunk *chunks.Chunk) (key cas.Key, err error) {
@@ -45,7 +45,7 @@ func (s *storeInKV) Add(ctx context.Context, chunk *chunks.Chunk) (key cas.Key, 
 	}
 
 	k := makeKey(key, chunk.Type, chunk.Level)
-	err = s.kv.Put(k, chunk.Buf)
+	err = s.kv.Put(ctx, k, chunk.Buf)
 	if err != nil {
 		return cas.Invalid, err
 	}
