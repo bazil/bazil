@@ -37,7 +37,8 @@ func TestOpenNoType(t *testing.T) {
 func TestEmptyRead(t *testing.T) {
 	blob := emptyBlob(t, mock.NeverUsed{})
 	buf := make([]byte, 10)
-	n, err := blob.ReadAt(buf, 3)
+	ctx := context.Background()
+	n, err := blob.IO(ctx).ReadAt(buf, 3)
 	if g, e := err, io.EOF; g != e {
 		t.Errorf("expected EOF: %v != %v", g, e)
 	}
@@ -58,7 +59,8 @@ func TestSparseRead(t *testing.T) {
 		},
 	)
 	buf := make([]byte, 10)
-	n, err := blob.ReadAt(buf, 3)
+	ctx := context.Background()
+	n, err := blob.IO(ctx).ReadAt(buf, 3)
 	if err != nil {
 		t.Errorf("unexpected read error: %v", err)
 	}
@@ -87,7 +89,8 @@ func TestEmptySave(t *testing.T) {
 
 func TestEmptyDirtySave(t *testing.T) {
 	blob := emptyBlob(t, &mock.InMemory{})
-	n, err := blob.WriteAt([]byte{0x00}, 0)
+	ctx := context.Background()
+	n, err := blob.IO(ctx).WriteAt([]byte{0x00}, 0)
 	if err != nil {
 		t.Errorf("unexpected error from WriteAt: %v", err)
 	}
@@ -98,7 +101,6 @@ func TestEmptyDirtySave(t *testing.T) {
 		t.Errorf("unexpected manifest size: %v != %v", g, e)
 	}
 
-	ctx := context.Background()
 	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Errorf("unexpected error from Save: %v", err)
@@ -115,7 +117,8 @@ var GREETING = []byte("hello, world\n")
 
 func TestWriteAndRead(t *testing.T) {
 	blob := emptyBlob(t, &mock.InMemory{})
-	n, err := blob.WriteAt(GREETING, 0)
+	ctx := context.Background()
+	n, err := blob.IO(ctx).WriteAt(GREETING, 0)
 	if err != nil {
 		t.Fatalf("unexpected write error: %v", err)
 	}
@@ -128,7 +131,7 @@ func TestWriteAndRead(t *testing.T) {
 
 	// do +1 to trigger us seeing EOF too
 	buf := make([]byte, len(GREETING)+1)
-	n, err = blob.ReadAt(buf, 0)
+	n, err = blob.IO(ctx).ReadAt(buf, 0)
 	if err != io.EOF {
 		t.Errorf("expected read EOF: %v", err)
 	}
@@ -143,10 +146,11 @@ func TestWriteAndRead(t *testing.T) {
 
 func TestWriteSaveAndRead(t *testing.T) {
 	chunkStore := &mock.InMemory{}
+	ctx := context.Background()
 	var saved *blobs.Manifest
 	{
 		blob := emptyBlob(t, chunkStore)
-		n, err := blob.WriteAt(GREETING, 0)
+		n, err := blob.IO(ctx).WriteAt(GREETING, 0)
 		if err != nil {
 			t.Fatalf("unexpected write error: %v", err)
 		}
@@ -156,7 +160,6 @@ func TestWriteSaveAndRead(t *testing.T) {
 		if g, e := blob.Size(), uint64(len(GREETING)); g != e {
 			t.Errorf("unexpected manifest size: %v != %v", g, e)
 		}
-		ctx := context.Background()
 		saved, err = blob.Save(ctx)
 		if err != nil {
 			t.Fatalf("unexpected error from Save: %v", err)
@@ -169,7 +172,7 @@ func TestWriteSaveAndRead(t *testing.T) {
 	}
 	// do +1 to trigger us seeing EOF too
 	buf := make([]byte, len(GREETING)+1)
-	n, err := b.ReadAt(buf, 0)
+	n, err := b.IO(ctx).ReadAt(buf, 0)
 	if err != io.EOF {
 		t.Errorf("expected read EOF: %v", err)
 	}
@@ -197,9 +200,10 @@ func TestWriteSaveLoopAndRead(t *testing.T) {
 	// not exactly sure where this magic number comes from :(
 	greeting := bytes.Repeat(GREETING, 40330)
 
+	ctx := context.Background()
 	var prev *cas.Key
 	for i := 0; i <= 2; i++ {
-		n, err := blob.WriteAt(greeting, 0)
+		n, err := blob.IO(ctx).WriteAt(greeting, 0)
 		if err != nil {
 			t.Fatalf("unexpected write error: %v", err)
 		}
@@ -226,7 +230,7 @@ func TestWriteSaveLoopAndRead(t *testing.T) {
 
 	// do +1 to trigger us seeing EOF too
 	buf := make([]byte, len(greeting)+1)
-	n, err := blob.ReadAt(buf, 0)
+	n, err := blob.IO(ctx).ReadAt(buf, 0)
 	if err != io.EOF {
 		t.Errorf("expected read EOF: %v", err)
 	}
@@ -247,6 +251,7 @@ func TestWriteSaveAndReadLarge(t *testing.T) {
 	// just enough to span multiple chunks
 	greeting := bytes.Repeat(GREETING, chunkSize/len(GREETING)+1)
 
+	ctx := context.Background()
 	var saved *blobs.Manifest
 	{
 		blob, err := blobs.Open(chunkStore, &blobs.Manifest{
@@ -257,7 +262,7 @@ func TestWriteSaveAndReadLarge(t *testing.T) {
 		if err != nil {
 			t.Fatalf("cannot open blob: %v", err)
 		}
-		n, err := blob.WriteAt(greeting, 0)
+		n, err := blob.IO(ctx).WriteAt(greeting, 0)
 		if err != nil {
 			t.Fatalf("unexpected write error: %v", err)
 		}
@@ -281,7 +286,7 @@ func TestWriteSaveAndReadLarge(t *testing.T) {
 	}
 	// do +1 to trigger us seeing EOF too
 	buf := make([]byte, len(greeting)+1)
-	n, err := b.ReadAt(buf, 0)
+	n, err := b.IO(ctx).ReadAt(buf, 0)
 	if err != io.EOF {
 		t.Errorf("expected read EOF: %v", err)
 	}
@@ -306,8 +311,9 @@ func TestWriteSparse(t *testing.T) {
 		t.Fatalf("cannot open blob: %v", err)
 	}
 
+	ctx := context.Background()
 	// note: gap after end of first chunk
-	n, err := blob.WriteAt([]byte{'x'}, chunkSize+3)
+	n, err := blob.IO(ctx).WriteAt([]byte{'x'}, chunkSize+3)
 	if err != nil {
 		t.Fatalf("unexpected write error: %v", err)
 	}
@@ -320,7 +326,7 @@ func TestWriteSparse(t *testing.T) {
 
 	// read exactly a chunksize to access only the hole
 	buf := make([]byte, 1)
-	n, err = blob.ReadAt(buf, 0)
+	n, err = blob.IO(ctx).ReadAt(buf, 0)
 	if err != nil {
 		t.Fatalf("unexpected read error: %v", err)
 	}
@@ -345,7 +351,8 @@ func TestWriteSparseBoundary(t *testing.T) {
 		t.Fatalf("cannot open blob: %v", err)
 	}
 
-	n, err := blob.WriteAt([]byte{'x', 'y'}, chunkSize)
+	ctx := context.Background()
+	n, err := blob.IO(ctx).WriteAt([]byte{'x', 'y'}, chunkSize)
 	if err != nil {
 		t.Fatalf("unexpected write error: %v", err)
 	}
@@ -358,7 +365,7 @@ func TestWriteSparseBoundary(t *testing.T) {
 
 	// access only the hole
 	buf := make([]byte, 1)
-	n, err = blob.ReadAt(buf, chunkSize)
+	n, err = blob.IO(ctx).ReadAt(buf, chunkSize)
 	if err != nil {
 		t.Fatalf("unexpected read error: %v", err)
 	}
@@ -375,7 +382,8 @@ func TestWriteAndSave(t *testing.T) {
 	chunkStore := &mock.InMemory{}
 	blob := emptyBlob(t, chunkStore)
 
-	n, err := blob.WriteAt(GREETING, 0)
+	ctx := context.Background()
+	n, err := blob.IO(ctx).WriteAt(GREETING, 0)
 	if err != nil {
 		t.Fatalf("unexpected write error: %v", err)
 	}
@@ -383,7 +391,6 @@ func TestWriteAndSave(t *testing.T) {
 		t.Errorf("unexpected write length: %v != %v", g, e)
 	}
 
-	ctx := context.Background()
 	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
@@ -408,7 +415,8 @@ func TestWriteAndSaveLarge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot open blob: %v", err)
 	}
-	n, err := blob.WriteAt(bytes.Join([][]byte{
+	ctx := context.Background()
+	n, err := blob.IO(ctx).WriteAt(bytes.Join([][]byte{
 		bytes.Repeat([]byte{'x'}, chunkSize),
 		bytes.Repeat([]byte{'y'}, chunkSize),
 	}, []byte{}), 0)
@@ -419,7 +427,6 @@ func TestWriteAndSaveLarge(t *testing.T) {
 		t.Errorf("unexpected write length: %v != %v", g, e)
 	}
 
-	ctx := context.Background()
 	saved, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
@@ -444,7 +451,8 @@ func TestWriteTruncateZero(t *testing.T) {
 		t.Fatalf("cannot open blob: %v", err)
 	}
 
-	n, err := blob.WriteAt(bytes.Join([][]byte{
+	ctx := context.Background()
+	n, err := blob.IO(ctx).WriteAt(bytes.Join([][]byte{
 		bytes.Repeat([]byte{'x'}, chunkSize),
 		bytes.Repeat([]byte{'y'}, chunkSize),
 	}, []byte{}), 0)
@@ -455,7 +463,6 @@ func TestWriteTruncateZero(t *testing.T) {
 		t.Errorf("unexpected write length: %v != %v", g, e)
 	}
 
-	ctx := context.Background()
 	_, err = blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
@@ -495,7 +502,8 @@ func TestWriteTruncateShrink(t *testing.T) {
 		t.Fatalf("cannot open blob: %v", err)
 	}
 
-	n, err := blob.WriteAt(bytes.Join([][]byte{
+	ctx := context.Background()
+	n, err := blob.IO(ctx).WriteAt(bytes.Join([][]byte{
 		bytes.Repeat([]byte{'x'}, chunkSize),
 		bytes.Repeat([]byte{'y'}, chunkSize),
 	}, []byte{}), 0)
@@ -506,7 +514,6 @@ func TestWriteTruncateShrink(t *testing.T) {
 		t.Errorf("unexpected write length: %v != %v", g, e)
 	}
 
-	ctx := context.Background()
 	_, err = blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
@@ -525,7 +532,7 @@ func TestWriteTruncateShrink(t *testing.T) {
 
 	// do +1 to trigger us seeing EOF too
 	buf := make([]byte, newSize+1)
-	n, err = blob.ReadAt(buf, 0)
+	n, err = blob.IO(ctx).ReadAt(buf, 0)
 	if err != io.EOF {
 		t.Errorf("expected read EOF: %v", err)
 	}
@@ -550,7 +557,7 @@ func TestWriteTruncateShrink(t *testing.T) {
 			t.Fatalf("cannot open saved blob: %v", err)
 		}
 		buf := make([]byte, newSize+1)
-		n, err = blob.ReadAt(buf, 0)
+		n, err = blob.IO(ctx).ReadAt(buf, 0)
 		if err != io.EOF {
 			t.Errorf("expected read EOF: %v", err)
 		}
@@ -577,7 +584,8 @@ func TestWriteTruncateGrow(t *testing.T) {
 		t.Fatalf("cannot open blob: %v", err)
 	}
 
-	n, err := blob.WriteAt(GREETING, 0)
+	ctx := context.Background()
+	n, err := blob.IO(ctx).WriteAt(GREETING, 0)
 	if err != nil {
 		t.Fatalf("unexpected write error: %v", err)
 	}
@@ -588,7 +596,6 @@ func TestWriteTruncateGrow(t *testing.T) {
 		t.Errorf("unexpected manifest size: %v != %v", g, e)
 	}
 
-	ctx := context.Background()
 	_, err = blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error from Save: %v", err)
@@ -607,7 +614,7 @@ func TestWriteTruncateGrow(t *testing.T) {
 
 	// do +1 to trigger us seeing EOF too
 	buf := make([]byte, newSize+1)
-	n, err = blob.ReadAt(buf, 0)
+	n, err = blob.IO(ctx).ReadAt(buf, 0)
 	if err != io.EOF {
 		t.Errorf("expected read EOF: %v", err)
 	}
@@ -636,7 +643,7 @@ func TestWriteTruncateGrow(t *testing.T) {
 			t.Fatalf("cannot open saved blob: %v", err)
 		}
 		buf := make([]byte, newSize+1)
-		n, err = blob.ReadAt(buf, 0)
+		n, err = blob.IO(ctx).ReadAt(buf, 0)
 		if err != io.EOF {
 			t.Errorf("expected read EOF: %v", err)
 		}
@@ -656,15 +663,16 @@ func TestWriteTruncateGrow(t *testing.T) {
 
 func BenchmarkWriteSmall(b *testing.B) {
 	blob := emptyBlob(b, &mock.InMemory{})
+	ctx := context.Background()
+	bio := blob.IO(ctx)
 
 	b.SetBytes(int64(len(GREETING)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := blob.WriteAt(GREETING, 0)
+		_, err := bio.WriteAt(GREETING, 0)
 		if err != nil {
 			b.Fatalf("unexpected write error: %v", err)
 		}
-		ctx := context.Background()
 		_, err = blob.Save(ctx)
 		if err != nil {
 			b.Fatalf("unexpected error from Save: %v", err)
@@ -675,15 +683,16 @@ func BenchmarkWriteSmall(b *testing.B) {
 func BenchmarkWriteBig(b *testing.B) {
 	body := bytes.Repeat(GREETING, 1000000)
 	blob := emptyBlob(b, &mock.InMemory{})
+	ctx := context.Background()
+	bio := blob.IO(ctx)
 
 	b.SetBytes(int64(len(body)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := blob.WriteAt(body, 0)
+		_, err := bio.WriteAt(body, 0)
 		if err != nil {
 			b.Fatalf("unexpected write error: %v", err)
 		}
-		ctx := context.Background()
 		_, err = blob.Save(ctx)
 		if err != nil {
 			b.Fatalf("unexpected error from Save: %v", err)

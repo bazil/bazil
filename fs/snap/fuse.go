@@ -39,7 +39,8 @@ func Open(chunkStore chunks.Store, de *wire.Dirent) (fusefs.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		r, err := NewReader(blob, de.Dir.Align)
+		ctx := context.TODO()
+		r, err := NewReader(blob.IO(ctx), de.Dir.Align)
 		if err != nil {
 			return nil, err
 		}

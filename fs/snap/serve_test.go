@@ -50,11 +50,11 @@ func setup_greeting(t testing.TB, chunkStore chunks.Store) *blobs.Manifest {
 	if err != nil {
 		t.Fatalf("unexpected blob open error: %v", err)
 	}
-	_, err = blob.WriteAt([]byte(GREETING), 0)
+	ctx := context.Background()
+	_, err = blob.IO(ctx).WriteAt([]byte(GREETING), 0)
 	if err != nil {
 		t.Fatalf("unexpected write error: %v", err)
 	}
-	ctx := context.Background()
 	manifest, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected save error: %v", err)
@@ -70,14 +70,14 @@ func setup_dir(t testing.TB, chunkStore chunks.Store, dirents []*wire.Dirent) *w
 	if err != nil {
 		t.Fatalf("unexpected blob open error: %v", err)
 	}
-	w := snap.NewWriter(blob)
+	ctx := context.Background()
+	w := snap.NewWriter(blob.IO(ctx))
 	for _, de := range dirents {
 		err := w.Add(de)
 		if err != nil {
 			t.Fatalf("unexpected add error: %v", err)
 		}
 	}
-	ctx := context.Background()
 	manifest, err := blob.Save(ctx)
 	if err != nil {
 		t.Fatalf("unexpected save error: %v", err)

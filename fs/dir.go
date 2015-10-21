@@ -621,7 +621,7 @@ func (d *dir) snapshot(ctx context.Context, tx *db.Tx) (*wiresnap.Dirent, error)
 	if err != nil {
 		return nil, err
 	}
-	w := snap.NewWriter(blob)
+	w := snap.NewWriter(blob.IO(ctx))
 
 	c := bucket.Dirs().List(d.inode)
 loop:

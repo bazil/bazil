@@ -184,7 +184,7 @@ func TestSyncPull(t *testing.T) {
 				t.Errorf("cannot open blob for %q: %v", de.Name, err)
 				return
 			}
-			r := io.NewSectionReader(blob, 0, int64(blob.Size()))
+			r := io.NewSectionReader(blob.IO(ctx), 0, int64(blob.Size()))
 			buf, err := ioutil.ReadAll(r)
 			if err != nil {
 				t.Errorf("cannot read blob for %q: %v", de.Name, err)

@@ -117,7 +117,7 @@ func (f *file) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 
 	f.dirty = dirty
 
-	n, err := f.blob.WriteAt(req.Data, req.Offset)
+	n, err := f.blob.IO(ctx).WriteAt(req.Data, req.Offset)
 	resp.Size = n
 	if err != nil {
 		log.Printf("write error: %v", err)
@@ -183,7 +183,7 @@ func (f *file) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 		return fuse.EIO
 	}
 	resp.Data = resp.Data[:req.Size]
-	n, err := f.blob.ReadAt(resp.Data, int64(req.Offset))
+	n, err := f.blob.IO(ctx).ReadAt(resp.Data, int64(req.Offset))
 	if err != nil && err != io.EOF {
 		log.Printf("read error: %v", err)
 		return fuse.EIO

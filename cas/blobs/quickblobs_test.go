@@ -53,13 +53,14 @@ func TestCompareRead(t *testing.T) {
 	r.Read(buf)
 
 	blob := emptyBlob(t, &mock.InMemory{})
-	blob.WriteAt(buf, 0)
+	ctx := context.Background()
+	blob.IO(ctx).WriteAt(buf, 0)
 
 	got := func(p []byte, off int64) (int, error) {
 		if off < 0 {
 			off = -off
 		}
-		return blob.ReadAt(p, off)
+		return blob.IO(ctx).ReadAt(p, off)
 	}
 	rat := bytes.NewReader(buf)
 	exp := func(p []byte, off int64) (int, error) {
@@ -128,12 +129,12 @@ func testCompareBoth(t *testing.T, saveEvery int) {
 			p := make([]byte, size)
 			NewRandReader(writeSeed).Read(p)
 			t.Logf("write %d@%d", len(p), off)
-			n, err := blob.WriteAt(p, off)
+			n, err := blob.IO(ctx).WriteAt(p, off)
 			return n, nil, err
 		} else {
 			p := make([]byte, size)
 			t.Logf("read %d@%d", len(p), off)
-			n, err := blob.ReadAt(p, off)
+			n, err := blob.IO(ctx).ReadAt(p, off)
 
 			// http://golang.org/pkg/io/#ReaderAt says "If the n = len(p)
 			// bytes returned by ReadAt are at the end of the input

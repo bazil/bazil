@@ -71,7 +71,7 @@ func (f *roFile) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.Rea
 	// TODO ReadAt is more strict about not giving partial reads
 	// than we care about, but i like the lack of cursor
 	resp.Data = resp.Data[0:cap(resp.Data)]
-	n, err := f.blob.ReadAt(resp.Data, req.Offset)
+	n, err := f.blob.IO(ctx).ReadAt(resp.Data, req.Offset)
 	resp.Data = resp.Data[:n]
 	if err != nil && err != io.EOF {
 		return err
