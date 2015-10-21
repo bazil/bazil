@@ -39,14 +39,10 @@ func Open(chunkStore chunks.Store, de *wire.Dirent) (fusefs.Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		ctx := context.TODO()
-		r, err := NewReader(blob.IO(ctx), de.Dir.Align)
-		if err != nil {
-			return nil, err
-		}
 		child := fuseDir{
 			chunkStore: chunkStore,
-			reader:     r,
+			blob:       blob,
+			align:      de.Dir.Align,
 		}
 		return child, nil
 
@@ -57,7 +53,8 @@ func Open(chunkStore chunks.Store, de *wire.Dirent) (fusefs.Node, error) {
 
 type fuseDir struct {
 	chunkStore chunks.Store
-	reader     *Reader
+	blob       *blobs.Blob
+	align      uint32
 }
 
 var _ fusefs.Node = fuseDir{}
@@ -74,7 +71,11 @@ func (d fuseDir) Attr(ctx context.Context, a *fuse.Attr) error {
 }
 
 func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
-	de, err := d.reader.Lookup(name)
+	r, err := NewReader(d.blob.IO(ctx), d.align)
+	if err != nil {
+		return nil, err
+	}
+	de, err := r.Lookup(name)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fuse.ENOENT
@@ -85,10 +86,13 @@ func (d fuseDir) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 }
 
 func (d fuseDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
+	r, err := NewReader(d.blob.IO(ctx), d.align)
+	if err != nil {
+		return nil, err
+	}
 	var list []fuse.Dirent
-	it := d.reader.Iter()
+	it := r.Iter()
 	var de *wire.Dirent
-	var err error
 	for {
 		de, err = it.Next()
 		if err == io.EOF {
