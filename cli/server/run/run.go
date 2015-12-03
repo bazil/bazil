@@ -14,7 +14,6 @@ import (
 	"bazil.org/bazil/server/http"
 	"bazil.org/bazil/tokens"
 	"bazil.org/bazil/util/trylisten"
-	"github.com/cespare/gomaxprocs"
 )
 
 type tcpAddr struct {
@@ -39,7 +38,6 @@ type runCommand struct {
 }
 
 func (cmd *runCommand) Run() error {
-	gomaxprocs.SetToNumCPU()
 	var options []server.AppOption
 	if clibazil.Bazil.Config.Debug {
 		options = append(options, server.Debug(clibazil.Bazil.Log.Event))
