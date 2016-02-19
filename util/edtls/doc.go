@@ -11,7 +11,7 @@
 // certificate. Instead, we abuse the extension mechanism to transmit
 // an extra, custom, certificate.
 //
-// Client connecting to servers are expected to already know the
+// Clients connecting to servers are expected to already know the
 // ed25519 public key of the server. Clients will announce their
 // public key, and the server-side logic can use that for
 // authentication and access control.
