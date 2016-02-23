@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"bazil.org/fuse/fs/fstestutil"
 	"golang.org/x/net/context"
 
 	"bazil.org/bazil/cas"
@@ -730,10 +731,10 @@ func TestSyncRename(t *testing.T) {
 	}
 
 	{
-		check := map[string]bazfstestutil.FileInfoCheck{
+		check := map[string]fstestutil.FileInfoCheck{
 			filename1: nil,
 		}
-		if err := bazfstestutil.CheckDir(mnt2.Dir, check); err != nil {
+		if err := fstestutil.CheckDir(mnt2.Dir, check); err != nil {
 			t.Error(err)
 		}
 	}
@@ -756,10 +757,10 @@ func TestSyncRename(t *testing.T) {
 	}
 
 	{
-		check := map[string]bazfstestutil.FileInfoCheck{
+		check := map[string]fstestutil.FileInfoCheck{
 			filename2: nil,
 		}
-		if err := bazfstestutil.CheckDir(mnt2.Dir, check); err != nil {
+		if err := fstestutil.CheckDir(mnt2.Dir, check); err != nil {
 			t.Error(err)
 		}
 	}
@@ -852,10 +853,10 @@ func TestSyncRenameWithResolvedConflict(t *testing.T) {
 	}
 
 	{
-		check := map[string]bazfstestutil.FileInfoCheck{
+		check := map[string]fstestutil.FileInfoCheck{
 			filename1: nil,
 		}
-		if err := bazfstestutil.CheckDir(mnt2.Dir, check); err != nil {
+		if err := fstestutil.CheckDir(mnt2.Dir, check); err != nil {
 			t.Error(err)
 		}
 	}
@@ -899,7 +900,7 @@ func TestSyncRenameWithResolvedConflict(t *testing.T) {
 	}
 
 	var seen os.FileInfo
-	entryCheckers := map[string]bazfstestutil.FileInfoCheck{
+	entryCheckers := map[string]fstestutil.FileInfoCheck{
 		"": func(fi os.FileInfo) error {
 			if seen != nil {
 				return fmt.Errorf("expected only one file, already saw %q", seen.Name())
@@ -908,7 +909,7 @@ func TestSyncRenameWithResolvedConflict(t *testing.T) {
 			return nil
 		},
 	}
-	if err := bazfstestutil.CheckDir(path.Join(mnt1.Dir, ".bazil", "pending", filename1), entryCheckers); err != nil {
+	if err := fstestutil.CheckDir(path.Join(mnt1.Dir, ".bazil", "pending", filename1), entryCheckers); err != nil {
 		t.Error(err)
 	}
 	if seen == nil {
@@ -938,10 +939,10 @@ func TestSyncRenameWithResolvedConflict(t *testing.T) {
 	}
 
 	{
-		check := map[string]bazfstestutil.FileInfoCheck{
+		check := map[string]fstestutil.FileInfoCheck{
 			filename2: nil,
 		}
-		if err := bazfstestutil.CheckDir(mnt2.Dir, check); err != nil {
+		if err := fstestutil.CheckDir(mnt2.Dir, check); err != nil {
 			t.Error(err)
 		}
 	}

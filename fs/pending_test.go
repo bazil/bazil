@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"bazil.org/fuse/fs/fstestutil"
 	"golang.org/x/net/context"
 
 	bazfstestutil "bazil.org/bazil/fs/fstestutil"
@@ -39,7 +40,7 @@ func TestPendingListEmpty(t *testing.T) {
 		t.Errorf("wrong mode: %v != %v", g, e)
 	}
 
-	if err := bazfstestutil.CheckDir(p, nil); err != nil {
+	if err := fstestutil.CheckDir(p, nil); err != nil {
 		t.Error(err)
 	}
 }
@@ -110,7 +111,7 @@ func TestPendingConflict(t *testing.T) {
 		t.Errorf("wrong contents after sync: %q != %q", g, e)
 	}
 
-	listCheckers := map[string]bazfstestutil.FileInfoCheck{
+	listCheckers := map[string]fstestutil.FileInfoCheck{
 		filename: func(fi os.FileInfo) error {
 			if g, e := fi.Mode(), os.ModeDir|0500; g != e {
 				return fmt.Errorf("wrong mode: %v != %v", g, e)
@@ -118,12 +119,12 @@ func TestPendingConflict(t *testing.T) {
 			return nil
 		},
 	}
-	if err := bazfstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending"), listCheckers); err != nil {
+	if err := fstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending"), listCheckers); err != nil {
 		t.Error(err)
 	}
 
 	var seen os.FileInfo
-	entryCheckers := map[string]bazfstestutil.FileInfoCheck{
+	entryCheckers := map[string]fstestutil.FileInfoCheck{
 		"": func(fi os.FileInfo) error {
 			if seen != nil {
 				return fmt.Errorf("expected only one file, already saw %q", seen.Name())
@@ -132,7 +133,7 @@ func TestPendingConflict(t *testing.T) {
 			return nil
 		},
 	}
-	if err := bazfstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending", filename), entryCheckers); err != nil {
+	if err := fstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending", filename), entryCheckers); err != nil {
 		t.Error(err)
 	}
 	if seen == nil {
@@ -226,7 +227,7 @@ func TestPendingResolveByRemove(t *testing.T) {
 		t.Errorf("wrong contents after sync: %q != %q", g, e)
 	}
 
-	listCheckers := map[string]bazfstestutil.FileInfoCheck{
+	listCheckers := map[string]fstestutil.FileInfoCheck{
 		filename: func(fi os.FileInfo) error {
 			if g, e := fi.Mode(), os.ModeDir|0500; g != e {
 				return fmt.Errorf("wrong mode: %v != %v", g, e)
@@ -234,12 +235,12 @@ func TestPendingResolveByRemove(t *testing.T) {
 			return nil
 		},
 	}
-	if err := bazfstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending"), listCheckers); err != nil {
+	if err := fstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending"), listCheckers); err != nil {
 		t.Error(err)
 	}
 
 	var seen os.FileInfo
-	entryCheckers := map[string]bazfstestutil.FileInfoCheck{
+	entryCheckers := map[string]fstestutil.FileInfoCheck{
 		"": func(fi os.FileInfo) error {
 			if seen != nil {
 				return fmt.Errorf("expected only one file, already saw %q", seen.Name())
@@ -248,7 +249,7 @@ func TestPendingResolveByRemove(t *testing.T) {
 			return nil
 		},
 	}
-	if err := bazfstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending", filename), entryCheckers); err != nil {
+	if err := fstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending", filename), entryCheckers); err != nil {
 		t.Error(err)
 	}
 	if seen == nil {
@@ -374,7 +375,7 @@ func TestPendingConflictTombstone(t *testing.T) {
 		}
 	}
 
-	listCheckers := map[string]bazfstestutil.FileInfoCheck{
+	listCheckers := map[string]fstestutil.FileInfoCheck{
 		filename: func(fi os.FileInfo) error {
 			if g, e := fi.Mode(), os.ModeDir|0500; g != e {
 				return fmt.Errorf("wrong mode: %v != %v", g, e)
@@ -382,12 +383,12 @@ func TestPendingConflictTombstone(t *testing.T) {
 			return nil
 		},
 	}
-	if err := bazfstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending"), listCheckers); err != nil {
+	if err := fstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending"), listCheckers); err != nil {
 		t.Error(err)
 	}
 
 	var seen os.FileInfo
-	entryCheckers := map[string]bazfstestutil.FileInfoCheck{
+	entryCheckers := map[string]fstestutil.FileInfoCheck{
 		"": func(fi os.FileInfo) error {
 			if seen != nil {
 				return fmt.Errorf("expected only one file, already saw %q", seen.Name())
@@ -396,7 +397,7 @@ func TestPendingConflictTombstone(t *testing.T) {
 			return nil
 		},
 	}
-	if err := bazfstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending", filename), entryCheckers); err != nil {
+	if err := fstestutil.CheckDir(path.Join(mnt2.Dir, ".bazil", "pending", filename), entryCheckers); err != nil {
 		t.Error(err)
 	}
 	if seen == nil {
