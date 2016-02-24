@@ -10,18 +10,34 @@ import "bazil.org/bazil/server/control/wire/publickey.proto";
 option go_package = "wire";
 
 service Control {
-  rpc Ping(PingRequest) returns (PingResponse) {}
-  rpc PublicKeyGet(PublicKeyGetRequest) returns (PublicKeyGetResponse) {}
-  rpc VolumeCreate(VolumeCreateRequest) returns (VolumeCreateResponse) {}
-  rpc VolumeConnect(VolumeConnectRequest) returns (VolumeConnectResponse) {}
-  rpc VolumeMount(VolumeMountRequest) returns (VolumeMountResponse) {}
-  rpc VolumeStorageAdd(VolumeStorageAddRequest) returns (VolumeStorageAddResponse) {}
-  rpc VolumeSync(VolumeSyncRequest) returns (VolumeSyncResponse) {}
-  rpc SharingKeyAdd(SharingKeyAddRequest) returns (SharingKeyAddResponse) {}
-  rpc PeerAdd(PeerAddRequest) returns (PeerAddResponse) {}
-  rpc PeerLocationSet(PeerLocationSetRequest) returns (PeerLocationSetResponse) {}
-  rpc PeerStorageAllow(PeerStorageAllowRequest) returns (PeerStorageAllowResponse) {}
-  rpc PeerVolumeAllow(PeerVolumeAllowRequest) returns (PeerVolumeAllowResponse) {}
+  rpc Ping(PingRequest) returns (PingResponse) {
+  }
+  rpc PublicKeyGet(PublicKeyGetRequest) returns (PublicKeyGetResponse) {
+  }
+  rpc VolumeCreate(VolumeCreateRequest) returns (VolumeCreateResponse) {
+  }
+  rpc VolumeConnect(VolumeConnectRequest) returns (VolumeConnectResponse) {
+  }
+  rpc VolumeMount(VolumeMountRequest) returns (VolumeMountResponse) {
+  }
+  rpc VolumeStorageAdd(VolumeStorageAddRequest)
+      returns (VolumeStorageAddResponse) {
+  }
+  rpc VolumeSync(VolumeSyncRequest) returns (VolumeSyncResponse) {
+  }
+  rpc SharingKeyAdd(SharingKeyAddRequest) returns (SharingKeyAddResponse) {
+  }
+  rpc PeerAdd(PeerAddRequest) returns (PeerAddResponse) {
+  }
+  rpc PeerLocationSet(PeerLocationSetRequest)
+      returns (PeerLocationSetResponse) {
+  }
+  rpc PeerStorageAllow(PeerStorageAllowRequest)
+      returns (PeerStorageAllowResponse) {
+  }
+  rpc PeerVolumeAllow(PeerVolumeAllowRequest)
+      returns (PeerVolumeAllowResponse) {
+  }
 }
 
 message PingRequest {

@@ -7,11 +7,17 @@ option go_package = "wire";
 import "bazil.org/bazil/cas/wire/manifest.proto";
 
 service Peer {
-  rpc Ping(PingRequest) returns (PingResponse) {}
-  rpc ObjectPut(stream ObjectPutRequest) returns (ObjectPutResponse) {}
-  rpc ObjectGet(ObjectGetRequest) returns (stream ObjectGetResponse) {}
-  rpc VolumeConnect(VolumeConnectRequest) returns (VolumeConnectResponse) {}
-  rpc VolumeSyncPull(VolumeSyncPullRequest) returns (stream VolumeSyncPullItem) {}
+  rpc Ping(PingRequest) returns (PingResponse) {
+  }
+  rpc ObjectPut(stream ObjectPutRequest) returns (ObjectPutResponse) {
+  }
+  rpc ObjectGet(ObjectGetRequest) returns (stream ObjectGetResponse) {
+  }
+  rpc VolumeConnect(VolumeConnectRequest) returns (VolumeConnectResponse) {
+  }
+  rpc VolumeSyncPull(VolumeSyncPullRequest)
+      returns (stream VolumeSyncPullItem) {
+  }
 }
 
 message PingRequest {
@@ -68,7 +74,7 @@ message VolumeSyncPullItem {
   // public keys.
   //
   // This can only be present in the first streamed message.
-  map<uint32,bytes> peers = 2;
+  map<uint32, bytes> peers = 2;
 
   // Logical clock for the directory itself.
   //
