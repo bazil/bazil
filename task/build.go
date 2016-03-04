@@ -73,7 +73,7 @@ func main() {
 		log.Fatalf("git describe: %v", err)
 	}
 	err = goBuild(src, "build", "-v",
-		"-ldflags", "-X bazil.org/bazil/version.Version "+version,
+		"-ldflags", "-X bazil.org/bazil/version.Version="+version,
 		"bazil.org/bazil",
 	)
 	if err != nil {
