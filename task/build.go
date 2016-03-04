@@ -62,8 +62,7 @@ func main() {
 	if !ok {
 		log.Fatal("cannot determine source directory")
 	}
-	err := os.Chdir(src)
-	if err != nil {
+	if err := os.Chdir(src); err != nil {
 		log.Fatalf("cannot change to source directory: %v", err)
 	}
 
@@ -72,11 +71,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("git describe: %v", err)
 	}
-	err = goBuild(src, "build", "-v",
+
+	if err := goBuild(src, "build", "-v",
 		"-ldflags", "-X bazil.org/bazil/version.Version="+version,
 		"bazil.org/bazil",
-	)
-	if err != nil {
+	); err != nil {
 		log.Fatalf("go build of bazil: %v", err)
 	}
 }
