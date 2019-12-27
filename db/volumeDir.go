@@ -78,7 +78,9 @@ func (b *Dirs) Tombstone(parentInode uint64, name string) error {
 	if b.b.Get(key) == nil {
 		return fuse.ENOENT
 	}
-	de := &wirefs.Dirent{Tombstone: &wirefs.Tombstone{}}
+	de := &wirefs.Dirent{
+		Type: &wirefs.Dirent_Tombstone{Tombstone: &wirefs.Tombstone{}},
+	}
 	if err := b.Put(parentInode, name, de); err != nil {
 		return err
 	}
@@ -89,7 +91,9 @@ func (b *Dirs) Tombstone(parentInode uint64, name string) error {
 // name as removed, but leaves a hint of its existence. It creates a
 // new entry if one does not exist yet.
 func (b *Dirs) TombstoneCreate(parentInode uint64, name string) error {
-	de := &wirefs.Dirent{Tombstone: &wirefs.Tombstone{}}
+	de := &wirefs.Dirent{
+		Type: &wirefs.Dirent_Tombstone{Tombstone: &wirefs.Tombstone{}},
+	}
 	if err := b.Put(parentInode, name, de); err != nil {
 		return err
 	}
@@ -122,7 +126,9 @@ func (b *Dirs) Rename(parentInode uint64, oldName string, newName string) (*DirE
 	if err := b.b.Put(keyNew, bufOld); err != nil {
 		return nil, err
 	}
-	tombDE := &wirefs.Dirent{Tombstone: &wirefs.Tombstone{}}
+	tombDE := &wirefs.Dirent{
+		Type: &wirefs.Dirent_Tombstone{Tombstone: &wirefs.Tombstone{}},
+	}
 	tombBuf, err := proto.Marshal(tombDE)
 	if err != nil {
 		return nil, err

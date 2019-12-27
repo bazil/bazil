@@ -37,6 +37,16 @@ func srcRoot(abspath string) (string, error) {
 	return pkg.SrcRoot, nil
 }
 
+func buildCommands(dst string, importPaths ...string) error {
+	cmd := exec.Command("go", "install", "--")
+	cmd.Args = append(cmd.Args, importPaths...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GOBIN="+dst)
+	return cmd.Run()
+}
+
 func listProtos() ([]string, error) {
 	var protos []string
 	children, err := ioutil.ReadDir(".")
@@ -73,8 +83,19 @@ func process() error {
 		return err
 	}
 
+	// TODO stop depending on GOPATH
 	src, err := srcRoot(cwd)
 	if err != nil {
+		return err
+	}
+
+	// TODO avoid gopath _and_ assumptions about cwd
+	bindir := filepath.Join(src, "bazil.org/bazil", "task/tools/bin")
+
+	if err := buildCommands(
+		bindir,
+		"github.com/golang/protobuf/protoc-gen-go",
+	); err != nil {
 		return err
 	}
 
@@ -96,6 +117,8 @@ func process() error {
 	cmd.Dir = src
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "PATH="+bindir+string(filepath.ListSeparator)+os.Getenv("PATH"))
 	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("processing protobuf sources: %v", err)

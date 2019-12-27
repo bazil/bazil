@@ -193,7 +193,8 @@ func TombstoneFromParent(parent *Clock) *Clock {
 // The zero value of Action is not valid.
 type Action int
 
-//go:generate stringer -type=Action
+//go:generate go build -o ../../task/tools/bin/stringer golang.org/x/tools/cmd/stringer
+//go:generate ../../task/tools/bin/stringer -type=Action
 
 const (
 	invalidAction Action = iota

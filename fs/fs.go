@@ -215,7 +215,7 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 		}
 
 		// If it's not the root, make sure it's a directory; List below doesn't.
-		if dirDE != nil && dirDE.Dir == nil {
+		if dirDE != nil && dirDE.GetDir() == nil {
 			msg := &wirepeer.VolumeSyncPullItem{
 				Error: wirepeer.VolumeSyncPullItem_NOT_A_DIRECTORY,
 			}
@@ -269,15 +269,21 @@ func (v *Volume) SyncSend(ctx context.Context, dirPath string, send func(*wirepe
 			de := &wirepeer.Dirent{
 				Name: name,
 			}
-			switch {
-			case tmp.File != nil:
-				de.File = &wirepeer.File{
-					Manifest: tmp.File.Manifest,
+			switch tmpdt := tmp.Type.(type) {
+			case *wire.Dirent_File:
+				de.Type = &wirepeer.Dirent_File{
+					File: &wirepeer.File{
+						Manifest: tmpdt.File.Manifest,
+					},
 				}
-			case tmp.Dir != nil:
-				de.Dir = &wirepeer.Dir{}
-			case tmp.Tombstone != nil:
-				de.Tombstone = &wirepeer.Tombstone{}
+			case *wire.Dirent_Dir:
+				de.Type = &wirepeer.Dirent_Dir{
+					Dir: &wirepeer.Dir{},
+				}
+			case *wire.Dirent_Tombstone:
+				de.Type = &wirepeer.Dirent_Tombstone{
+					Tombstone: &wirepeer.Tombstone{},
+				}
 			default:
 				return fmt.Errorf("unknown dirent type: %v", tmp)
 			}

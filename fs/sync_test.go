@@ -980,12 +980,14 @@ func TestSyncSendPending(t *testing.T) {
 		v.VolumeID(&volID)
 		de := &wirefs.Dirent{
 			Inode: 1000,
-			File: &wirefs.File{
-				Manifest: &wirecas.Manifest{
-					Root:      cas.Empty.Bytes(),
-					Size:      0,
-					ChunkSize: 4096 * 1024,
-					Fanout:    256,
+			Type: &wirefs.Dirent_File{
+				File: &wirefs.File{
+					Manifest: &wirecas.Manifest{
+						Root:      cas.Empty.Bytes(),
+						Size:      0,
+						ChunkSize: 4096 * 1024,
+						Fanout:    256,
+					},
 				},
 			},
 		}
@@ -999,8 +1001,10 @@ func TestSyncSendPending(t *testing.T) {
 
 		c2 := clock.Create(1, 11)
 		de2 := &wirepeer.Dirent{
-			Name:      "one",
-			Tombstone: &wirepeer.Tombstone{},
+			Name: "one",
+			Type: &wirepeer.Dirent_Tombstone{
+				Tombstone: &wirepeer.Tombstone{},
+			},
 		}
 		if err := v.Conflicts().Add(1, c2, de2); err != nil {
 			return err
@@ -1008,8 +1012,10 @@ func TestSyncSendPending(t *testing.T) {
 
 		c3 := clock.Create(2, 12)
 		de3 := &wirepeer.Dirent{
-			Name:      "one",
-			Tombstone: &wirepeer.Tombstone{},
+			Name: "one",
+			Type: &wirepeer.Dirent_Tombstone{
+				Tombstone: &wirepeer.Tombstone{},
+			},
 		}
 		if err := v.Conflicts().Add(1, c3, de3); err != nil {
 			return err
@@ -1053,13 +1059,13 @@ func TestSyncSendPending(t *testing.T) {
 		}
 	}
 
-	if children[0].File == nil {
+	if children[0].GetFile() == nil {
 		t.Errorf("child 0 should have been a file: %#v", children[0])
 	}
-	if children[1].Tombstone == nil {
+	if children[1].GetTombstone() == nil {
 		t.Errorf("child 1 should have been a tombstone: %#v", children[0])
 	}
-	if children[2].Tombstone == nil {
+	if children[2].GetTombstone() == nil {
 		t.Errorf("child 2 should have been a tombstone: %#v", children[0])
 	}
 

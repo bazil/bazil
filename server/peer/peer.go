@@ -9,15 +9,15 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
+	grpcpeer "google.golang.org/grpc/peer"
 )
 
 func (p *peers) auth(ctx context.Context) (*peer.PublicKey, error) {
-	authInfo, ok := credentials.FromContext(ctx)
+	peerInfo, ok := grpcpeer.FromContext(ctx)
 	if !ok {
 		return nil, grpc.Errorf(codes.Unauthenticated, "unauthenticated")
 	}
-	auth, ok := authInfo.(*grpcedtls.Auth)
+	auth, ok := peerInfo.AuthInfo.(*grpcedtls.Auth)
 	if !ok {
 		return nil, grpc.Errorf(codes.Unauthenticated, "unauthenticated")
 	}

@@ -120,9 +120,9 @@ func (e *pendingEntry) Lookup(ctx context.Context, name string) (fs.Node, error)
 	}
 
 	var child fs.Node
-	switch {
-	case de.File != nil:
-		manifest, err := de.File.Manifest.ToBlob("file")
+	switch dt := de.Type.(type) {
+	case *wirepeer.Dirent_File:
+		manifest, err := dt.File.Manifest.ToBlob("file")
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func (e *pendingEntry) Lookup(ctx context.Context, name string) (fs.Node, error)
 		}
 		child = f
 
-	case de.Tombstone != nil:
+	case *wirepeer.Dirent_Tombstone:
 		return pendingTombstone{}, nil
 
 	default:

@@ -158,7 +158,8 @@ func TestSyncPull(t *testing.T) {
 
 	wantFiles := map[string]func(*wire.Dirent){
 		testFileName: func(de *wire.Dirent) {
-			if de.File == nil {
+			dt, ok := de.Type.(*wire.Dirent_File)
+			if !ok {
 				t.Errorf("wrong type for %q, not a file: %v", de.Name, de)
 				return
 			}
@@ -174,7 +175,7 @@ func TestSyncPull(t *testing.T) {
 			}
 
 			// verify file contents
-			manifest, err := de.File.Manifest.ToBlob("file")
+			manifest, err := dt.File.Manifest.ToBlob("file")
 			if err != nil {
 				t.Errorf("cannot open manifest for %q: %v", de.Name, err)
 				return

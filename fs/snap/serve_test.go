@@ -83,8 +83,10 @@ func setup_dir(t testing.TB, chunkStore chunks.Store, dirents []*wire.Dirent) *w
 		t.Fatalf("unexpected save error: %v", err)
 	}
 	var de wire.Dirent
-	de.Dir = &wire.Dir{
-		Manifest: wirecas.FromBlob(manifest),
+	de.Type = &wire.Dirent_Dir{
+		Dir: &wire.Dir{
+			Manifest: wirecas.FromBlob(manifest),
+		},
 	}
 	return &de
 }
@@ -96,8 +98,10 @@ func setup_fs(t *testing.T) fs.FS {
 	dir := setup_dir(t, chunkStore, []*wire.Dirent{
 		&wire.Dirent{
 			Name: "hello",
-			File: &wire.File{
-				Manifest: wirecas.FromBlob(greeting),
+			Type: &wire.Dirent_File{
+				File: &wire.File{
+					Manifest: wirecas.FromBlob(greeting),
+				},
 			},
 			// Space:   uint64(len(GREETING)),
 			// Written: TIME_1,
@@ -233,8 +237,10 @@ func TestTwoLevels(t *testing.T) {
 		dir1 := setup_dir(t, chunkStore, []*wire.Dirent{
 			&wire.Dirent{
 				Name: "hello",
-				File: &wire.File{
-					Manifest: wirecas.FromBlob(greeting),
+				Type: &wire.Dirent_File{
+					File: &wire.File{
+						Manifest: wirecas.FromBlob(greeting),
+					},
 				},
 				// Space:   uint64(len(GREETING)),
 				// Written: TIME_1,

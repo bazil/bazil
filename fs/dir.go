@@ -133,7 +133,7 @@ func (d *dir) lookup(v viewer, name string) (*refcount, error) {
 		if err != nil {
 			return err
 		}
-		if de.Tombstone != nil {
+		if _, ok := de.Type.(*wire.Dirent_Tombstone); ok {
 			return fuse.ENOENT
 		}
 		return nil
@@ -183,21 +183,18 @@ func unmarshalDirent(buf []byte) (*wire.Dirent, error) {
 	return &de, nil
 }
 
-func (d *dir) reviveDir(de *wire.Dirent, name string) (*dir, error) {
-	if de.Dir == nil {
-		return nil, fmt.Errorf("tried to revive non-directory as directory: %v", de)
-	}
+func (d *dir) reviveDir(de *wire.Dirent, dt *wire.Dir, name string) (*dir, error) {
 	child := newDir(d.fs, de.Inode, d, name)
 	return child, nil
 }
 
 func (d *dir) reviveNode(de *wire.Dirent, name string) (node, error) {
-	switch {
-	case de.Dir != nil:
-		return d.reviveDir(de, name)
+	switch dt := de.Type.(type) {
+	case *wire.Dirent_Dir:
+		return d.reviveDir(de, dt.Dir, name)
 
-	case de.File != nil:
-		manifest, err := de.File.Manifest.ToBlob("file")
+	case *wire.Dirent_File:
+		manifest, err := dt.File.Manifest.ToBlob("file")
 		if err != nil {
 			return nil, err
 		}
@@ -229,7 +226,7 @@ func (d *dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			if err := item.Unmarshal(&de); err != nil {
 				return fmt.Errorf("readdir error: %v", err)
 			}
-			if de.Tombstone != nil {
+			if _, ok := de.Type.(*wire.Dirent_Tombstone); ok {
 				continue
 			}
 			fde := de.GetFUSEDirent(item.Name())
@@ -301,8 +298,10 @@ func (d *dir) updateParents(vc *db.VolumeClock, c *clock.Clock) error {
 func (d *dir) marshal(ctx context.Context) (*wire.Dirent, error) {
 	de := &wire.Dirent{
 		Inode: d.inode,
+		Type: &wire.Dirent_Dir{
+			Dir: &wire.Dir{},
+		},
 	}
-	de.Dir = &wire.Dir{}
 	return de, nil
 }
 
@@ -547,10 +546,11 @@ func (d *dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 			if err != nil {
 				return err
 			}
-			if wde.Tombstone != nil {
+			switch wde.Type.(type) {
+			case *wire.Dirent_Tombstone:
 				return fuse.ENOENT
-			}
-			if wde.Dir != nil {
+
+			case *wire.Dirent_Dir:
 				// TODO prevent renaming of directories, for now
 				// https://github.com/bazil/bazil/issues/5
 				return fuse.Errno(syscall.EXDEV)
@@ -631,17 +631,19 @@ loop:
 			return nil, err
 		}
 		var sde *wiresnap.Dirent
-		switch {
-		case de.File != nil:
+		switch dt := de.Type.(type) {
+		case *wire.Dirent_File:
 			// TODO d.reviveNode would do blobs.Open and that's a bit
 			// too much work; rework the apis
 			sde = &wiresnap.Dirent{
-				File: &wiresnap.File{
-					Manifest: de.File.Manifest,
+				Type: &wiresnap.Dirent_File{
+					File: &wiresnap.File{
+						Manifest: dt.File.Manifest,
+					},
 				},
 			}
-		case de.Dir != nil:
-			child, err := d.reviveDir(&de, item.Name())
+		case *wire.Dirent_Dir:
+			child, err := d.reviveDir(&de, dt.Dir, item.Name())
 			if err != nil {
 				return nil, err
 			}
@@ -649,7 +651,7 @@ loop:
 			if err != nil {
 				return nil, err
 			}
-		case de.Tombstone != nil:
+		case *wire.Dirent_Tombstone:
 			continue loop
 		default:
 			return nil, errors.New("TODO")
@@ -666,9 +668,11 @@ loop:
 		return nil, err
 	}
 	msg := wiresnap.Dirent{
-		Dir: &wiresnap.Dir{
-			Manifest: wirecas.FromBlob(manifest),
-			Align:    w.Align(),
+		Type: &wiresnap.Dirent_Dir{
+			Dir: &wiresnap.Dir{
+				Manifest: wirecas.FromBlob(manifest),
+				Align:    w.Align(),
+			},
 		},
 	}
 	return &msg, nil
@@ -731,11 +735,12 @@ func (d *dir) syncToMissing(ctx context.Context, tx *db.Tx, volume *db.Volume, w
 		if err := clocks.Put(d.inode, wde.Name, theirs); err != nil {
 			return err
 		}
-		if wde.Tombstone != nil {
+		switch wde.Type.(type) {
+		case *wirepeer.Dirent_Tombstone:
 			if err := volume.Dirs().TombstoneCreate(d.inode, wde.Name); err != nil {
 				return fmt.Errorf("dirent tombstone save error: %v", err)
 			}
-		} else {
+		default:
 			inode, err := inodes.Allocate(volume.InodeBucket())
 			if err != nil {
 				return err
@@ -744,13 +749,17 @@ func (d *dir) syncToMissing(ctx context.Context, tx *db.Tx, volume *db.Volume, w
 			de := &wire.Dirent{
 				Inode: inode,
 			}
-			switch {
-			case wde.File != nil:
-				de.File = &wire.File{
-					Manifest: wde.File.Manifest,
+			switch wdt := wde.Type.(type) {
+			case *wirepeer.Dirent_File:
+				de.Type = &wire.Dirent_File{
+					File: &wire.File{
+						Manifest: wdt.File.Manifest,
+					},
 				}
-			case wde.Dir != nil:
-				de.Dir = &wire.Dir{}
+			case *wirepeer.Dirent_Dir:
+				de.Type = &wire.Dirent_Dir{
+					Dir: &wire.Dir{},
+				}
 			default:
 				return fmt.Errorf("unknown direntry type: %v", wde)
 			}
@@ -789,7 +798,7 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 		// TODO add node.update method? with a defined error to
 		// trigger a conflict instead?
 
-		if wde.Tombstone != nil {
+		if _, ok := wde.Type.(*wirepeer.Dirent_Tombstone); ok {
 			if err := clocks.Put(d.inode, wde.Name, mine); err != nil {
 				return err
 			}
@@ -811,11 +820,12 @@ func (d *dir) syncToNode(ctx context.Context, tx *db.Tx, volume *db.Volume, chil
 
 		switch child := child.(type) {
 		case *file:
-			if wde.File == nil {
+			wdt, ok := wde.Type.(*wirepeer.Dirent_File)
+			if !ok {
 				return fmt.Errorf("TODO trying to convert file into non-file: %v", wde)
 			}
 			// TODO combine into reviveNode, make it take in the old node?
-			manifest, err := wde.File.Manifest.ToBlob("file")
+			manifest, err := wdt.File.Manifest.ToBlob("file")
 			if err != nil {
 				return err
 			}
@@ -926,8 +936,10 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClock
 						}
 						if oursPrev < wde.Name {
 							tomb := &wirepeer.Dirent{
-								Name:      oursPrev,
-								Tombstone: &wirepeer.Tombstone{},
+								Name: oursPrev,
+								Type: &wirepeer.Dirent_Tombstone{
+									Tombstone: &wirepeer.Tombstone{},
+								},
 							}
 							if err := d.syncToNode(ctx, tx, bucket, nil, tomb, tombstoneClock); err != nil {
 								return err
@@ -993,8 +1005,10 @@ func (d *dir) syncReceive(ctx context.Context, peers map[uint32][]byte, dirClock
 			for ours := c.Seek(oursPrev); ours != nil; ours = c.Next() {
 				name := ours.Name()
 				tomb := &wirepeer.Dirent{
-					Name:      name,
-					Tombstone: &wirepeer.Tombstone{},
+					Name: name,
+					Type: &wirepeer.Dirent_Tombstone{
+						Tombstone: &wirepeer.Tombstone{},
+					},
 				}
 				if err := d.syncToNode(ctx, tx, bucket, nil, tomb, tombstoneClock); err != nil {
 					return err

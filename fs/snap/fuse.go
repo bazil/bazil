@@ -18,8 +18,8 @@ import (
 
 // Serve this snapshot with FUSE, with this object store.
 func Open(chunkStore chunks.Store, de *wire.Dirent) (fusefs.Node, error) {
-	switch {
-	case de.File != nil:
+	switch de := de.Type.(type) {
+	case *wire.Dirent_File:
 		manifest, err := de.File.Manifest.ToBlob("file")
 		if err != nil {
 			return nil, err
@@ -30,7 +30,7 @@ func Open(chunkStore chunks.Store, de *wire.Dirent) (fusefs.Node, error) {
 		}
 		return child, nil
 
-	case de.Dir != nil:
+	case *wire.Dirent_Dir:
 		manifest, err := de.Dir.Manifest.ToBlob("dir")
 		if err != nil {
 			return nil, err
@@ -104,9 +104,10 @@ func (d fuseDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		fde := fuse.Dirent{
 			Name: de.Name,
 		}
-		if de.File != nil {
+		switch de.Type.(type) {
+		case *wire.Dirent_File:
 			fde.Type = fuse.DT_File
-		} else if de.Dir != nil {
+		case *wire.Dirent_Dir:
 			fde.Type = fuse.DT_Dir
 		}
 		list = append(list, fde)
