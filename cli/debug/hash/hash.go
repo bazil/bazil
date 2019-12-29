@@ -24,7 +24,7 @@ type hashCommand struct {
 func (c *hashCommand) Run() error {
 	var buf bytes.Buffer
 	const kB = 1024
-	const MB = 1024
+	const MB = 1024 * kB
 	const Max = 256 * MB
 	n, err := io.CopyN(&buf, os.Stdin, Max)
 	if err != nil && err != io.EOF {
