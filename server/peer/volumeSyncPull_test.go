@@ -204,7 +204,7 @@ func TestSyncPull(t *testing.T) {
 		fn(de)
 		delete(wantFiles, de.Name)
 	}
-	for name, _ := range wantFiles {
+	for name := range wantFiles {
 		t.Errorf("missing direntry: %q", name)
 	}
 

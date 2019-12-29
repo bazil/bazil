@@ -96,7 +96,7 @@ func setup_fs(t *testing.T) fs.FS {
 
 	greeting := setup_greeting(t, chunkStore)
 	dir := setup_dir(t, chunkStore, []*wire.Dirent{
-		&wire.Dirent{
+		{
 			Name: "hello",
 			Type: &wire.Dirent_File{
 				File: &wire.File{
@@ -235,7 +235,7 @@ func TestTwoLevels(t *testing.T) {
 		chunkStore := &mock.InMemory{}
 		greeting := setup_greeting(t, chunkStore)
 		dir1 := setup_dir(t, chunkStore, []*wire.Dirent{
-			&wire.Dirent{
+			{
 				Name: "hello",
 				Type: &wire.Dirent_File{
 					File: &wire.File{
@@ -288,7 +288,7 @@ func TestJunkType(t *testing.T) {
 	setup_fs := func() fs.FS {
 		chunkStore := &mock.InMemory{}
 		dir := setup_dir(t, chunkStore, []*wire.Dirent{
-			&wire.Dirent{
+			{
 				Name: "junk",
 			},
 		})

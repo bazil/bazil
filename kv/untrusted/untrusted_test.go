@@ -90,7 +90,7 @@ func TestWrongType(t *testing.T) {
 		t.Fatalf("store.Add failed: %v", err)
 	}
 	// replace it with the phony, preserving key
-	for k, _ := range remote.Data {
+	for k := range remote.Data {
 		remote.Data[k] = phonyData
 	}
 
@@ -159,7 +159,7 @@ func TestWrongSecret(t *testing.T) {
 			t.Fatalf("store.Add failed: %v", err)
 		}
 		// replace it with the phony, preserving key
-		for k, _ := range remote.Data {
+		for k := range remote.Data {
 			remote.Data[k] = phonyData
 		}
 
