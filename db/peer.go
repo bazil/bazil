@@ -258,8 +258,6 @@ func (p *PeerVolumes) Allow(vol *Volume) error {
 }
 
 func (p *PeerVolumes) IsAllowed(vol *Volume) bool {
-	if p.b.Get([]byte(vol.id)) == nil {
-		return false
-	}
-	return true
+	found := p.b.Get([]byte(vol.id)) != nil
+	return found
 }

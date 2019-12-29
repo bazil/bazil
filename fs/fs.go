@@ -45,13 +45,6 @@ type Volume struct {
 
 var _ fs.FS = (*Volume)(nil)
 
-var bucketVolume = []byte(tokens.BucketVolume)
-var bucketVolName = []byte(tokens.BucketVolName)
-var bucketDir = []byte("dir")
-var bucketInode = []byte("inode")
-var bucketSnap = []byte("snap")
-var bucketStorage = []byte("storage")
-
 func (v *Volume) bucket(tx *db.Tx) *db.Volume {
 	vv, err := tx.Volumes().GetByVolumeID(&v.volID)
 	if err != nil {
