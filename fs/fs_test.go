@@ -343,7 +343,6 @@ func TestPersistentMkdir(t *testing.T) {
 	}()
 
 	t.Logf("Unmounted to check persistency")
-	time.Sleep(3 * time.Second)
 
 	func() {
 		mnt := bazfstestutil.Mounted(t, app, "default")
