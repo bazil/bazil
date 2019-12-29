@@ -23,7 +23,6 @@ import (
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"github.com/golang/protobuf/proto"
 )
 
 type dir struct {
@@ -173,14 +172,6 @@ func (d *dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 	a.kernel = true
 	return a.node, nil
-}
-
-func unmarshalDirent(buf []byte) (*wire.Dirent, error) {
-	var de wire.Dirent
-	if err := proto.Unmarshal(buf, &de); err != nil {
-		return nil, err
-	}
-	return &de, nil
 }
 
 func (d *dir) reviveDir(de *wire.Dirent, dt *wire.Dir, name string) (*dir, error) {
