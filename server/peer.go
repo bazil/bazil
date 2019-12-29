@@ -2,7 +2,6 @@ package server
 
 import (
 	"io"
-	"time"
 
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/kv"
@@ -72,11 +71,10 @@ func (app *App) DialPeer(pub *peer.PublicKey) (PeerClient, error) {
 		PeerPub: (*[ed25519.PublicKeySize]byte)(pub),
 	}
 
-	// TODO never delay here.
-	// https://github.com/grpc/grpc-go/blob/8ce50750fe22e967aa8b1d308b21511844674b57/clientconn.go#L85
+	// this is not a slow network operation, it just tells grpc about
+	// the remote
 	conn, err := grpc.Dial(addr,
 		grpc.WithTransportCredentials(auth),
-		grpc.WithTimeout(30*time.Second),
 	)
 	if err != nil {
 		return nil, err
