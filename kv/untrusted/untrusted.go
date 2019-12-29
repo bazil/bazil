@@ -1,6 +1,7 @@
 package untrusted
 
 import (
+	"context"
 	"fmt"
 
 	"bazil.org/bazil/cas"
@@ -8,7 +9,6 @@ import (
 	"bazil.org/bazil/tokens"
 	"github.com/codahale/blake2"
 	"golang.org/x/crypto/nacl/secretbox"
-	"golang.org/x/net/context"
 )
 
 type Convergent struct {

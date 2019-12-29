@@ -1,12 +1,13 @@
 package peer
 
 import (
+	"context"
+
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server"
 	"bazil.org/bazil/util/grpcedtls"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcpeer "google.golang.org/grpc/peer"

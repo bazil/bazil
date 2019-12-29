@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"context"
 	"io"
 	"log"
 	"sync"
@@ -13,7 +14,6 @@ import (
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"golang.org/x/net/context"
 )
 
 type dirtiness int

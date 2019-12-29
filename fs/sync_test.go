@@ -1,6 +1,7 @@
 package fs_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,9 +12,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"bazil.org/fuse/fs/fstestutil"
-	"golang.org/x/net/context"
 
 	"bazil.org/bazil/cas"
 	wirecas "bazil.org/bazil/cas/wire"
@@ -29,6 +27,7 @@ import (
 	"bazil.org/bazil/server/http/httptest"
 	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/bazil/util/tempdir"
+	"bazil.org/fuse/fs/fstestutil"
 )
 
 // createAndConnectVolume creates a volume on app1 and connects app2

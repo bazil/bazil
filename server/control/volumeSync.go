@@ -1,13 +1,13 @@
 package control
 
 import (
+	"context"
 	"io"
 
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/peer"
 	wirepeer "bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server/control/wire"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )

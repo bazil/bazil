@@ -1,13 +1,13 @@
 package add
 
 import (
+	"context"
 	"flag"
 
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/positional"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/server/control/wire"
-	"golang.org/x/net/context"
 )
 
 type addCommand struct {

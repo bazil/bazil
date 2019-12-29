@@ -1,12 +1,12 @@
 package kvfiles_test
 
 import (
+	"context"
 	"testing"
 
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/kv/kvfiles"
 	"bazil.org/bazil/util/tempdir"
-	"golang.org/x/net/context"
 )
 
 func TestAdd(t *testing.T) {

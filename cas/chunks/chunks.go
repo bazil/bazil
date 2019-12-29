@@ -2,10 +2,10 @@
 package chunks
 
 import (
+	"context"
 	"fmt"
 
 	"bazil.org/bazil/cas"
-	"golang.org/x/net/context"
 )
 
 // Chunk is a chunk of data, to be stored in a CAS. A Chunk is assumed

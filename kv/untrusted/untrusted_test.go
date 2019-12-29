@@ -1,6 +1,7 @@
 package untrusted_test
 
 import (
+	"context"
 	"testing"
 
 	"bazil.org/bazil/cas"
@@ -8,7 +9,6 @@ import (
 	"bazil.org/bazil/cas/chunks/kvchunks"
 	"bazil.org/bazil/kv/kvmock"
 	"bazil.org/bazil/kv/untrusted"
-	"golang.org/x/net/context"
 )
 
 const GREETING = "Hello, world"

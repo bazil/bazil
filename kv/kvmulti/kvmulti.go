@@ -1,10 +1,10 @@
 package kvmulti
 
 import (
+	"context"
 	"errors"
 
 	"bazil.org/bazil/kv"
-	"golang.org/x/net/context"
 )
 
 type Multi struct {

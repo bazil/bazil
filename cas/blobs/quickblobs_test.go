@@ -2,6 +2,7 @@ package blobs_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"flag"
 	"io"
@@ -13,7 +14,6 @@ import (
 	"bazil.org/bazil/cas/blobs"
 	"bazil.org/bazil/cas/chunks/mock"
 	entropy "github.com/tv42/seed"
-	"golang.org/x/net/context"
 )
 
 var seed uint64

@@ -1,6 +1,7 @@
 package control_test
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/bazil/util/tempdir"
 	"github.com/boltdb/bolt"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 )
 

@@ -1,6 +1,7 @@
 package fs_test
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,9 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	"bazil.org/fuse/fs/fstestutil"
-	"golang.org/x/net/context"
-
 	bazfstestutil "bazil.org/bazil/fs/fstestutil"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/server/control/controltest"
@@ -19,6 +17,7 @@ import (
 	"bazil.org/bazil/server/http/httptest"
 	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/bazil/util/tempdir"
+	"bazil.org/fuse/fs/fstestutil"
 )
 
 func TestPendingListEmpty(t *testing.T) {

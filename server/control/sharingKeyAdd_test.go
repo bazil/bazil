@@ -1,6 +1,7 @@
 package control_test
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -12,7 +13,6 @@ import (
 	"bazil.org/bazil/server/control/wire"
 	"bazil.org/bazil/util/grpcunix"
 	"bazil.org/bazil/util/tempdir"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 )
 

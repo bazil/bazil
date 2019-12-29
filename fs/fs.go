@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"path"
@@ -20,7 +21,6 @@ import (
 	"bazil.org/bazil/tokens"
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"golang.org/x/net/context"
 )
 
 type Volume struct {

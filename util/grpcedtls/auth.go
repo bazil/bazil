@@ -1,13 +1,13 @@
 package grpcedtls
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"net"
 
 	"bazil.org/bazil/util/edtls"
 	"github.com/agl/ed25519"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/credentials"
 )
 

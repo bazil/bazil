@@ -1,12 +1,12 @@
 package get
 
 import (
+	"context"
 	"os"
 
 	"bazil.org/bazil/cas/flagx"
 	clicas "bazil.org/bazil/cli/debug/cas"
 	"bazil.org/bazil/cliutil/subcommands"
-	"golang.org/x/net/context"
 )
 
 type getCommand struct {

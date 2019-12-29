@@ -1,10 +1,11 @@
 package stash
 
 import (
+	"context"
+
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/idpool"
-	"golang.org/x/net/context"
 )
 
 // New creates a new Stash.

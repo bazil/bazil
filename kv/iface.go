@@ -1,7 +1,7 @@
 package kv
 
 import (
-	"golang.org/x/net/context"
+	"context"
 )
 
 type KV interface {

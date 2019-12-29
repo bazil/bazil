@@ -1,13 +1,13 @@
 package pubkey
 
 import (
+	"context"
 	"os"
 
 	clibazil "bazil.org/bazil/cli"
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/server/control/wire"
-	"golang.org/x/net/context"
 )
 
 type pubkeyCommand struct {

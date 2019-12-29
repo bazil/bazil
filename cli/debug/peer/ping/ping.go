@@ -1,6 +1,7 @@
 package ping
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -11,7 +12,6 @@ import (
 	"bazil.org/bazil/server"
 	"bazil.org/bazil/util/grpcedtls"
 	"github.com/agl/ed25519"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 

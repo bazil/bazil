@@ -1,12 +1,9 @@
 package peer_test
 
 import (
+	"context"
 	"sync"
 	"testing"
-
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 
 	"bazil.org/bazil/db"
 	bazfstestutil "bazil.org/bazil/fs/fstestutil"
@@ -14,6 +11,8 @@ import (
 	"bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server/http/httptest"
 	"bazil.org/bazil/util/tempdir"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 func TestPing(t *testing.T) {

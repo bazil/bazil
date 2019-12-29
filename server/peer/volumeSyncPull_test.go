@@ -1,14 +1,13 @@
 package peer_test
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
 	"path"
 	"reflect"
 	"sync"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"bazil.org/bazil/cas/blobs"
 	"bazil.org/bazil/cas/chunks"

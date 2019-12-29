@@ -1,9 +1,10 @@
 package mock
 
 import (
+	"context"
+
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
-	"golang.org/x/net/context"
 )
 
 // NeverUsed is a chunks.Store meant for unit tests that don't touch

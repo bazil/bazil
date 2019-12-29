@@ -1,6 +1,7 @@
 package blobs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -9,7 +10,6 @@ import (
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/cas/chunks/stash"
-	"golang.org/x/net/context"
 )
 
 const debugLookup = true

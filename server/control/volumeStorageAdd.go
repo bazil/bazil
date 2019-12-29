@@ -1,11 +1,11 @@
 package control
 
 import (
+	"context"
 	"log"
 
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/server/control/wire"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )

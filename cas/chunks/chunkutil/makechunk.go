@@ -1,9 +1,10 @@
 package chunkutil
 
 import (
+	"context"
+
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
-	"golang.org/x/net/context"
 )
 
 // MakeChunk makes a new Chunk of the given description, filling it

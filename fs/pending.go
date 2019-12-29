@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"syscall"
@@ -13,7 +14,6 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 	"github.com/tv42/zbase32"
-	"golang.org/x/net/context"
 )
 
 type pendingList struct {

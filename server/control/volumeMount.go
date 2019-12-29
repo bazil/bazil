@@ -1,8 +1,9 @@
 package control
 
 import (
+	"context"
+
 	"bazil.org/bazil/server/control/wire"
-	"golang.org/x/net/context"
 )
 
 func (c controlRPC) VolumeMount(ctx context.Context, req *wire.VolumeMountRequest) (*wire.VolumeMountResponse, error) {

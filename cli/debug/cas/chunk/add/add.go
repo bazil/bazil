@@ -2,6 +2,7 @@ package add
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,7 +11,6 @@ import (
 	"bazil.org/bazil/cas/chunks"
 	clicas "bazil.org/bazil/cli/debug/cas"
 	"bazil.org/bazil/cliutil/subcommands"
-	"golang.org/x/net/context"
 )
 
 type addCommand struct {

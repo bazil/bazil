@@ -1,8 +1,9 @@
 package kvmock
 
 import (
+	"context"
+
 	"bazil.org/bazil/kv"
-	"golang.org/x/net/context"
 )
 
 type InMemory struct {

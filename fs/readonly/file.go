@@ -1,11 +1,10 @@
 package readonly
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"syscall"
-
-	"golang.org/x/net/context"
 
 	"bazil.org/bazil/cas/blobs"
 	"bazil.org/bazil/cas/chunks"

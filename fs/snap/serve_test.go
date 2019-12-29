@@ -1,6 +1,7 @@
 package snap_test
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path"
@@ -17,7 +18,6 @@ import (
 	"bazil.org/bazil/util/tempdir"
 	"bazil.org/fuse/fs"
 	"bazil.org/fuse/fs/fstestutil"
-	"golang.org/x/net/context"
 )
 
 type FS struct {

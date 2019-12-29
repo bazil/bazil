@@ -1,12 +1,12 @@
 package kvmulti_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
 	"bazil.org/bazil/kv/kvmock"
 	"bazil.org/bazil/kv/kvmulti"
-	"golang.org/x/net/context"
 )
 
 func TestGetFallback(t *testing.T) {

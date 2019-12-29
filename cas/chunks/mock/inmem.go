@@ -1,10 +1,11 @@
 package mock
 
 import (
+	"context"
+
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/cas/chunks/chunkutil"
-	"golang.org/x/net/context"
 )
 
 type mapkey struct {

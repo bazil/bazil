@@ -1,13 +1,13 @@
 package kvfiles
 
 import (
+	"context"
 	"encoding/hex"
 	"io/ioutil"
 	"os"
 	"path"
 
 	"bazil.org/bazil/kv"
-	"golang.org/x/net/context"
 )
 
 type KVFiles struct {

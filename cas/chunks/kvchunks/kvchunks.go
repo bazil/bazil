@@ -4,11 +4,12 @@ package kvchunks
 // merge there, too, to avoid an import cycle
 
 import (
+	"context"
+
 	"bazil.org/bazil/cas"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/cas/chunks/chunkutil"
 	"bazil.org/bazil/kv"
-	"golang.org/x/net/context"
 )
 
 type storeInKV struct {

@@ -1,6 +1,7 @@
 package snap
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"bazil.org/bazil/util/env"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
-	"golang.org/x/net/context"
 )
 
 // Serve this snapshot with FUSE, with this object store.

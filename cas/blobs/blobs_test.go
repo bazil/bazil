@@ -2,6 +2,7 @@ package blobs_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
 
@@ -9,7 +10,6 @@ import (
 	"bazil.org/bazil/cas/blobs"
 	"bazil.org/bazil/cas/chunks"
 	"bazil.org/bazil/cas/chunks/mock"
-	"golang.org/x/net/context"
 )
 
 func emptyBlob(t testing.TB, chunkStore chunks.Store) *blobs.Blob {

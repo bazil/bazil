@@ -1,6 +1,7 @@
 package add
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"bazil.org/bazil/cliutil/subcommands"
 	"bazil.org/bazil/server/control/wire"
 	"golang.org/x/crypto/ssh/terminal"
-	"golang.org/x/net/context"
 )
 
 type addCommand struct {
