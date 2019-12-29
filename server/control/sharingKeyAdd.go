@@ -6,7 +6,6 @@ import (
 
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/server/control/wire"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -34,7 +33,7 @@ func (c controlRPC) SharingKeyAdd(ctx context.Context, req *wire.SharingKeyAddRe
 		case db.ErrSharingKeyNameInvalid:
 			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
-		if grpc.Code(err) != codes.Unknown {
+		if status.Code(err) != codes.Unknown {
 			return nil, err
 		}
 		log.Printf("db update error: put sharing key %q: %v", req.Name, err)

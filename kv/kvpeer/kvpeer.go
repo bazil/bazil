@@ -6,8 +6,8 @@ import (
 
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/peer/wire"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type KVPeer struct {
@@ -55,7 +55,7 @@ func (k *KVPeer) Get(ctx context.Context, key []byte) ([]byte, error) {
 		Key: key,
 	})
 	if err != nil {
-		if grpc.Code(err) == codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			return nil, kv.NotFoundError{Key: key}
 		}
 		return nil, err

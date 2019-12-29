@@ -11,8 +11,8 @@ import (
 	"bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server/http/httptest"
 	"bazil.org/bazil/util/tempdir"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestPing(t *testing.T) {
@@ -103,7 +103,7 @@ func TestPingBadNotPeer(t *testing.T) {
 	defer client.Close()
 
 	ctx := context.Background()
-	if _, err := client.Ping(ctx, &wire.PingRequest{}); grpc.Code(err) != codes.PermissionDenied {
+	if _, err := client.Ping(ctx, &wire.PingRequest{}); status.Code(err) != codes.PermissionDenied {
 		t.Errorf("wrong error from ping: %v", err)
 	}
 }
