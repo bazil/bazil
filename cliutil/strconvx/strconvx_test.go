@@ -42,8 +42,7 @@ func TestInt8OverFlow(t *testing.T) {
 var is32bit bool
 
 func init() {
-	var overflow uint
-	overflow = 1<<32 - 1
+	var overflow uint = 1<<32 - 1
 	overflow++
 	is32bit = (overflow == 0)
 }

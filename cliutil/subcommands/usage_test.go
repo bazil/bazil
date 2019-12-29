@@ -18,7 +18,7 @@ func TestUsage(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	result.UsageTo(&buf)
-	if g, e := string(buf.Bytes()), `Usage:
+	if g, e := buf.String(), `Usage:
   calc [OPT..] COMMAND..
 
 Options:
@@ -40,7 +40,7 @@ func TestUsageSub(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	result.UsageTo(&buf)
-	if g, e := string(buf.Bytes()), `Usage:
+	if g, e := buf.String(), `Usage:
   calc sum [OPT..] A B
 
 Computes the sum of two integers, A and B.

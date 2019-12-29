@@ -7,7 +7,6 @@ import (
 	"path"
 	"syscall"
 	"testing"
-	"time"
 
 	"bazil.org/bazil/cas/blobs"
 	"bazil.org/bazil/cas/chunks"
@@ -38,7 +37,7 @@ func newFS(chunkStore chunks.Store, de *wire.Dirent) (*FS, error) {
 	return &FS{root: root}, nil
 }
 
-var TIME_1 = time.Unix(1361927841, 123456789)
+// var TIME_1 = time.Unix(1361927841, 123456789)
 
 const GREETING = "hello, world\n"
 
