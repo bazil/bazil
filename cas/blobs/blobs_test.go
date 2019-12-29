@@ -58,6 +58,9 @@ func TestSparseRead(t *testing.T) {
 			Fanout:    2,
 		},
 	)
+	if err != nil {
+		t.Fatalf("blobs.Open: %v", err)
+	}
 	buf := make([]byte, 10)
 	ctx := context.Background()
 	n, err := blob.IO(ctx).ReadAt(buf, 3)
