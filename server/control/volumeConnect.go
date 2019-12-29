@@ -7,18 +7,18 @@ import (
 	"bazil.org/bazil/peer"
 	wirepeer "bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server/control/wire"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c controlRPC) VolumeConnect(ctx context.Context, req *wire.VolumeConnectRequest) (*wire.VolumeConnectResponse, error) {
 	var pub peer.PublicKey
 	if err := pub.UnmarshalBinary(req.Pub); err != nil {
-		return nil, grpc.Errorf(codes.InvalidArgument, "bad peer public key: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "bad peer public key: %v", err)
 	}
 
 	if err := c.app.ValidateKV(req.Backend); err != nil {
-		return nil, grpc.Errorf(codes.InvalidArgument, "invalid backend: %q", req.Backend)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid backend: %q", req.Backend)
 	}
 
 	client, err := c.app.DialPeer(&pub)
@@ -60,13 +60,13 @@ func (c controlRPC) VolumeConnect(ctx context.Context, req *wire.VolumeConnectRe
 	if err := c.app.DB.Update(volumeConnect); err != nil {
 		switch err {
 		case db.ErrVolNameInvalid:
-			return nil, grpc.Errorf(codes.InvalidArgument, "%v", err)
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		case db.ErrVolNameExist:
-			return nil, grpc.Errorf(codes.AlreadyExists, "%v", err)
+			return nil, status.Errorf(codes.AlreadyExists, "%v", err)
 		case db.ErrSharingKeyNameInvalid:
-			return nil, grpc.Errorf(codes.InvalidArgument, "%v", err)
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		case db.ErrSharingKeyNotFound:
-			return nil, grpc.Errorf(codes.FailedPrecondition, "%v", err)
+			return nil, status.Errorf(codes.FailedPrecondition, "%v", err)
 		}
 		return nil, err
 	}

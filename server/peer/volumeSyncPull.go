@@ -4,8 +4,8 @@ import (
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/peer/wire"
 	"bazil.org/fuse"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (p *peers) VolumeSyncPull(req *wire.VolumeSyncPullRequest, stream wire.Peer_VolumeSyncPullServer) error {
@@ -29,7 +29,7 @@ func (p *peers) VolumeSyncPull(req *wire.VolumeSyncPullRequest, stream wire.Peer
 		// same error as not allowed
 		if (err == nil && !client.Volumes().IsAllowed(vol)) ||
 			err == db.ErrVolumeIDNotFound {
-			err = grpc.Errorf(codes.PermissionDenied, "peer is not authorized for that volume")
+			err = status.Errorf(codes.PermissionDenied, "peer is not authorized for that volume")
 		}
 		if err != nil {
 			return err
@@ -48,7 +48,7 @@ func (p *peers) VolumeSyncPull(req *wire.VolumeSyncPullRequest, stream wire.Peer
 
 	if err := v.FS().SyncSend(ctx, req.Path, stream.Send); err != nil {
 		if err == fuse.ENOENT {
-			return grpc.Errorf(codes.NotFound, "not found")
+			return status.Errorf(codes.NotFound, "not found")
 		}
 		return err
 	}

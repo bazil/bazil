@@ -5,8 +5,8 @@ import (
 
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/server/control/wire"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c controlRPC) VolumeCreate(ctx context.Context, req *wire.VolumeCreateRequest) (*wire.VolumeCreateResponse, error) {
@@ -23,13 +23,13 @@ func (c controlRPC) VolumeCreate(ctx context.Context, req *wire.VolumeCreateRequ
 	if err := c.app.DB.Update(volumeCreate); err != nil {
 		switch err {
 		case db.ErrVolNameInvalid:
-			return nil, grpc.Errorf(codes.InvalidArgument, "%v", err)
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		case db.ErrVolNameExist:
-			return nil, grpc.Errorf(codes.AlreadyExists, "%v", err)
+			return nil, status.Errorf(codes.AlreadyExists, "%v", err)
 		case db.ErrSharingKeyNameInvalid:
-			return nil, grpc.Errorf(codes.InvalidArgument, "%v", err)
+			return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 		case db.ErrSharingKeyNotFound:
-			return nil, grpc.Errorf(codes.FailedPrecondition, "%v", err)
+			return nil, status.Errorf(codes.FailedPrecondition, "%v", err)
 		}
 		return nil, err
 	}

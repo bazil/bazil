@@ -3,11 +3,10 @@ package peer
 import (
 	"context"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/peer/wire"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (p *peers) VolumeConnect(ctx context.Context, req *wire.VolumeConnectRequest) (*wire.VolumeConnectResponse, error) {
@@ -27,7 +26,7 @@ func (p *peers) VolumeConnect(ctx context.Context, req *wire.VolumeConnectReques
 		// same error as not allowed
 		if (err == nil && !p.Volumes().IsAllowed(vol)) ||
 			err == db.ErrVolNameNotFound {
-			err = grpc.Errorf(codes.PermissionDenied, "peer is not authorized for that volume")
+			err = status.Errorf(codes.PermissionDenied, "peer is not authorized for that volume")
 		}
 		if err != nil {
 			return err

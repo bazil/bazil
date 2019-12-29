@@ -6,8 +6,8 @@ import (
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/kv"
 	"bazil.org/bazil/peer/wire"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (p *peers) ObjectGet(req *wire.ObjectGetRequest, stream wire.Peer_ObjectGetServer) error {
@@ -18,7 +18,7 @@ func (p *peers) ObjectGet(req *wire.ObjectGetRequest, stream wire.Peer_ObjectGet
 	store, err := p.app.OpenKVForPeer(pub)
 	if err != nil {
 		if err == db.ErrNoStorageForPeer {
-			return grpc.Errorf(codes.PermissionDenied, "%v", err)
+			return status.Errorf(codes.PermissionDenied, "%v", err)
 		}
 		return err
 	}
@@ -26,11 +26,11 @@ func (p *peers) ObjectGet(req *wire.ObjectGetRequest, stream wire.Peer_ObjectGet
 	buf, err := store.Get(stream.Context(), req.Key)
 	if err != nil {
 		if _, ok := err.(kv.NotFoundError); ok {
-			return grpc.Errorf(codes.NotFound, err.Error())
+			return status.Errorf(codes.NotFound, err.Error())
 		}
 		// TODO safe errors
 		log.Printf("kv error: getting key for peer: %v", err)
-		return grpc.Errorf(codes.Internal, "internal error")
+		return status.Errorf(codes.Internal, "internal error")
 	}
 
 	const chunkSize = 4 * 1024 * 1024

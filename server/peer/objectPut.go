@@ -3,11 +3,10 @@ package peer
 import (
 	"io"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/peer/wire"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (p *peers) ObjectPut(stream wire.Peer_ObjectPutServer) error {
@@ -18,7 +17,7 @@ func (p *peers) ObjectPut(stream wire.Peer_ObjectPutServer) error {
 	store, err := p.app.OpenKVForPeer(pub)
 	if err != nil {
 		if err == db.ErrNoStorageForPeer {
-			return grpc.Errorf(codes.PermissionDenied, "%v", err)
+			return status.Errorf(codes.PermissionDenied, "%v", err)
 		}
 		return err
 	}
@@ -35,7 +34,7 @@ func (p *peers) ObjectPut(stream wire.Peer_ObjectPutServer) error {
 		}
 		if key == nil {
 			if req.Key == nil {
-				return grpc.Errorf(codes.InvalidArgument, "ObjectPutRequest.Key must be set in first streamed message")
+				return status.Errorf(codes.InvalidArgument, "ObjectPutRequest.Key must be set in first streamed message")
 			}
 			key = req.Key
 		}

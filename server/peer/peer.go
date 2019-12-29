@@ -11,16 +11,17 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	grpcpeer "google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 func (p *peers) auth(ctx context.Context) (*peer.PublicKey, error) {
 	peerInfo, ok := grpcpeer.FromContext(ctx)
 	if !ok {
-		return nil, grpc.Errorf(codes.Unauthenticated, "unauthenticated")
+		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated")
 	}
 	auth, ok := peerInfo.AuthInfo.(*grpcedtls.Auth)
 	if !ok {
-		return nil, grpc.Errorf(codes.Unauthenticated, "unauthenticated")
+		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated")
 	}
 	pub := (*peer.PublicKey)(auth.PeerPub)
 	getPeer := func(tx *db.Tx) error {
@@ -29,7 +30,7 @@ func (p *peers) auth(ctx context.Context) (*peer.PublicKey, error) {
 	}
 	if err := p.app.DB.View(getPeer); err != nil {
 		if err == db.ErrPeerNotFound {
-			return nil, grpc.Errorf(codes.PermissionDenied, "permission denied")
+			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 		return nil, err
 	}

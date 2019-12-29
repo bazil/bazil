@@ -7,14 +7,14 @@ import (
 	"bazil.org/bazil/db"
 	"bazil.org/bazil/peer"
 	"bazil.org/bazil/server/control/wire"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c controlRPC) PeerVolumeAllow(ctx context.Context, req *wire.PeerVolumeAllowRequest) (*wire.PeerVolumeAllowResponse, error) {
 	var pub peer.PublicKey
 	if err := pub.UnmarshalBinary(req.Pub); err != nil {
-		return nil, grpc.Errorf(codes.InvalidArgument, "bad peer public key: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "bad peer public key: %v", err)
 	}
 
 	allowVolume := func(tx *db.Tx) error {
@@ -30,10 +30,10 @@ func (c controlRPC) PeerVolumeAllow(ctx context.Context, req *wire.PeerVolumeAll
 	}
 	if err := c.app.DB.Update(allowVolume); err != nil {
 		if err == db.ErrPeerNotFound {
-			return nil, grpc.Errorf(codes.InvalidArgument, "peer not found")
+			return nil, status.Errorf(codes.InvalidArgument, "peer not found")
 		}
 		log.Printf("db error: allowing peer volume: %v", err)
-		return nil, grpc.Errorf(codes.Internal, "database error")
+		return nil, status.Errorf(codes.Internal, "database error")
 	}
 	return &wire.PeerVolumeAllowResponse{}, nil
 }

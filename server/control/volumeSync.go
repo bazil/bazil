@@ -8,8 +8,8 @@ import (
 	"bazil.org/bazil/peer"
 	wirepeer "bazil.org/bazil/peer/wire"
 	"bazil.org/bazil/server/control/wire"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c controlRPC) VolumeSync(ctx context.Context, req *wire.VolumeSyncRequest) (*wire.VolumeSyncResponse, error) {
@@ -18,7 +18,7 @@ func (c controlRPC) VolumeSync(ctx context.Context, req *wire.VolumeSyncRequest)
 		v, err := tx.Volumes().GetByName(req.VolumeName)
 		if err != nil {
 			if err == db.ErrVolNameNotFound {
-				return grpc.Errorf(codes.InvalidArgument, "%v", err)
+				return status.Errorf(codes.InvalidArgument, "%v", err)
 			}
 			return err
 		}
@@ -31,7 +31,7 @@ func (c controlRPC) VolumeSync(ctx context.Context, req *wire.VolumeSyncRequest)
 
 	var pub peer.PublicKey
 	if err := pub.UnmarshalBinary(req.Pub); err != nil {
-		return nil, grpc.Errorf(codes.InvalidArgument, "bad peer public key: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "bad peer public key: %v", err)
 	}
 
 	client, err := c.app.DialPeer(&pub)
@@ -63,9 +63,9 @@ func (c controlRPC) VolumeSync(ctx context.Context, req *wire.VolumeSyncRequest)
 		// nothing
 	case wirepeer.VolumeSyncPullItem_NOT_A_DIRECTORY:
 		// TODO maybe we should handle the path not being a dir, somehow
-		return nil, grpc.Errorf(codes.FailedPrecondition, "path to sync is not a directory")
+		return nil, status.Errorf(codes.FailedPrecondition, "path to sync is not a directory")
 	default:
-		return nil, grpc.Errorf(codes.FailedPrecondition, "peer gave error: %v", first.Error.String())
+		return nil, status.Errorf(codes.FailedPrecondition, "peer gave error: %v", first.Error.String())
 	}
 
 	recv := func() ([]*wirepeer.Dirent, error) {
