@@ -7,9 +7,6 @@ import (
 	"testing"
 
 	"bazil.org/bazil/cliutil/subcommands"
-)
-
-import (
 	"bazil.org/bazil/cliutil/subcommands/test/calc"
 	_ "bazil.org/bazil/cliutil/subcommands/test/calc/sum"
 )

@@ -7,13 +7,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go/build"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"text/template"
-
-	"go/build"
 
 	"github.com/kisielk/gotool"
 )

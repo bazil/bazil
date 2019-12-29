@@ -6,9 +6,6 @@ import (
 
 	"bazil.org/bazil/cliutil/positional"
 	"bazil.org/bazil/cliutil/subcommands"
-)
-
-import (
 	"bazil.org/bazil/cliutil/subcommands/test/calc"
 	"bazil.org/bazil/cliutil/subcommands/test/calc/sum"
 )
