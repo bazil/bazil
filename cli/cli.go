@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"sync"
-	"time"
 
 	"bazil.org/bazil/cliutil/flagx"
 	"bazil.org/bazil/cliutil/subcommands"
@@ -85,9 +84,9 @@ func (b *bazil) Control() (wire.ControlClient, error) {
 }
 
 func (b *bazil) controlDial() {
+	// this is a non-blocking operation
 	b.control.conn, b.control.err = grpcunix.Dial(
 		filepath.Join(b.Config.DataDir.String(), "control"),
-		grpc.WithTimeout(500*time.Millisecond),
 	)
 	b.control.client = wire.NewControlClient(b.control.conn)
 }
